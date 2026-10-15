@@ -1,0 +1,20 @@
+{
+  "bundleSHA256": "337cba147c27cfd7b56e97fe022f5002aaa3c74a87b2785ac25c12a31aef77a5",
+  "bundleBytes": 3641994,
+  "originalMain": "4a6464669382de28781db24bcb709c7dcda4dab8",
+  "originalCommits": [
+    "4a6464669382de28781db24bcb709c7dcda4dab8",
+    "ed57c9c78097aa17f3c9b488951c710ff814b2c4",
+    "46162816c6b6b71e11076551b1f4c9e2e88a110b"
+  ],
+  "distinctBlobsInspected": 171,
+  "forbiddenPaths": [],
+  "credentialPatternMatches": [],
+  "onlyEnvironmentFiles": [
+    ".env.example"
+  ],
+  "runtimeStudentRecordFilesIncluded": 0,
+  "demoRosterSource": "src/lib/seed.ts; generated 96 fictional identities verified by executed demo:restore",
+  "images": "Existing fictional release screenshots; no camera/audio/student uploads in Git. Visually inspected during V3 delivery.",
+  "scope": "Source and Git history only. Preserved local records data/demo-v1.json and .env.local are excluded."
+}
