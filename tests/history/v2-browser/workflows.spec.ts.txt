@@ -1,0 +1,153 @@
+import { test, expect, type Page } from '@playwright/test';
+async function login(page: Page, role = 'owner') {
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill(`${role}@demo.center`);
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill(
+      role === 'assistant'
+        ? 'HelpDemo!2026'
+        : role === 'instructor'
+          ? 'TeachDemo!2026'
+          : 'CenterDemo!2026',
+    );
+  await page.getByRole('button', { name: 'Sign in to your center' }).click();
+  await expect(page.getByRole('heading', { name: 'Your center, ready for today.' })).toBeVisible();
+}
+test('instructor captures a follow-up that survives checkout and reload, then reviews it', async ({
+  page,
+}) => {
+  await login(page, 'instructor');
+  await page.getByRole('button', { name: 'Students', exact: true }).click();
+  await page.getByLabel('Search roster').fill('Avery Bennett');
+  await page.getByRole('button', { name: 'Quick note for Avery Bennett' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Needed guidance', exact: true }).click();
+  const note = `Fictional regression observation ${Date.now()}`;
+  await dialog.getByRole('textbox', { name: 'A little more context' }).fill(note);
+  await dialog.getByLabel('Needs a follow-up').check();
+  await dialog.getByRole('button', { name: 'Save observation' }).click();
+  await expect(page.getByRole('status')).toContainText('Saved');
+  const checkout = dialog.getByRole('button', { name: 'Check out', exact: true });
+  if (await checkout.isVisible()) await checkout.click();
+  await dialog.getByRole('button', { name: 'Close student details' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: /Review queue/ }).click();
+  const card = page.locator('.review-card').filter({ hasText: note });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Away');
+  await card.getByRole('button', { name: 'Mark reviewed' }).click();
+  await expect(card).toHaveCount(0);
+  await page.getByRole('button', { name: 'Students', exact: true }).click();
+  await page.getByLabel('Search roster').fill('Avery Bennett');
+  await page.getByRole('button', { name: 'Quick note for Avery Bennett' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.locator('.history-note').filter({ hasText: note })).toContainText('Reviewed');
+});
+test('kiosk manual flow is idempotent and cannot read staff records', async ({ page }) => {
+  await login(page);
+  const state = await (await page.request.get('/api/state')).json();
+  const token = state.students[70].token;
+  await page.getByRole('button', { name: 'Open kiosk', exact: true }).last().click();
+  await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enter a pouch code instead' }).click();
+  await page.getByLabel('Student pouch code').fill(token);
+  await page.getByRole('button', { name: 'Submit pouch scan' }).click();
+  await expect(page.getByRole('status')).toContainText('checked in');
+  expect((await page.request.get('/api/state')).status()).toBe(401);
+  await page.getByRole('button', { name: 'Ready for the next student' }).click();
+  await page.getByLabel('Student pouch code').fill(token);
+  await page.getByRole('button', { name: 'Submit pouch scan' }).click();
+  await expect(page.getByRole('status')).toContainText('Scan already recorded');
+  await page.waitForTimeout(31000); // Explicitly test the real server's 30-second safety debounce.
+  await page.getByLabel('Student pouch code').fill(token);
+  await page.getByRole('button', { name: 'Submit pouch scan' }).click();
+  await expect(page.getByRole('status')).toContainText('checked out');
+  await page.getByRole('button', { name: 'Ready for the next student' }).click();
+  await page.getByLabel('Student pouch code').fill('invalid-code');
+  await page.getByRole('button', { name: 'Submit pouch scan' }).click();
+  await expect(page.locator('.kiosk-error')).toContainText('not recognized');
+});
+test('assistant notes access is denied on server; homework handoff persists', async ({ page }) => {
+  await login(page, 'assistant');
+  await expect(page.getByRole('button', { name: /Review queue/ })).toHaveCount(0);
+  const db = await (await page.request.get('/api/state')).json();
+  expect(db.observations).toEqual([]);
+  const denied = await page.request.post('/api/commands', {
+    headers: { Origin: 'http://127.0.0.1:3100' },
+    data: {
+      kind: 'observation',
+      studentId: db.students[0].id,
+      choices: ['Strong focus'],
+      text: '',
+      followUp: false,
+    },
+  });
+  expect(denied.status()).toBe(403);
+  expect((await page.request.get('/api/export')).status()).toBe(403);
+  await page.getByRole('button', { name: 'Students', exact: true }).click();
+  await page.getByLabel('Search roster').fill('Milo Bennett');
+  await page.getByRole('button', { name: /MB Milo Bennett/ }).click();
+  await page.getByRole('button', { name: 'Assignments', exact: true }).click();
+  await page.getByRole('button', { name: 'Legacy homework packets' }).click();
+  const d = page.getByRole('dialog');
+  await expect(d.getByRole('button', { name: 'Observation', exact: true })).toHaveCount(0);
+  const packet = `Fictional packet ${Date.now()}`;
+  await d.getByLabel('New assignment').fill(packet);
+  await d.getByRole('button', { name: 'Assign packet' }).click();
+  const card = d.locator('.history-note').filter({ hasText: packet });
+  await card.getByRole('button', { name: 'Mark prepared' }).click();
+  await card.getByRole('button', { name: 'Confirm handoff' }).click();
+  await expect(card).toContainText('handed off');
+  await page.reload();
+  await page.getByRole('button', { name: 'Homework', exact: true }).click();
+  await page.getByRole('button', { name: 'Legacy packets', exact: true }).click();
+  await page.getByLabel('Search homework').fill('Milo Bennett');
+  await expect(page.locator('.legacy-packet').filter({ hasText: packet })).toContainText(
+    'handed-off',
+  );
+});
+test('camera-denial fallback, tablet/phone layout, and dialog keyboard close', async ({ page }) => {
+  await login(page);
+  const signOut = await page.getByRole('button', { name: 'Sign out' }).boundingBox();
+  expect(signOut!.y + signOut!.height).toBeLessThanOrEqual(768);
+  await page.screenshot({ path: '../../work/ipad-preview.png' });
+  await page.screenshot({ path: '../../work/ipad-overview.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('button', { name: 'Students', exact: true }).click();
+  await page.getByLabel('Search roster').fill('Avery Bennett');
+  await page.getByRole('button', { name: 'Quick note for Avery Bennett' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.screenshot({ path: '../../work/phone-roster.png', fullPage: true });
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
+  await page.evaluate(() =>
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      value: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')),
+      configurable: true,
+    }),
+  );
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(page.locator('.kiosk-error')).toContainText('Camera could not start');
+  await expect(page.getByLabel('Student pouch code')).toBeEnabled();
+  await page.screenshot({ path: '../../work/phone-kiosk.png', fullPage: true });
+});
+test('unauthenticated access and cross-origin writes are rejected', async ({ page }) => {
+  expect((await page.request.get('/api/state')).status()).toBe(401);
+  expect((await page.request.get('/api/export')).status()).toBe(401);
+  await page.goto('/kiosk');
+  await expect(page.getByRole('heading', { name: 'Let’s set up reception.' })).toBeVisible();
+  const response = await page.request.post('/api/auth', {
+    headers: { Origin: 'https://untrusted.example' },
+    data: { email: 'owner@demo.center', password: 'CenterDemo!2026' },
+  });
+  expect(response.status()).toBe(403);
+  await page.goto('/');
+  await expect(page).toHaveURL(/login/);
+});
