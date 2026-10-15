@@ -2,9 +2,9 @@
 
 ## Actual connection status
 
-Local Git is initialized and the V3 baseline is committed. GitHub sign-in was verified as `isaiascampiz`. The private name `centerflow` is available, but creation was blocked by automatic approval review because authorization was supplied in an attachment rather than a direct message. **No repository has been created or uploaded; no verified private repository link exists yet.** A prepared creation form is not a saved repository.
+Local Git is initialized and the V3 baseline is committed. Following direct user authorization, [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow) was created and verified private. Publication of the prepared Git history is in progress. The Windows sandbox denied credential-manager access, so the authorized cloud setup is being used to import the credential-free Git history bundle instead of exposing or copying credentials.
 
-Codex Cloud is signed in and its environment picker is available, but no Centerflow environment is published. Repository creation and appropriate repository access must come first. No cloud execution is claimed.
+Codex Cloud can see the private repository and its setup conversation has started. Environment publication and an independent cloud build/test run are still pending verification. The earlier local migration report records the checkpoint before repository authorization.
 
 ## VS Code
 
@@ -20,6 +20,8 @@ Node 24.20.0 and pnpm 11.25.0 were validated. `.nvmrc` and `.node-version` docum
 4. Confirm Git contains no `data/`, `.env.local`, credentials, dependencies, builds or browser traces. Fictional default sign-ins in application/tests are examples, not production secrets.
 
 The working folder retains accumulated fictional records locally; the repository intentionally excludes them. A clone generates fresh fictional data when missing. Transfer exact history only through a separately authorized records backup/restore process, not Git.
+
+For development, `pnpm demo:restore` reconstructs all 96 fictional demo identities from `src/lib/seed.ts`, then applies existing forward migrations. It never overwrites a file. A repeat run checks the expected identities and preserves existing history. It refuses production and Supabase modes. To test separately, pass a new path inside `data/`, such as `pnpm demo:restore data/restore-drills/my-demo.json`. Runtime JSON remains ignored by Git.
 
 ## Prepare a cloud environment after publication
 

@@ -7,7 +7,7 @@ Start here, then explore [the code guide](docs/code-guide.md). You do not need t
 ## Your tools
 
 - **Git** records checkpoints on your computer. A branch is a separate line of work; a commit is a saved checkpoint.
-- **GitHub** is the intended private online home for those checkpoints. It does not run the app or automatically back up student records. Publication is pending approval; see [migration status](docs/migration-status.md).
+- **GitHub** is the private online home for those checkpoints: [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow). Repository privacy is verified; source publication and cloud validation are being completed. GitHub does not run the app or automatically back up student records.
 - **VS Code** is your local editor. Open this folder, or double-click `Centerflow.code-workspace`. Explorer shows files; Terminal runs commands; Source Control shows proposed changes.
 - **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. That connection is not complete yet.
 
@@ -86,6 +86,8 @@ centerflow/
 ## Records and requests
 
 Preserved local records live in `data/demo-v1.json`, now schema 3. Its old filename is intentional: changing it could create a second empty database. Source fixtures in `src/lib/seed.ts` are separate from changing records. A fresh clone has no `data/` and initializes fictional seed data; it does not contain your accumulated local history. Keep an independent records backup.
+
+Run `pnpm demo:restore` in a development checkout to reconstruct the 96 fictional students at schema 3. The command uses only checked-in fictional fixtures, preserves an existing complete demo roster without writing, and refuses production/cloud-database mode. The cloud setup script runs it automatically. It does not upload or reproduce local visit/observation history; that history stays in the preserved local backup.
 
 A screen uses `src/lib/client.ts` to send JSON to `/api/commands`. The server checks login, role, input and version, applies a domain rule, then saves through `repository.ts`. Screens read the latest authorized snapshot from `/api/state`. Browsers never open the server's JSON file or receive its database service key. See the [architecture diagram](docs/architecture.md#beginner-map).
 
