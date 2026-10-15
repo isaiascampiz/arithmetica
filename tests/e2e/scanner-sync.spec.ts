@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import QRCode from 'qrcode';
+import { learner, state } from './helpers';
 async function login(page: Page) {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Sign in to your center' }).click();
@@ -7,9 +8,12 @@ async function login(page: Page) {
 }
 test('real QR decoder reads a synthetic camera stream and releases it', async ({ page }) => {
   await login(page);
+  // Give this decoder test its own identity, independent of retained visit history.
+  const student = await learner(page, 'CONNECT');
+  const token = (await state(page)).students.find((s) => s.id === student.id)!.token;
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).last().click();
   await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
-  const image = await QRCode.toDataURL('CF-DEMO-AVERY-7K2Q', { width: 400, margin: 4 });
+  const image = await QRCode.toDataURL(token, { width: 400, margin: 4 });
   await page.evaluate((src) => {
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
       configurable: true,
@@ -78,12 +82,12 @@ test('separate staff devices see shared persistent notes; themes and larger layo
   await otherPage.getByRole('button', { name: 'Visit History', exact: true }).click();
   await expect(otherPage.locator('.history-note').filter({ hasText: note })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({ path: '../../work/v3-desktop.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/v3-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.screenshot({ path: '../../work/v3-dark.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/v3-dark.png', fullPage: true });
   await page.setViewportSize({ width: 768, height: 1024 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: '../../work/v3-portrait.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/v3-portrait.png', fullPage: true });
   await other.close();
 });

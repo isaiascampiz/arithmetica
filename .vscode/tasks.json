@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Centerflow: Start preview",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Centerflow: Build",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Centerflow: Type check",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["typecheck"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Centerflow: Lint",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["lint"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Centerflow: Unit tests",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["test"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Centerflow: Browser tests (build first)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["test:e2e"],
+      "problemMatcher": []
+    }
+  ]
+}

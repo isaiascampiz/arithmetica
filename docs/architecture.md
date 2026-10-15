@@ -1,5 +1,27 @@
 # Centerflow V3 architecture
 
+## Beginner map
+
+The frontend draws the screens; the backend checks and saves changes. Next.js supplies both in one project.
+
+```mermaid
+flowchart TD
+  UI[Staff iPad / Mac / browser] -->|JSON via client.ts| API[Next.js state / commands APIs]
+  K[Kiosk: restricted attendance] --> KA[Kiosk API]
+  API --> AUTH[Session, role, input and version checks]
+  KA --> AUTH
+  AUTH --> RULES[Domain rules and shared packet planner]
+  RULES --> REPO[repository.ts]
+  REPO -->|Current local adapter| FILE[Ignored data/demo-v1.json]
+  REPO -.->|Optional adapter: not live-validated| DB[Supabase Auth + PostgreSQL]
+  JOBS[Secured scheduler / current Node loop] --> RULES
+  DB -.-> BACKUP[Independent managed backups]
+```
+
+A future Cloudflare host would run the application/API after adapter validation; each iPad would use the same shared server. GitHub stores source, VS Code edits a local checkout, and Codex Cloud runs coding tasks in a separate checkout. None automatically synchronizes runtime student records. See `cloudflare.md` before a future hosting decision.
+
+## Implementation reference
+
 V3 extends the original Next.js application and preserved V2 operations aggregate. It does not create a second app or a new database. V1/V2 domain modules remain for historical compatibility; new daily UI calls V3 commands.
 
 | Module                                   | Responsibility                                                                                                                                                                   |

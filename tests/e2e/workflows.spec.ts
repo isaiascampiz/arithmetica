@@ -105,7 +105,7 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await login(page);
   const box = await page.getByRole('button', { name: 'Sign out' }).boundingBox();
   expect(box!.y + box!.height).toBeLessThanOrEqual(768);
-  await page.screenshot({ path: '../../work/v3-ipad.png' });
+  await page.screenshot({ path: 'test-results/v3-ipad.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Open navigation' }).click();
@@ -114,7 +114,7 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.screenshot({ path: '../../work/v3-phone-roster.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/v3-phone-roster.png', fullPage: true });
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
@@ -127,7 +127,7 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await page.getByRole('button', { name: 'Start camera' }).click();
   await expect(page.locator('.kiosk-error')).toContainText('Camera could not start');
   await expect(page.getByLabel('Student pouch code')).toBeEnabled();
-  await page.screenshot({ path: '../../work/v3-phone-kiosk.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/v3-phone-kiosk.png', fullPage: true });
 });
 test('anonymous access and foreign-origin writes remain denied', async ({ page }) => {
   expect((await page.request.get('/api/state')).status()).toBe(401);

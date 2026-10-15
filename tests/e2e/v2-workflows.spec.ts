@@ -36,7 +36,7 @@ test('Home has three metrics, direct waiting Quick View and only the V3 navigati
   await expect(page.getByRole('heading', { name: 'Your center, right now.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
   await page.getByRole('button', { name: 'Expand sidebar' }).click();
-  await page.screenshot({ path: '../../work/v3-home.png' });
+  await page.screenshot({ path: 'test-results/v3-home.png' });
 });
 test('roster creates, consolidated edit sets defaults, withdrawal/reactivation and QR preserve identity', async ({
   page,
@@ -67,7 +67,7 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
   await expect(
     page.getByRole('heading', { name: 'No recorded academic milestones' }),
   ).toBeVisible();
-  await page.screenshot({ path: '../../work/v3-profile.png' });
+  await page.screenshot({ path: 'test-results/v3-profile.png' });
 });
 test('compact preparation shows every packet, supports partial subject readiness and prepared is never issued', async ({
   page,
@@ -116,7 +116,7 @@ test('compact preparation shows every packet, supports partial subject readiness
   ).toBe(true);
   await page.getByRole('button', { name: /^Needs Preparation/ }).click();
   await page.getByLabel('Search preparation').fill('');
-  await page.screenshot({ path: '../../work/v3-preparation.png' });
+  await page.screenshot({ path: 'test-results/v3-preparation.png' });
 });
 test('Quick View corrections-only, one-time repeat and manual overrides record actual packets and preserve defaults', async ({
   page,
@@ -181,7 +181,7 @@ test('Center Activity separates arrivals and occupancy, and removed appointment 
   await page.getByLabel('Weekday comparison').selectOption('3');
   await expect(page.locator('.chart-card')).toHaveCount(2);
   expect(Array.isArray((await state(page)).operations!.appointments)).toBe(true);
-  await page.screenshot({ path: '../../work/v3-activity.png' });
+  await page.screenshot({ path: 'test-results/v3-activity.png' });
 });
 test('daily weekly monthly report exports and immutable revisions remain functional', async ({
   page,
@@ -207,7 +207,7 @@ test('daily weekly monthly report exports and immutable revisions remain functio
   );
   await page.getByRole('button', { name: 'Generate / open snapshot' }).click();
   await expect(page.locator('.report-detail')).toContainText('ARCHIVED · V' + (previous + 1));
-  await page.screenshot({ path: '../../work/v3-reports.png' });
+  await page.screenshot({ path: 'test-results/v3-reports.png' });
 });
 test('competing profile updates reject stale versions and command retries are idempotent', async ({
   page,
@@ -303,7 +303,7 @@ for (const size of [
       await expect(page.getByRole('button', { name: 'Edit Student', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Visit History', exact: true }).click();
       await expect(page.locator('.visit-entry')).toContainText('No observations recorded');
-      await page.screenshot({ path: '../../work/v3-viewport-' + size.width + '.png' });
+      await page.screenshot({ path: 'test-results/v3-viewport-' + size.width + '.png' });
     },
   );
 test('fictional center day: 50 expected, six early learners, mixed modes and exceptions across two staff clients', async ({
@@ -465,6 +465,6 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   db = await state(page);
   expect(ids.every((id) => db.students.some((s) => s.id === id))).toBe(true);
   expect(db.operations!.completions.length).toBe(0);
-  await page.screenshot({ path: '../../work/v3-busy-day.png' });
+  await page.screenshot({ path: 'test-results/v3-busy-day.png' });
   await other.close();
 });
