@@ -1,0 +1,47 @@
+import { test, expect } from '@playwright/test';
+test('failed observation save keeps the draft and displays its error inside the dialog', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Sign in to your center' }).click();
+  await page.getByRole('button', { name: 'Students', exact: true }).click();
+  await page.getByLabel('Search roster').fill('Avery Bennett');
+  await page.getByRole('button', { name: 'Quick note for Avery Bennett' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Strong focus', exact: true }).click();
+  await dialog
+    .getByRole('textbox', { name: 'A little more context' })
+    .fill('Keep this fictional unsaved draft.');
+  await page.route('**/api/commands', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Fictional test server unavailable. Please retry.' }),
+    }),
+  );
+  await dialog.getByRole('button', { name: 'Save observation' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('server unavailable');
+  await expect(dialog.getByRole('textbox', { name: 'A little more context' })).toHaveValue(
+    'Keep this fictional unsaved draft.',
+  );
+  await expect(dialog.getByRole('button', { name: 'Strong focus', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+test('installed service worker gives a generic offline page without cached student data', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Sign in to your center' }).click();
+  await expect(page.getByRole('heading', { name: 'Your center, ready for today.' })).toBeVisible();
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Your center, ready for today.' })).toBeVisible();
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Let’s reconnect.' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Avery');
+  await context.setOffline(false);
+});

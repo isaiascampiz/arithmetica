@@ -1,0 +1,18 @@
+{
+  "checkedUnchangedSourceFiles": 89,
+  "portableTestFiles": [
+    "tests/e2e/scanner-sync.spec.ts",
+    "tests/e2e/v2-workflows.spec.ts",
+    "tests/e2e/workflows.spec.ts"
+  ],
+  "portableTestChanges": "Screenshot output paths are project-local; scanner uses a fresh fictional identity. Assertions unchanged.",
+  "studentCount": 96,
+  "visits": 77,
+  "observations": 5,
+  "homework": 18,
+  "dataSHA256": "c12fc2fbd45b7f658f3f0a0092e2cb5b7dad86b48fe67e05f7ff7352de7398ff",
+  "applicationSourceAndMainDataUnchanged": true,
+  "baselineCommit": "46162816c6b6b71e11076551b1f4c9e2e88a110b",
+  "trackedFiles": 163,
+  "credentialPatternScan": "passed (not a substitute for secret-management review)"
+}

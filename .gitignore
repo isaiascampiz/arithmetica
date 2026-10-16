@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.pnpm-store/
+.env*
+!.env.example
+data/
+test-results/
+playwright-report/
+*.tsbuildinfo
+*.log
+*.pem
+*.key
+*.pfx
+.DS_Store
+Thumbs.db
