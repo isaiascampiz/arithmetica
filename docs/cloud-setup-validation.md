@@ -181,3 +181,91 @@ Saving the draft did not itself execute scripts, publish the environment, change
 The repository was verified private during its authorized creation; this host verified native Git fetch/push and exact remote refs. Direct metadata access to `api.github.com` failed at the network proxy (CONNECT 403), so privacy was not independently re-read here. The environment configuration tools expose scripts, repositories, networking, and variable requirements, but no sharing/visibility setting. **Verify Only me in environment settings before publication.** No sharing change is claimed.
 
 Publication and a fresh task restored from the published snapshot are not yet verified. Review the saved configuration, keep the environment private/Only me, and publish through the product UI. A subsequent task should read `AGENTS.md`, activate the saved tools, run a check, and confirm the restored checkout and fictional demo. Live Supabase policy checks remain unrun by design; no production readiness is claimed.
+
+## Published environment: fresh-task verification, October 15, 2026
+
+This section supersedes the pending-publication statements above; earlier setup results remain historical evidence. The user supplied the product UI confirmation **Environment published**, **Only me** sharing, and verified-private `isaiascampiz/centerflow`. Those UI/privacy confirmations are user-reported, not a new metadata API verification. Native Git read/write is verified separately below. No application deployment occurred.
+
+A new task restored `/workspace/centerflow`, `/workspace/tools/centerflow-env.sh`, pinned tools and dependencies, `data/demo-v1.json`, and `/workspace/validation/playwright-cloud.config.cjs`. No worktree or dependency installation was needed. The restored host is `f457d6671116`, distinct from setup host `e71a9774a905`: Debian GNU/Linux 13.6 (trixie), Linux x86_64, kernel `6.18.44`. Node is `v24.20.0`, pnpm `11.25.0`, Next `16.4.0`, TypeScript `5.9.3`, Playwright `1.64.0`, and system Chromium `154.0.8037.57` at `/usr/bin/chromium`.
+
+`AGENTS.md` was read. The saved Start skill itself was not exposed by this task's tools or restored skill directories (executor skill discovery returned no skills). Its recorded instructions in this report and `docs/development.md` were read and followed: use the existing checkout, activate the pinned tools and fictional-local flags, restart the server, and check actual HTTP authorization. This is a visibility limitation, not a claim that the Start skill was independently retrieved. Runtime status reported a running, connected instance, current observations, no configured secrets/runtime variables/outbound identities, and network-policy state `unknown`; no enforced-policy readiness claim is inferred from that status. `/etc/codex/network-policy.json` reported restricted HTTP policy and no VPN configuration.
+
+### Restored history and fictional records
+
+Initial branch was `main`, HEAD `6af0fb5d59047db416be3b68dbe2706505412bfc`; `git status --porcelain=v1` was empty. The baseline tag remains `46162816c6b6b71e11076551b1f4c9e2e88a110b`. Each of the three original commits and bootstrap commit listed above again passed ancestry checks. A comparison with `import/original-main` showed no differences in application source, tests, SQL, scripts, public assets, dependencies, lockfile or the checked application/browser configuration.
+
+The restored default JSON independently contained schema 3 and exactly 96 unique IDs, precisely `demo-student-1` through `demo-student-96`. The saved `verify-demo.cjs` was executed afresh. Repeat `pnpm demo:restore` preserved the default file's SHA256 and modification time. A new ignored drill file at `data/restore-drills-cloud-Hv5srG/fresh.json` reconstructed all 96 identities and its repeat also preserved SHA256/mtime. An incomplete fictional copy was rejected with expected exit 1, unchanged SHA256; the overall verification script exited 0. No existing records were removed or overwritten.
+
+### Actual checks and sandbox failures
+
+| Check executed in this new task | Final result |
+| --- | --- |
+| `pnpm build` | Passed; optimized build, TypeScript, route generation, exit 0 |
+| `pnpm typecheck` | Passed, exit 0 |
+| `pnpm lint` | Passed, exit 0 |
+| `pnpm test` | **94 passed, 0 failed, 0 skipped, 0 cancelled**, exit 0 |
+| Existing external Playwright config, `--list` | **21 cases in four files**, exit 0 |
+| Synthetic camera QR decoder case only | **1 passed**, 5.0 s overall, system Chromium, fresh Playwright-managed server on port 3100 |
+| Cloud-local optimized server on port 3000 | Started successfully; HTTP checks below passed |
+
+Initial command-sandbox attempts failed: build compiled but could not parse TypeScript `--showConfig`; QR smoke could not start its web server; direct startup returned `listen EPERM` on `127.0.0.1:3000`. A child-process probe showed console output missing under that sandbox. The initial unit invocation reported only six file-level passes, so it was not accepted as evidence for 94 cases. An exploratory `pnpm test --test-isolation=none` also failed with unknown `.ts` extension; no test or loader was changed. The ordinary commands were rerun in the approved cloud-host execution context outside the command sandbox, and all final results above passed. No application, dependency or test changes were used to obtain success. Harmless Chromium runner warnings about `NO_COLOR`/`FORCE_COLOR` remained.
+
+Only the requested QR case was run in this task. The earlier full 21-case per-spec success remains documented above; it was not rerun or represented as a new full-suite pass. The fresh server retained the existing separate fictional `data/e2e-v3.json`. The default app data was not used by browser tests.
+
+HTTP requests from this cloud host verified `GET /login` 200 with the expected form; anonymous `GET /api/state` 401; fictional owner `POST /api/auth` 200 with matching loopback Origin; authenticated `GET /api/state` 200 with exactly the expected 96 unique fictional identities. Session cookies stayed in memory and were not printed. No Windows machine, real student records, production credentials, live Supabase migrations or production service was accessed.
+
+### Exact verification commands
+
+Commands ran in `/workspace/centerflow`. Logs are outside Git in `/workspace/work/final-verification/` (final checks use `*-unsandboxed.log`); the HTTP helper is an external copy of the saved helper with explicit length/uniqueness assertions. These files are task evidence, not tracked application changes.
+
+```bash
+cd /workspace/centerflow
+source /workspace/tools/centerflow-env.sh
+uname -a
+hostname
+cat /etc/os-release
+realpath /workspace/centerflow /workspace/tools/centerflow-env.sh \
+  /workspace/validation/playwright-cloud.config.cjs
+node --version
+pnpm --version
+pnpm exec next --version
+pnpm exec playwright --version
+pnpm exec tsc --version
+chromium --version
+git status --porcelain=v1
+git branch --show-current
+git rev-parse HEAD refs/tags/v3.0.0-baseline
+for commit in \
+  46162816c6b6b71e11076551b1f4c9e2e88a110b \
+  ed57c9c78097aa17f3c9b488951c710ff814b2c4 \
+  4a6464669382de28781db24bcb709c7dcda4dab8 \
+  0aee0e044e6ceb9636a5bba721e319d97cd392c3; do
+  git merge-base --is-ancestor "$commit" HEAD
+done
+git diff --exit-code import/original-main -- \
+  src tests supabase scripts public package.json pnpm-lock.yaml \
+  next.config.ts playwright.config.ts
+node /workspace/validation/verify-demo.cjs
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm test:e2e --config /workspace/validation/playwright-cloud.config.cjs --list
+pnpm test:e2e --config /workspace/validation/playwright-cloud.config.cjs \
+  tests/e2e/scanner-sync.spec.ts \
+  --grep 'real QR decoder reads a synthetic camera stream and releases it' \
+  --output test-results/fresh-cloud-qr
+pnpm start --port 3000
+# In another cloud command with the same activation:
+node /workspace/work/final-verification/application-smoke.cjs
+git fetch origin main
+git ls-remote origin refs/heads/main refs/tags/v3.0.0-baseline
+git diff --check
+git add -- README.md docs/development.md docs/cloud-setup-validation.md
+git commit -m "docs: verify published cloud task restoration"
+git push origin HEAD:main
+git ls-remote origin refs/heads/main
+git status --porcelain=v1
+```
+
+The remote main read returned the restored HEAD `6af0fb5d59047db416be3b68dbe2706505412bfc`; the baseline tag matched. Only `README.md`, `docs/development.md` and this appended section are committed for this verification. The documentation commit is pushed normally to `main`, preserving original history, with no force-push. The published environment is verified ready for fictional-data phone coding tasks independent of the user's computer. Each new task must start its own live server; cloud coding readiness does not establish production hosting or live database readiness.

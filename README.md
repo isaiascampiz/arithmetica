@@ -9,7 +9,7 @@ Start here, then explore [the code guide](docs/code-guide.md). You do not need t
 - **Git** records checkpoints on your computer. A branch is a separate line of work; a commit is a saved checkpoint.
 - **GitHub** is the private online home for those checkpoints: [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow). The authorized source and original Git history are now pushed, including the V3 baseline tag. Privacy was verified during repository creation; this cloud host verified Git read/write access. GitHub does not run the app or automatically back up student records.
 - **VS Code** is your local editor. Open this folder, or double-click `Centerflow.code-workspace`. Explorer shows files; Terminal runs commands; Source Control shows proposed changes.
-- **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. This project now builds and runs on the Linux cloud host; environment publication and a fresh-task restoration check are still pending. See [cloud validation](docs/cloud-setup-validation.md).
+- **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. The setup UI confirmed **Environment published** with **Only me** sharing. A fresh cloud task restored this project and passed build, typecheck, lint, all 94 unit tests, the synthetic QR browser smoke and authorized HTTP checks without the Windows computer. It is ready for fictional-data phone coding tasks. See [cloud validation](docs/cloud-setup-validation.md).
 
 ## Start and stop
 

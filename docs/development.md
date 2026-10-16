@@ -4,7 +4,7 @@
 
 The original V3 history has been imported into [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow), merged with the bootstrap history without rewriting either history, and pushed with `v3.0.0-baseline`. All three original commit IDs remain ancestors of `main`. The repository was verified private during its authorized creation. On this cloud host, native HTTPS Git fetch and push work through the existing platform identity; no credentials were copied or printed. The available metadata API route is blocked, so repository privacy was not independently re-read here.
 
-The Linux cloud host has Node 24.20.0, pnpm 11.25.0, locked dependencies, a restored 96-student fictional demo, and a working production server. See [the cloud validation report](cloud-setup-validation.md) for exact checks, browser configuration, and outcomes. These commands executed inside the cloud machine, independently of the Windows computer. Environment publication and restoration into a new task have not been performed. The configuration tools do not expose environment sharing; verify **Only me** in environment settings before publishing.
+The Linux cloud host has Node 24.20.0, pnpm 11.25.0, locked dependencies, a restored 96-student fictional demo, and a working production server. See [the cloud validation report](cloud-setup-validation.md) for exact checks, browser configuration, and outcomes. These commands executed inside the cloud machine, independently of the Windows computer. The user reports that the setup UI confirmed **Environment published** and **Only me**, with the GitHub repository verified private. A new task restored the checkout, tools, dependencies, demo and browser config on a different Linux hostname. Build, typecheck, lint, all 94 unit tests, discovery of all 21 browser cases, the single synthetic QR decoder case and authorized HTTP checks passed here. Phone coding with fictional data is ready; live processes must be started in each task. See the appended fresh-task evidence in the validation report.
 
 ## VS Code
 
@@ -20,7 +20,7 @@ The working folder retains accumulated fictional records locally; the repository
 
 For development, `pnpm demo:restore` reconstructs all 96 fictional demo identities from `src/lib/seed.ts`, then applies existing forward migrations. It never overwrites a file. A repeat run checks the expected identities and preserves existing history. It refuses production and Supabase modes. To test separately, pass a new path inside `data/`, such as `pnpm demo:restore data/restore-drills/my-demo.json`. Runtime JSON remains ignored by Git.
 
-## Prepare a cloud environment after publication
+## Published cloud environment and future setup
 
 The current official flow is Settings > Codex Cloud > Environments > Create environment, or Work in > Cloud > Select environment > Create environment. Choose only the private Centerflow repository. Keep sharing private/Only me unless you explicitly authorize others. If a new GitHub app permission grant is needed, review its scope rather than granting all repositories.
 
@@ -32,7 +32,7 @@ The checked-in script installs locked dependencies, builds and runs static/unit 
 
 For this onboarding environment, source `/workspace/tools/centerflow-env.sh`, then run `pnpm start --port 3000` from `/workspace/centerflow` after a successful build. Use internal HTTP requests to verify `/login` and authenticated `/api/state`; this onboarding UI does not provide a web preview. Live processes must restart after snapshot restoration. Keep real data and production service keys out of coding environments.
 
-Review the setup report, then Publish. Verify the interface actually says Environment published. Run a small read-only task that reads AGENTS.md and reports a test result. Until those checks succeed, phone development is not proven ready.
+Publication is complete according to the setup UI confirmation supplied by the user. This follow-up task read `AGENTS.md` and verified the restored environment. Start with `source /workspace/tools/centerflow-env.sh`; run checks and start the cloud-local server as needed. The command sandbox blocked child output and loopback startup in this task; the same commands passed using the approved cloud-host execution context outside that sandbox. This does not require access to the Windows computer.
 
 ## Tasks from a phone
 
