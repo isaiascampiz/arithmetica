@@ -7,9 +7,9 @@ Start here, then explore [the code guide](docs/code-guide.md). You do not need t
 ## Your tools
 
 - **Git** records checkpoints on your computer. A branch is a separate line of work; a commit is a saved checkpoint.
-- **GitHub** is the private online home for those checkpoints: [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow). Repository privacy is verified; source publication and cloud validation are being completed. GitHub does not run the app or automatically back up student records.
+- **GitHub** is the private online home for those checkpoints: [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow). The authorized source and original Git history are now pushed, including the V3 baseline tag. Privacy was verified during repository creation; this cloud host verified Git read/write access. GitHub does not run the app or automatically back up student records.
 - **VS Code** is your local editor. Open this folder, or double-click `Centerflow.code-workspace`. Explorer shows files; Terminal runs commands; Source Control shows proposed changes.
-- **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. That connection is not complete yet.
+- **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. This project now builds and runs on the Linux cloud host; environment publication and a fresh-task restoration check are still pending. See [cloud validation](docs/cloud-setup-validation.md).
 
 ## Start and stop
 
@@ -107,4 +107,4 @@ Build first on a fresh checkout so Next generates its types. Unit tests check ru
 
 Read `AGENTS.md`, create a branch (`git switch -c describe-your-change`), then ask Codex for one clear change and its acceptance checks. Request preservation of records and no unrelated redesign. Review changed files in VS Code, run the checks above and save a commit. Once GitHub publication is approved, push the branch and review a pull request before merging. Never delete `data/`, reset a live database, commit `.env.local`, or treat a source backup as a records backup.
 
-For phone tasks, follow [development and cloud setup](docs/development.md). For eventual hosting, read [Cloudflare readiness](docs/cloudflare.md). Nothing has been deployed. Current verification is in [migration status](docs/migration-status.md); earlier results remain in [V3 release validation](docs/validation.md).
+For phone tasks, follow [development and cloud setup](docs/development.md). For eventual hosting, read [Cloudflare readiness](docs/cloudflare.md). Nothing has been deployed. Current cloud verification is in [cloud setup validation](docs/cloud-setup-validation.md); the earlier migration checkpoint is in [migration status](docs/migration-status.md); earlier results remain in [V3 release validation](docs/validation.md).

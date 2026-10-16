@@ -2,9 +2,9 @@
 
 ## Actual connection status
 
-Local Git is initialized and the V3 baseline is committed. Following direct user authorization, [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow) was created and verified private. Publication of the prepared Git history is in progress. The Windows sandbox denied credential-manager access, so the authorized cloud setup is being used to import the credential-free Git history bundle instead of exposing or copying credentials.
+The original V3 history has been imported into [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow), merged with the bootstrap history without rewriting either history, and pushed with `v3.0.0-baseline`. All three original commit IDs remain ancestors of `main`. The repository was verified private during its authorized creation. On this cloud host, native HTTPS Git fetch and push work through the existing platform identity; no credentials were copied or printed. The available metadata API route is blocked, so repository privacy was not independently re-read here.
 
-Codex Cloud can see the private repository and its setup conversation has started. Environment publication and an independent cloud build/test run are still pending verification. The earlier local migration report records the checkpoint before repository authorization.
+The Linux cloud host has Node 24.20.0, pnpm 11.25.0, locked dependencies, a restored 96-student fictional demo, and a working production server. See [the cloud validation report](cloud-setup-validation.md) for exact checks, browser configuration, and outcomes. These commands executed inside the cloud machine, independently of the Windows computer. Environment publication and restoration into a new task have not been performed. The configuration tools do not expose environment sharing; verify **Only me** in environment settings before publishing.
 
 ## VS Code
 
@@ -12,12 +12,9 @@ Open this folder or `Centerflow.code-workspace`. `.vscode/` recommends ESLint an
 
 Node 24.20.0 and pnpm 11.25.0 were validated. `.nvmrc` and `.node-version` document Node for compatible version managers. Dependencies are pinned by `pnpm-lock.yaml`. The working copy uses pnpm's hoisted dependency layout because the sandbox denied Windows symlinks; Linux can use the standard layout. The app and lockfile are unchanged.
 
-## Finish GitHub publication after direct approval
+## Preserved GitHub publication
 
-1. Create `isaiascampiz/centerflow` as **Private**, without auto-generated README/license/gitignore; local history already contains project files.
-2. Add the actual URL as `origin` and push `main` and the local `v3.0.0-baseline` tag using authenticated Git. Do not force-push or overwrite an unexpected existing repository.
-3. Read remote metadata to confirm privacy. Fetch the remote and compare its `main` commit/tree with local history. Inspect README, source, lockfile, tests and SQL. Only then call publication complete.
-4. Confirm Git contains no `data/`, `.env.local`, credentials, dependencies, builds or browser traces. Fictional default sign-ins in application/tests are examples, not production secrets.
+The authorized import is complete. `main` contains both bootstrap and original application history, and `v3.0.0-baseline` still points to `46162816c6b6b71e11076551b1f4c9e2e88a110b`. No force-push was used. Temporary transfer files were removed in a normal commit after bundle integrity and source/history verification. Application source, tests, SQL, scripts and lockfile remain identical to the imported original main. New setup documentation records the cloud evidence without changing app behavior.
 
 The working folder retains accumulated fictional records locally; the repository intentionally excludes them. A clone generates fresh fictional data when missing. Transfer exact history only through a separately authorized records backup/restore process, not Git.
 
@@ -31,9 +28,9 @@ Ask the environment setup conversation:
 
 > Prepare Centerflow without changing behavior. Use Node 24.20.0 and pnpm 11.25.0. Run `bash scripts/setup-development.sh` from the repository root. For browser validation install Playwright Chromium and system dependencies, then run the existing browser suite. Use fictional local data only, no cloud database credentials or live migrations. Report actual results before publishing the environment.
 
-The checked-in script installs locked dependencies, builds and runs static/unit checks. Browser installation needs package/browser download access; configure the environment's network policy for the hosts it actually requires. No production secret is needed. **This script is prepared, not executed in Codex Cloud yet.**
+The checked-in script installs locked dependencies, builds and runs static/unit checks. Browser installation needs package/browser download access; configure the environment's network policy for the hosts it actually requires. No production secret is needed. **This script has now executed successfully on the Linux cloud host.** The full browser run needs the system Chromium override and per-file server isolation documented in [cloud validation](cloud-setup-validation.md).
 
-For cloud preview use `DEMO_MODE=true`, `DATA_ADAPTER=local`, `ENABLE_SCHEDULER=false`, then `pnpm dev --hostname 0.0.0.0`. Follow that environment's preview URL; a localhost link on your phone does not point into the container. Use a generated environment-only session secret when sharing an approved preview. Keep real data and production service keys out of coding environments.
+For this onboarding environment, source `/workspace/tools/centerflow-env.sh`, then run `pnpm start --port 3000` from `/workspace/centerflow` after a successful build. Use internal HTTP requests to verify `/login` and authenticated `/api/state`; this onboarding UI does not provide a web preview. Live processes must restart after snapshot restoration. Keep real data and production service keys out of coding environments.
 
 Review the setup report, then Publish. Verify the interface actually says Environment published. Run a small read-only task that reads AGENTS.md and reports a test result. Until those checks succeed, phone development is not proven ready.
 
