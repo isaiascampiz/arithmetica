@@ -108,6 +108,7 @@ export function DictatedNote({
   maxLength = 1200,
   dictationOnly = false,
   showPrivacyHint = true,
+  hideLabel = false,
 }: {
   text: string;
   setText: (s: string) => void;
@@ -116,6 +117,7 @@ export function DictatedNote({
   maxLength?: number;
   dictationOnly?: boolean;
   showPrivacyHint?: boolean;
+  hideLabel?: boolean;
 }) {
   const fieldId = useId();
   const [listening, setListening] = useState(false),
@@ -177,9 +179,10 @@ export function DictatedNote({
   }
   return (
     <div className="dictated-note">
-      <label htmlFor={fieldId}>{label}</label>
+      {!hideLabel && <label htmlFor={fieldId}>{label}</label>}
       <textarea
         id={fieldId}
+        aria-label={hideLabel ? label : undefined}
         maxLength={maxLength}
         rows={2}
         value={text}

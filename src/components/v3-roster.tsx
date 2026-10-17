@@ -87,6 +87,7 @@ export function RosterV3({
             filtersButton.current?.focus();
           }}
         >
+          <h3 className="roster-filter-heading">Filter students</h3>
           <div className="roster-filter-fields">
             <label>
               Subject
@@ -126,15 +127,18 @@ export function RosterV3({
             </label>
           </div>
           <div className="roster-filter-options">
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={draft.early}
-                onChange={(e) => setDraft({ ...draft, early: e.target.checked })}
-              />
-              Early learner
-            </label>
-            <fieldset>
+            <fieldset className="roster-student-group">
+              <legend>Student group</legend>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={draft.early}
+                  onChange={(e) => setDraft({ ...draft, early: e.target.checked })}
+                />
+                Early learner
+              </label>
+            </fieldset>
+            <fieldset className="roster-visit-days">
               <legend>Visit weekdays</legend>
               <div className="day-options">
                 {['Mon', 'Tue', 'Wed', 'Thu'].map((d, i) => (
@@ -169,7 +173,7 @@ export function RosterV3({
             >
               Clear
             </button>
-            <button className="primary" type="submit">
+            <button className="secondary" type="submit">
               Apply
             </button>
           </div>

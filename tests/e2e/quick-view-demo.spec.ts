@@ -54,8 +54,11 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
     await expect(panel.locator('.quick-outgoing-heading')).toContainText(
       index === 0 ? 'Prepared' : 'Not prepared',
     );
-    await expect(dialog.getByRole('heading', { name: 'Optional observations' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Skill ratings' })).toBeVisible();
     await expect(dialog.getByRole('slider')).toHaveCount(3);
+    await expect(dialog).not.toContainText('Slide to rate');
+    await expect(dialog.locator('.quick-note label')).toHaveCount(0);
+    await expect(dialog.getByLabel('Optional instructor note')).toHaveCount(1);
     if (index === 0) {
       const focus = dialog.getByRole('slider', { name: 'Focus rating' });
       await focus.fill('4');
@@ -274,7 +277,7 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
           true,
         );
         await page.screenshot({ path: `test-results/quick-view-browser-tabs-${width}.png` });
-        const observations = dialog.getByRole('region', { name: 'Optional observations' });
+        const observations = dialog.getByRole('region', { name: 'Skill ratings' });
         await observations.scrollIntoViewIfNeeded();
         expect(
           await observations.evaluate((element) => element.scrollWidth <= element.clientWidth),

@@ -46,6 +46,7 @@ export function QuickView({
   error,
   act,
   close,
+  openProfile,
 }: {
   db: Snapshot;
   visit: Visit;
@@ -53,6 +54,7 @@ export function QuickView({
   error: string;
   act: V3Act;
   close: () => void;
+  openProfile: () => void;
 }) {
   const now = useNow(),
     student = db.students.find((s) => s.id === visit.studentId)!,
@@ -382,7 +384,12 @@ export function QuickView({
     <Modal
       titleLabel={student.name}
       title={
-        <>
+        <button
+          type="button"
+          className="quick-profile-link"
+          aria-label={'Open profile for ' + student.name}
+          onClick={openProfile}
+        >
           <span aria-hidden="true">
             <Avatar student={student} />
           </span>
@@ -398,7 +405,7 @@ export function QuickView({
                   : 'Departure unverified'}
             </small>
           </span>
-        </>
+        </button>
       }
       className="quick-view"
       close={close}
@@ -880,9 +887,9 @@ export function QuickView({
         )}
       </section>
       {teaching && (
-        <section className="quick-section quick-observations" aria-label="Optional observations">
+        <section className="quick-section quick-observations" aria-label="Skill ratings">
           <div className="quick-observation-heading">
-            <h3>Optional observations</h3>
+            <h3>Skill ratings</h3>
             <button
               type="button"
               className="text-button"
@@ -892,7 +899,6 @@ export function QuickView({
               Customize
             </button>
           </div>
-          <p className="small muted">Slide to rate from 1–5. Leave at 0 to keep it unrated.</p>
           {skills.map((s, index) => (
             <div className="quick-skill" key={s.id}>
               <div className="quick-skill-heading">
@@ -924,6 +930,9 @@ export function QuickView({
                 max={5}
                 step={1}
                 value={scores[s.id] || 0}
+                style={{
+                  backgroundImage: `linear-gradient(to right, var(--brand) ${((scores[s.id] || 0) / 5) * 100}%, var(--line) ${((scores[s.id] || 0) / 5) * 100}%)`,
+                }}
                 aria-valuetext={scores[s.id] ? scores[s.id] + ' out of 5' : 'Not rated'}
                 onChange={(e) => setScores({ ...scores, [s.id]: Number(e.target.value) })}
               />
@@ -996,7 +1005,7 @@ export function QuickView({
       {teaching && (
         <section className="quick-section quick-note quick-observation-note">
           <h3>Optional instructional note</h3>
-          <DictatedNote text={text} setText={setText} />
+          <DictatedNote text={text} setText={setText} hideLabel />
         </section>
       )}
       {(error || localError) && (

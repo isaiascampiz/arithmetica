@@ -148,19 +148,27 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
   await page.getByLabel('New fictional student name').fill(name);
   await page.getByRole('button', { name: 'Create student' }).click();
   await page.locator('.roster-v3-person').filter({ hasText: name }).click();
-  await page.getByRole('button', { name: 'Edit Student', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
   await page.getByLabel('Enrollment date', { exact: true }).fill('2026-01-01');
-  await page.getByLabel('Math worksheets per packet').fill('3');
+
   await page.getByLabel('Early learner', { exact: true }).check();
-  await page.getByRole('button', { name: 'Save Student', exact: true }).click();
+  await page.getByRole('button', { name: 'Save student information', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('.overview-v3')).toContainText('3 worksheets / packet');
+  await page.getByRole('button', { name: 'Edit Math', exact: true }).click();
+  await page.getByLabel('Math worksheets per packet').fill('3');
+  await page.getByRole('button', { name: 'Save Math', exact: true }).click();
+  await expect(
+    page
+      .locator('.overview-subject-panel:visible dl > div')
+      .filter({ hasText: 'Worksheets per packet' })
+      .locator('dd'),
+  ).toHaveText('3');
   await page.getByRole('button', { name: 'Withdraw student' }).click();
   await expect(page.getByRole('button', { name: 'Reactivate student' })).toBeVisible();
   await page.getByRole('button', { name: 'Reactivate student' }).click();
   const db = await state(page),
     s = db.students.find((s) => s.name === name)!;
-  await page.getByRole('button', { name: 'Show pouch QR' }).click();
+  await page.getByRole('button', { name: 'Show pouch identifier' }).click();
   await page.getByRole('button', { name: 'Reissue QR identifier' }).click();
   expect((await state(page)).students.find((x) => x.id === s.id)!.token).not.toBe(s.token);
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
@@ -233,7 +241,9 @@ test('roster filters are requested, applied explicitly and cleared without losin
     expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(panelBox.y);
     expect(clear.x + clear.width).toBeLessThan(apply.x);
     expect(clear.y).toBeCloseTo(apply.y, 0);
-    expect(clear.y).toBeGreaterThanOrEqual(weekdays.y + weekdays.height);
+    if (width > 700) expect(clear.y + clear.height).toBeCloseTo(weekdays.y + weekdays.height, 0);
+    else expect(clear.y).toBeGreaterThanOrEqual(weekdays.y + weekdays.height);
+    await expect(panel.getByRole('group', { name: 'Student group', exact: true })).toBeVisible();
     expect(clear.height).toBeGreaterThanOrEqual(44);
     expect(apply.height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -628,7 +638,9 @@ for (const size of [
         true,
       );
       await openProfile(page, s.name);
-      await expect(page.getByRole('button', { name: 'Edit Student', exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: 'Edit student information', exact: true }),
+      ).toBeVisible();
       await page.getByRole('button', { name: 'Visit History', exact: true }).click();
       await expect(page.locator('.visit-entry')).toContainText('Checked in');
       await expect(page.getByText('Visit details', { exact: true })).toHaveCount(0);
@@ -861,4 +873,26 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   expect(db.operations!.completions.length).toBe(0);
   await page.screenshot({ path: 'test-results/v3-busy-day.png' });
   await other.close();
+});
+
+test('active Quick View name and avatar open the matching profile without changing attendance', async ({
+  page,
+}) => {
+  await login(page);
+  const s = await learner(page, 'CONNECT'),
+    v = await arrive(page, s.id);
+  await page.reload();
+  const before = await state(page);
+  for (const target of ['name', 'avatar']) {
+    await page.locator('[data-visit-id="' + v.id + '"]').click();
+    const dialog = page.getByRole('dialog');
+    const link = dialog.getByRole('button', { name: 'Open profile for ' + s.name, exact: true });
+    if (target === 'avatar') await link.locator('.avatar').click();
+    else await link.getByText(s.name, { exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: s.name, exact: true })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp('student=' + s.id));
+    expect((await state(page)).visits).toEqual(before.visits);
+    await page.getByRole('button', { name: 'Home', exact: true }).click();
+  }
 });

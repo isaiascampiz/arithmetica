@@ -570,6 +570,11 @@ export function StaffApp() {
       )}
       {visit && (
         <QuickView
+          openProfile={() => {
+            setVisit(null);
+            setError('');
+            profile(visit.studentId);
+          }}
           db={db}
           visit={visit}
           act={act}
