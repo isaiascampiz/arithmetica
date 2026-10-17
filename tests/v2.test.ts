@@ -22,6 +22,41 @@ import {
 import { kioskScan } from '../src/lib/kiosk-attendance';
 const now = new Date('2026-10-12T22:00:00Z'),
   staff = { name: 'Fictional Instructor', role: 'instructor' as const };
+
+test('achievement medals accept all four tiers without evidence and preserve existing records and attribution', () => {
+  const db = fixture(),
+    studentId = db.students[0].id;
+  const previous = structuredClone(db.operations!.achievements);
+  for (const distinction of ['Bronze', 'Silver', 'Gold', 'Platinum'] as const) {
+    const command = v2CommandInput.parse({
+      action: 'achievement',
+      studentId,
+      subject: 'Reading',
+      distinction,
+      date: '2026-10-01',
+    });
+    applyV2(db, command, staff, now);
+    assert.equal(db.operations!.achievements.at(-1)!.evidence, '');
+    assert.equal(db.operations!.achievements.at(-1)!.verifiedBy, staff.name);
+    assert.equal(db.operations!.achievements.at(-1)!.distinction, distinction);
+    assert.equal(db.operations!.achievements.at(-1)!.subject, 'Reading');
+  }
+  assert.deepEqual(db.operations!.achievements.slice(0, previous.length), previous);
+  const command = v2CommandInput.parse({
+    action: 'achievement',
+    studentId,
+    subject: 'Math',
+    distinction: 'Gold',
+    date: '2026-10-01',
+    evidence: 'Original source',
+  });
+  assert.throws(
+    () => applyV2(db, command, { name: 'Fictional Assistant', role: 'assistant' }, now),
+    /instructor/,
+  );
+  applyV2(db, command, staff, now);
+  assert.equal(db.operations!.achievements.at(-1)!.evidence, 'Original source');
+});
 test('CONNECT completion counts worksheets and official totals without inventing physical paper sheets', () => {
   const db = fixture(),
     id = db.students[0].id;

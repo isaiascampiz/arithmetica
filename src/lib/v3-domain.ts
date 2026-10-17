@@ -248,6 +248,8 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       old = op.students[s.id];
     if (old.version !== c.settings.version)
       throw new DomainError('Student profile changed. Reopen Edit Student.', 409);
+    if (!c.settings.active && db.visits.some((v) => v.studentId === s.id && isOpenVisit(v)))
+      throw new DomainError('Reconcile the open attendance visit before withdrawing this student.');
     if (!c.settings.subjects.Math.enrolled && !c.settings.subjects.Reading.enrolled)
       throw new DomainError('Enroll at least one subject.');
     if (c.awayUntil && c.awayUntil < dayKey(now, op.center.timezone))

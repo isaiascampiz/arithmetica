@@ -8,7 +8,8 @@ import { recurring, zonedTimestamp } from '@/lib/schedule';
 import { matchVisit, measuredMinutes } from '@/lib/v3-analytics';
 import type { Subject, StudentSettings } from '@/lib/v2-model';
 import type { V2Command } from '@/lib/v2-domain';
-import { Medals, type V3Act } from './v3-shared';
+import type { V3Act } from './v3-shared';
+import { ProfileMedals, SubjectAchievement } from './v3-profile-achievements';
 import { ProgressCharts } from './v3-charts';
 import { time, date, Empty, useNow, Avatar } from './shared-ui';
 import { SessionHistory } from './v3-session-history';
@@ -35,7 +36,6 @@ export function StudentProfileV3({
 }) {
   const [tab, setTab] = useState('Overview'),
     [edit, setEdit] = useState(false),
-    [more, setMore] = useState(false),
     [session, setSession] = useState<string | null>(null),
     [visitDate, setVisitDate] = useState(''),
     [visitSort, setVisitSort] = useState('newest'),
@@ -82,15 +82,15 @@ export function StudentProfileV3({
           <ArrowLeft size={21} />
         </button>
         <Avatar student={s} />
-        <div>
-          <h1>
-            {s.name}
-            <Medals db={db} student={s} />
-          </h1>
-          <span>
-            {cfg.active ? 'Enrolled' : 'Not enrolled'} ·{' '}
-            {s.earlyLearner ? 'Early learner' : 'Student'} · Student ID {s.id}
-          </span>
+        <div className="profile-heading-identity">
+          <div className="profile-heading-copy">
+            <h1>{s.name}</h1>
+            <span>
+              {cfg.active ? 'Enrolled' : 'Not enrolled'} ·{' '}
+              {s.earlyLearner ? 'Early learner' : 'Student'} · Student ID {s.id}
+            </span>
+          </div>
+          <ProfileMedals db={db} student={s} />
         </div>
         <div className="overview-pouch" role="group" aria-label="Pouch identifier">
           <button
@@ -145,9 +145,14 @@ export function StudentProfileV3({
             <div className="profile-section-heading">
               <h2>Student information</h2>
               {teacher && !edit && (
-                <button className="text-button" disabled={busy} onClick={() => setEdit(true)}>
+                <button
+                  className="text-button"
+                  aria-label="Edit student information"
+                  disabled={busy}
+                  onClick={() => setEdit(true)}
+                >
                   <Edit3 size={14} />
-                  Edit student information
+                  Edit
                 </button>
               )}
             </div>
@@ -162,21 +167,6 @@ export function StudentProfileV3({
               months={months}
               close={() => setEdit(false)}
             />
-            {teacher && (
-              <button
-                className="text-button profile-status-action"
-                disabled={busy || db.visits.some((v) => v.studentId === s.id && isOpenVisit(v))}
-                onClick={() =>
-                  void legacyAct({
-                    action: 'student-active',
-                    studentId: s.id,
-                    active: !cfg.active,
-                  })
-                }
-              >
-                {cfg.active ? 'Withdraw student' : 'Reactivate student'}
-              </button>
-            )}
           </section>
           <OverviewSubjects
             key={s.id}
@@ -187,29 +177,6 @@ export function StudentProfileV3({
             busy={busy}
             error={error}
           />
-          <div className="profile-utilities">
-            {' '}
-            {teacher && (
-              <div className="profile-other-settings">
-                {more ? (
-                  <EditStudent
-                    db={db}
-                    student={s}
-                    act={act}
-                    legacyAct={legacyAct}
-                    busy={busy}
-                    error={error}
-                    section="more"
-                    close={() => setMore(false)}
-                  />
-                ) : (
-                  <button className="text-button" disabled={busy} onClick={() => setMore(true)}>
-                    Other student settings
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       )}
       {tab === 'Progress' && <ProgressCharts db={db} student={s} />}
@@ -474,31 +441,24 @@ function EditStudent({
   db,
   student: s,
   act,
-  legacyAct,
   busy,
   error,
   close,
   section,
 }: {
-  section: 'student' | 'more' | Subject;
+  section: Subject;
   db: Snapshot;
   student: Student;
   act: V3Act;
-  legacyAct: (c: V2Command) => Promise<boolean>;
   busy: boolean;
   error: string;
   close: () => void;
 }) {
   const original = db.operations!.students[s.id];
   const [cfg, setCfg] = useState(() => structuredClone(original)),
-    [name, setName] = useState(s.name),
-    [early, setEarly] = useState(s.earlyLearner),
-    [tiles, setTiles] = useState((cfg.observationTiles || []).join(', ')),
-    [until, setUntil] = useState(cfg.awayUntil || ''),
-    [medalSubject, setMedalSubject] = useState<Subject>('Math'),
-    [medal, setMedal] = useState<'Bronze' | 'Silver' | 'Gold' | 'Platinum'>('Bronze'),
-    [medalDate, setMedalDate] = useState(new Date().toISOString().slice(0, 10)),
-    [evidence, setEvidence] = useState('');
+    [name] = useState(s.name),
+    [early] = useState(s.earlyLearner);
+
   async function save() {
     if (
       await act({
@@ -508,16 +468,8 @@ function EditStudent({
         earlyLearner: early,
         settings: cfg,
         enrollmentDate: cfg.enrollmentDate || null,
-        ...(section === 'more' ? { awayUntil: until || null } : {}),
         visitDays: cfg.visitDays || cfg.recurringDays,
-        tiles:
-          section === 'more'
-            ? tiles
-                .split(',')
-                .map((t) => t.trim())
-                .filter(Boolean)
-                .slice(0, 6)
-            : original.observationTiles || [],
+        tiles: original.observationTiles || [],
         goals: cfg.goals || '',
         arrivalWindow: cfg.arrivalWindow || '',
       })
@@ -527,78 +479,12 @@ function EditStudent({
   return (
     <form
       className="profile-inline-editor"
-      aria-label={
-        section === 'student'
-          ? 'Edit student information'
-          : section === 'more'
-            ? 'Other student settings'
-            : 'Edit ' + section
-      }
+      aria-label={'Edit ' + section}
       onSubmit={(e) => {
         e.preventDefault();
         void save();
       }}
     >
-      {section === 'student' && (
-        <>
-          <div className="form-grid">
-            <label>
-              Student name
-              <input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-            </label>
-            <label>
-              Enrollment date
-              <input
-                type="date"
-                value={cfg.enrollmentDate || ''}
-                onChange={(e) => setCfg({ ...cfg, enrollmentDate: e.target.value || null })}
-              />
-            </label>
-            <label className="check-label">
-              <input type="checkbox" checked={early} onChange={(e) => setEarly(e.target.checked)} />
-              Early learner
-            </label>
-            <label>
-              Expected visit minutes
-              <input
-                type="number"
-                min={5}
-                max={240}
-                value={cfg.expectedMinutes}
-                onChange={(e) =>
-                  setCfg({
-                    ...cfg,
-                    expectedMinutes: Number(e.target.value),
-                    expectedMinutesOverride: true,
-                  })
-                }
-              />
-            </label>
-          </div>
-          <fieldset>
-            <legend>Regular visit weekdays</legend>
-            <div className="day-options">
-              {days.map((d, i) => (
-                <label key={d}>
-                  <input
-                    type="checkbox"
-                    checked={(cfg.visitDays || cfg.recurringDays).includes(i + 1)}
-                    onChange={(e) =>
-                      setCfg({
-                        ...cfg,
-                        visitDays: e.target.checked
-                          ? [...(cfg.visitDays || cfg.recurringDays), i + 1]
-                          : (cfg.visitDays || cfg.recurringDays).filter((n) => n !== i + 1),
-                      })
-                    }
-                  />
-                  {d}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </>
-      )}
       {(section === 'Math' || section === 'Reading') && (
         <p className="small muted">
           Saving a new level or worksheet position updates the ongoing plan.
@@ -698,97 +584,6 @@ function EditStudent({
             </fieldset>
           );
         })}
-      {section === 'more' && (
-        <>
-          <label>
-            Expected arrival window (optional)
-            <input
-              value={cfg.arrivalWindow || ''}
-              onChange={(e) => setCfg({ ...cfg, arrivalWindow: e.target.value })}
-            />
-          </label>
-          <label>
-            Student-specific goals
-            <input
-              value={cfg.goals || ''}
-              maxLength={400}
-              onChange={(e) => setCfg({ ...cfg, goals: e.target.value })}
-            />
-          </label>
-          <label>
-            Student observation shortcuts (comma-separated)
-            <input value={tiles} onChange={(e) => setTiles(e.target.value)} />
-          </label>
-          <fieldset>
-            <legend>Away Until</legend>
-            <label>
-              First expected return date
-              <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-            </label>
-            <button
-              type="button"
-              className="text-button"
-              disabled={busy}
-              onClick={() => setUntil('')}
-            >
-              Clear pause (saved with Student)
-            </button>
-          </fieldset>
-          <fieldset>
-            <legend>Manually verified achievement</legend>
-            <Medals db={db} student={s} />
-            <div className="form-grid">
-              <label>
-                Medal subject
-                <select
-                  value={medalSubject}
-                  onChange={(e) => setMedalSubject(e.target.value as Subject)}
-                >
-                  <option>Math</option>
-                  <option>Reading</option>
-                </select>
-              </label>
-              <label>
-                Medal
-                <select value={medal} onChange={(e) => setMedal(e.target.value as typeof medal)}>
-                  {['Bronze', 'Silver', 'Gold', 'Platinum'].map((m) => (
-                    <option key={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Achievement date
-                <input
-                  type="date"
-                  value={medalDate}
-                  onChange={(e) => setMedalDate(e.target.value)}
-                />
-              </label>
-              <label>
-                Verification evidence
-                <input value={evidence} onChange={(e) => setEvidence(e.target.value)} />
-              </label>
-            </div>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy || evidence.length < 3}
-              onClick={() =>
-                void legacyAct({
-                  action: 'achievement',
-                  studentId: s.id,
-                  subject: medalSubject,
-                  distinction: medal,
-                  date: medalDate,
-                  evidence,
-                })
-              }
-            >
-              Record verified medal
-            </button>
-          </fieldset>
-        </>
-      )}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -799,13 +594,7 @@ function EditStudent({
           Cancel
         </button>
         <button className="secondary" type="submit" disabled={busy}>
-          {busy
-            ? 'Saving...'
-            : section === 'student'
-              ? 'Save student information'
-              : section === 'more'
-                ? 'Save settings'
-                : 'Save ' + section}
+          {busy ? 'Saving...' : 'Save ' + section}
         </button>
       </div>
     </form>
@@ -829,31 +618,68 @@ function OverviewSubjects({
 }) {
   const cfg = db.operations!.students[student.id];
   const [editing, setEditing] = useState<Subject | null>(null);
+  const [selected, setSelected] = useState<Subject>('Math');
   const subjects = (['Math', 'Reading'] as Subject[]).filter(
     (sub) => cfg.subjects[sub].enrolled || editing === sub,
   );
+  const active = subjects.includes(selected) ? selected : subjects[0];
   return (
     <section className="panel overview-card overview-subjects" aria-label="Subjects">
-      <h2>Subjects</h2>
+      <div className="profile-section-heading">
+        <h2>Subjects</h2>
+        {db.staff.role !== 'assistant' && !editing && active && (
+          <button className="text-button" disabled={busy} onClick={() => setEditing(active)}>
+            Edit {active}
+          </button>
+        )}
+      </div>
+      {subjects.length > 1 ? (
+        <div className="segmented profile-subject-selector" role="tablist" aria-label="Subjects">
+          {subjects.map((sub, index) => (
+            <button
+              type="button"
+              key={sub}
+              role="tab"
+              id={'profile-subject-' + sub}
+              aria-controls={'profile-subject-panel-' + sub}
+              aria-selected={active === sub}
+              tabIndex={active === sub ? 0 : -1}
+              className={active === sub ? 'selected' : ''}
+              disabled={busy || (!!editing && editing !== sub)}
+              onClick={() => setSelected(sub)}
+              onKeyDown={(e) => {
+                if (!editing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                  e.preventDefault();
+                  const next = subjects[(index + 1) % subjects.length];
+                  setSelected(next);
+                  document.getElementById('profile-subject-' + next)?.focus();
+                }
+              }}
+            >
+              {sub}
+            </button>
+          ))}
+        </div>
+      ) : (
+        active && <h3 className="profile-single-subject">{active}</h3>
+      )}
       {subjects.map((sub) => {
         const c = cfg.subjects[sub];
         return (
-          <div className="overview-subject-panel" key={sub} role="region" aria-label={sub}>
-            <div className="profile-subject-heading">
-              <h3>{sub}</h3>
-              {db.staff.role !== 'assistant' && !editing && (
-                <button className="text-button" disabled={busy} onClick={() => setEditing(sub)}>
-                  Edit {sub}
-                </button>
-              )}
-            </div>
+          <div
+            className="overview-subject-panel"
+            id={'profile-subject-panel-' + sub}
+            key={sub}
+            role="region"
+            aria-label={sub}
+            hidden={active !== sub}
+          >
             {editing === sub ? (
               <EditStudent
                 key={sub}
                 db={db}
                 student={student}
                 act={act}
-                legacyAct={legacyAct}
                 busy={busy}
                 error={error}
                 section={sub}
@@ -898,6 +724,14 @@ function OverviewSubjects({
                 )}
               </>
             )}
+            <SubjectAchievement
+              db={db}
+              student={student}
+              subject={sub}
+              legacyAct={legacyAct}
+              busy={busy}
+              error={error}
+            />
           </div>
         );
       })}
@@ -913,6 +747,7 @@ function OverviewSubjects({
                 className="text-button"
                 disabled={busy}
                 onClick={() => {
+                  setSelected(sub);
                   setEditing(sub);
                 }}
               >
@@ -993,47 +828,69 @@ function StudentDetails({
           </dd>
         </div>
         <div>
-          <dt>Enrollment date</dt>
+          <dt>Grade</dt>
           <dd>
             {editing ? (
               <input
-                aria-label="Enrollment date"
-                type="date"
-                value={cfg.enrollmentDate || ''}
-                onChange={(e) => setCfg({ ...cfg, enrollmentDate: e.target.value || null })}
+                aria-label="Grade"
+                value={cfg.grade || ''}
+                maxLength={40}
+                placeholder="e.g. Grade 3"
+                onChange={(e) => setCfg({ ...cfg, grade: e.target.value || null })}
               />
             ) : (
-              original.enrollmentDate || 'Not recorded'
+              original.grade || 'Not recorded'
             )}
           </dd>
         </div>
         <div>
-          <dt>Time enrolled</dt>
-          <dd>{months === null ? 'Not recorded' : months + ' months'}</dd>
+          <dt>Early learner</dt>
+          <dd>
+            {editing ? (
+              <label className="profile-value-checkbox">
+                <input
+                  aria-label="Early learner"
+                  type="checkbox"
+                  checked={early}
+                  onChange={(e) => setEarly(e.target.checked)}
+                />
+                <span>{early ? 'Yes' : 'No'}</span>
+              </label>
+            ) : student.earlyLearner ? (
+              'Yes'
+            ) : (
+              'No'
+            )}
+          </dd>
         </div>
         <div className="profile-weekday-detail">
           <dt>Regular visits</dt>
           <dd>
             {editing ? (
-              <div className="day-options" role="group" aria-label="Regular visit weekdays">
-                {days.map((d, i) => (
-                  <label key={d}>
-                    <input
-                      type="checkbox"
-                      checked={weekdays.includes(i + 1)}
-                      onChange={(e) =>
-                        setCfg({
-                          ...cfg,
-                          visitDays: e.target.checked
-                            ? [...weekdays, i + 1]
-                            : weekdays.filter((n) => n !== i + 1),
-                        })
-                      }
-                    />
-                    {d}
-                  </label>
-                ))}
-              </div>
+              <details className="profile-weekday-picker">
+                <summary>
+                  {weekdays.map((d) => days[d - 1]).join(' / ') || 'Select weekdays'}
+                </summary>
+                <div className="day-options" role="group" aria-label="Regular visit weekdays">
+                  {days.map((d, i) => (
+                    <label key={d}>
+                      <input
+                        type="checkbox"
+                        checked={weekdays.includes(i + 1)}
+                        onChange={(e) =>
+                          setCfg({
+                            ...cfg,
+                            visitDays: e.target.checked
+                              ? [...weekdays, i + 1]
+                              : weekdays.filter((n) => n !== i + 1),
+                          })
+                        }
+                      />
+                      {d}
+                    </label>
+                  ))}
+                </div>
+              </details>
             ) : (
               recurring(db.operations!, original)
                 .map((d) => days[d - 1])
@@ -1066,32 +923,52 @@ function StudentDetails({
             )}
           </dd>
         </div>
-        <div>
-          <dt>Early learner</dt>
-          <dd>
-            {editing ? (
-              <label className="profile-value-checkbox">
-                <input
-                  aria-label="Early learner"
-                  type="checkbox"
-                  checked={early}
-                  onChange={(e) => setEarly(e.target.checked)}
-                />
-                <span>{early ? 'Yes' : 'No'}</span>
-              </label>
-            ) : student.earlyLearner ? (
-              'Yes'
-            ) : (
-              'No'
-            )}
-          </dd>
-        </div>
       </dl>
       {original.awayUntil && <p className="small muted">Away Until {original.awayUntil}</p>}
       <dl className="profile-enrollment">
         <div>
-          <dt>Status</dt>
-          <dd>{original.active ? 'Enrolled' : 'Not enrolled'}</dd>
+          <dt>Enrollment status</dt>
+          <dd>
+            {editing ? (
+              <select
+                aria-label="Enrollment status"
+                value={cfg.active ? 'enrolled' : 'unenrolled'}
+                disabled={busy}
+                onChange={(e) => setCfg({ ...cfg, active: e.target.value === 'enrolled' })}
+              >
+                <option value="enrolled">Enrolled</option>
+                <option
+                  value="unenrolled"
+                  disabled={db.visits.some((v) => v.studentId === student.id && isOpenVisit(v))}
+                >
+                  Unenrolled
+                </option>
+              </select>
+            ) : original.active ? (
+              'Enrolled'
+            ) : (
+              'Unenrolled'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Enrollment date</dt>
+          <dd>
+            {editing ? (
+              <input
+                aria-label="Enrollment date"
+                type="date"
+                value={cfg.enrollmentDate || ''}
+                onChange={(e) => setCfg({ ...cfg, enrollmentDate: e.target.value || null })}
+              />
+            ) : (
+              original.enrollmentDate || 'Not recorded'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Time enrolled</dt>
+          <dd>{months === null ? 'Not recorded' : months + ' months'}</dd>
         </div>
       </dl>
       {editing && (

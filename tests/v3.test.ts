@@ -760,6 +760,72 @@ test('profile edit sets early learner, enrollment, modes and shorts in one comma
   assert.deepEqual(db.operations!.students[s.id].visitDays, [2, 4]);
   assert.equal(db.operations!.students[s.id].enrollmentDate, '2026-01-01');
 });
+test('optional school grade saves, preserves omitted values and history, and can be cleared explicitly', () => {
+  const db = fixture(),
+    s = db.students[0];
+  const command = (grade?: string | null) => {
+    const settings = structuredClone(db.operations!.students[s.id]);
+    delete settings.grade;
+    if (grade !== undefined) settings.grade = grade;
+    return {
+      action: 'student-save',
+      studentId: s.id,
+      name: s.name,
+      earlyLearner: s.earlyLearner,
+      settings,
+      enrollmentDate: null,
+      visitDays: [1, 3],
+      tiles: [],
+      goals: '',
+      arrivalWindow: '',
+    };
+  };
+  assert.equal(db.operations!.students[s.id].grade, undefined);
+  applyV3(db, v3CommandInput.parse(command(' Grade 3 ')), teacher, now);
+  assert.equal(db.operations!.students[s.id].grade, 'Grade 3');
+  const history = structuredClone(db.operations!.configHistory);
+  assert.equal(history.at(-1)!.settings!.grade, 'Grade 3');
+  applyV3(db, v3CommandInput.parse(command()), teacher, now);
+  assert.equal(db.operations!.students[s.id].grade, 'Grade 3');
+  assert.deepEqual(db.operations!.configHistory.slice(0, history.length), history);
+  assert.equal(v3CommandInput.safeParse(command('x'.repeat(41))).success, false);
+  applyV3(db, v3CommandInput.parse(command(null)), teacher, now);
+  assert.equal(db.operations!.students[s.id].grade, null);
+  assert.equal(history.at(-1)!.settings!.grade, 'Grade 3');
+});
+
+test('profile status saves preserve history and reject unenrollment during an open visit', () => {
+  const db = fixture(),
+    s = db.students[0];
+  const saveStatus = (active: boolean) =>
+    applyV3(
+      db,
+      {
+        action: 'student-save',
+        studentId: s.id,
+        name: s.name,
+        earlyLearner: s.earlyLearner,
+        settings: { ...structuredClone(db.operations!.students[s.id]), active },
+        enrollmentDate: null,
+        visitDays: [1, 3],
+        tiles: [],
+        goals: '',
+        arrivalWindow: '',
+      },
+      teacher,
+      now,
+    );
+  saveStatus(false);
+  assert.equal(db.operations!.students[s.id].active, false);
+  assert.equal(db.operations!.configHistory.at(-1)!.settings!.active, false);
+  saveStatus(true);
+  assert.equal(db.operations!.students[s.id].active, true);
+  arrive(db);
+  const before = structuredClone(db);
+  assert.throws(() => saveStatus(false), /Reconcile the open attendance visit/);
+  assert.deepEqual(db, before);
+});
+
 test('visit timeline matches unique legacy dates, preserves ambiguous multiple sessions (49,50,14)', () => {
   const db = fixture(),
     id = db.students[0].id;
@@ -1041,4 +1107,13 @@ test('occupancy uses actual spring/fall DST hours and spans verified midnight vi
   assert.equal(midnight.bins[0].arrivals, 0);
   assert.equal(midnight.bins[0].occupancy, 0.5);
 });
-test('switching a waiting PAPER subject to CONNECT hides its old physical set without deleting it',()=>{const db=fixture(),v=arrive(db),a=currentSets(db,v)[0];db.operations!.students[v.studentId].subjects.Math.format='CONNECT';assert.equal(currentSets(db,v).length,0);assert.ok(db.operations!.assignments.some(p=>p.id===a.id));applyV3(db,command(db,v),teacher,now);assert.deepEqual(v.handoff!.assignmentIds,[]);});
+test('switching a waiting PAPER subject to CONNECT hides its old physical set without deleting it', () => {
+  const db = fixture(),
+    v = arrive(db),
+    a = currentSets(db, v)[0];
+  db.operations!.students[v.studentId].subjects.Math.format = 'CONNECT';
+  assert.equal(currentSets(db, v).length, 0);
+  assert.ok(db.operations!.assignments.some((p) => p.id === a.id));
+  applyV3(db, command(db, v), teacher, now);
+  assert.deepEqual(v.handoff!.assignmentIds, []);
+});

@@ -39,6 +39,18 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
     const visit = fixture.visits.find((v) => v.studentId === student.id && isOpenVisit(v))!;
     await page.locator('[data-visit-id="' + visit.id + '"]').click();
     await expect(dialog.getByRole('heading', { name: student.name, exact: true })).toBeVisible();
+    await expect(
+      dialog.locator('.quick-profile-link .profile-name-medals [role="img"]'),
+    ).toHaveCount(index === 2 ? 1 : 2);
+    if (index === 0) {
+      await expect(
+        dialog.getByRole('img', { name: 'Current Math Gold achievement medal', exact: true }),
+      ).toBeVisible();
+      await expect(
+        dialog.getByRole('img', { name: 'Current Reading Silver achievement medal', exact: true }),
+      ).toBeVisible();
+      await expect(dialog.locator('.profile-name-medals .bronze')).toHaveCount(0);
+    }
     await expect(dialog.locator('.quick-student-identity')).toContainText(
       'Waited: ' + (24 + index * 5) + ' minutes',
     );
@@ -273,6 +285,13 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
             .getByRole('tab', { name: 'Reading', exact: true })
             .boundingBox())!;
         expect(active.y).toBe(inactive.y);
+        const avatar = (await dialog.locator('.quick-profile-link .avatar').boundingBox())!;
+        const medals = (await dialog
+          .locator('.quick-profile-link .profile-name-medals')
+          .boundingBox())!;
+        expect(Math.abs(avatar.y + avatar.height / 2 - medals.y - medals.height / 2)).toBeLessThan(
+          1,
+        );
         expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
           true,
         );
@@ -302,6 +321,13 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
   }
   expect(writes).toBe(0);
   expect(JSON.stringify(fixture)).toBe(before);
+  await page.goto('/?view=students');
+  await expect(page.locator('.roster-v3-person')).toHaveCount(3);
+  await expect(
+    page.locator(
+      '.roster-v3-person .medals, .roster-v3-person .profile-name-medals, .roster-v3-person .medal',
+    ),
+  ).toHaveCount(0);
   expect(
     currentSets(
       fixture,

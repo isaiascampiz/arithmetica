@@ -52,6 +52,7 @@ export const subjectSettingsInput = z
   })
   .refine((s) => s.currentEnd >= s.currentStart, 'Current worksheet range must be ordered.');
 export const studentSettingsInput = z.object({
+  grade: z.string().trim().max(40).nullable().optional(),
   version: z.number().int().min(1),
   active: z.boolean(),
   familyId: z.string().nullable(),
@@ -183,7 +184,7 @@ export const v2CommandInput = z.discriminatedUnion('action', [
     subject,
     distinction: z.enum(['Bronze', 'Silver', 'Gold', 'Platinum']),
     date: dateInput,
-    evidence: reason,
+    evidence: z.string().trim().max(1200).default(''),
   }),
   z.object({
     action: z.literal('appointment-save'),
@@ -289,7 +290,8 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
   } else if (c.action === 'student-save') {
     const s = db.students.find((s) => s.id === c.studentId)!;
     const old = op.students[s.id];
-    if(op.v3&&c.settings.recurringDays.some(d=>d<1||d>4))throw new DomainError('Regular visits are Monday–Thursday only.');
+    if (op.v3 && c.settings.recurringDays.some((d) => d < 1 || d > 4))
+      throw new DomainError('Regular visits are Monday–Thursday only.');
     if (old.version !== c.settings.version)
       throw new DomainError(
         'This profile changed on another device. Reload the profile before saving.',

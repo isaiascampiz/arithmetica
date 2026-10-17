@@ -14,6 +14,7 @@ import type { Subject } from '@/lib/v2-model';
 import type { Packet, Activity } from '@/lib/v3-model';
 import { Modal, DictatedNote, type V3Act } from './v3-shared';
 import { Avatar, time, useNow } from './shared-ui';
+import { ProfileMedals } from './v3-profile-achievements';
 
 type RepeatPlan = {
   level: string;
@@ -405,6 +406,7 @@ export function QuickView({
                   : 'Departure unverified'}
             </small>
           </span>
+          <ProfileMedals db={db} student={student} />
         </button>
       }
       className="quick-view"

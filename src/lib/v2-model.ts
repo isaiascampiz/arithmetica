@@ -16,6 +16,7 @@ export type SubjectSettings = {
   maxSheets: number;
 };
 export type StudentSettings = {
+  grade?: string | null;
   enrollmentDate?: string | null;
   visitDays?: number[];
   awayUntil?: string | null;

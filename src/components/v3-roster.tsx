@@ -5,7 +5,7 @@ import { isOpenVisit, type Snapshot, type Student } from '@/lib/model';
 import { filterRoster, type RosterFilter } from '@/lib/v3-analytics';
 import { expectedOn } from '@/lib/schedule';
 import { dayKey } from '@/lib/model';
-import { Medals, Modal } from './v3-shared';
+import { Modal } from './v3-shared';
 import { Avatar, Empty } from './shared-ui';
 import type { V2Command } from '@/lib/v2-domain';
 const initial: RosterFilter = {
@@ -191,10 +191,7 @@ export function RosterV3({
               <button className="roster-v3-person" onClick={() => profile(s.id)}>
                 <Avatar student={s} />
                 <div>
-                  <b>
-                    {s.name}
-                    <Medals db={db} student={s} />
-                  </b>
+                  <b>{s.name}</b>
                   <span>
                     {s.subjects
                       .map(

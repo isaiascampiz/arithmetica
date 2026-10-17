@@ -163,9 +163,23 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
       .filter({ hasText: 'Worksheets per packet' })
       .locator('dd'),
   ).toHaveText('3');
-  await page.getByRole('button', { name: 'Withdraw student' }).click();
-  await expect(page.getByRole('button', { name: 'Reactivate student' })).toBeVisible();
-  await page.getByRole('button', { name: 'Reactivate student' }).click();
+  await expect(page.getByRole('button', { name: 'Withdraw student' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
+  await page.getByLabel('Enrollment status').selectOption('unenrolled');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.locator('.profile-enrollment dd').first()).toHaveText('Enrolled');
+  for (const [value, label] of [
+    ['unenrolled', 'Unenrolled'],
+    ['enrolled', 'Enrolled'],
+  ]) {
+    await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
+    await page.getByLabel('Enrollment status').selectOption(value);
+    await page.getByRole('button', { name: 'Save student information', exact: true }).click();
+    await expect(
+      page.getByRole('form', { name: 'Edit student information', exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.profile-enrollment dd').first()).toHaveText(label);
+  }
   const db = await state(page),
     s = db.students.find((s) => s.name === name)!;
   await page.getByRole('button', { name: 'Show pouch identifier' }).click();

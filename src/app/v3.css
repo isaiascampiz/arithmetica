@@ -265,6 +265,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .quick-view .quick-student-identity small {
   font-size: 12px;
@@ -2010,6 +2011,14 @@
 .quick-view .quick-profile-link:hover {
   color: var(--brand);
 }
+.quick-view .quick-profile-link > .profile-name-medals {
+  flex-shrink: 0;
+  align-self: center;
+}
+.quick-view .profile-name-medals .profile-medal-art {
+  width: 28px;
+  height: 34px;
+}
 .quick-view .quick-skill-title {
   font-size: 14px;
   margin: 12px 0 8px;
@@ -2356,7 +2365,7 @@
   background: var(--surface);
   overflow: hidden;
   gap: 0;
-  align-items: start;
+  align-items: stretch;
 }
 .overview-layout .overview-card {
   background: transparent;
@@ -2557,7 +2566,7 @@
   border-radius: 0;
   overflow: visible;
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 .overview-layout .overview-card {
   background: var(--surface);
@@ -2566,7 +2575,7 @@
   padding: 22px;
 }
 .overview-layout .overview-subjects {
-  align-self: start;
+  align-self: stretch;
 }
 .overview-layout .profile-utilities {
   padding: 0;
@@ -2629,7 +2638,8 @@
   box-sizing: border-box;
   align-items: center !important;
 }
-.profile-student-details dd input:not([type='checkbox']) {
+.profile-student-details dd input:not([type='checkbox']),
+.profile-student-details dd select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
@@ -2666,5 +2676,231 @@
   .profile-v3-heading > .overview-pouch {
     margin-left: auto;
     flex-basis: auto;
+  }
+}
+.profile-section-heading {
+  min-height: 44px;
+}
+.profile-student-details dl > div {
+  min-height: 52px;
+  padding: 0 !important;
+}
+.profile-student-details > dl:first-child > div:first-child dd {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-student-details dd {
+  min-width: 0;
+}
+.profile-weekday-picker {
+  position: relative;
+  text-align: right;
+}
+.profile-weekday-picker summary {
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 12px;
+}
+.profile-weekday-picker .day-options {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 3;
+  width: 232px;
+  max-width: calc(100vw - 52px);
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px #0002;
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 8px;
+}
+.profile-weekday-picker .day-options label {
+  justify-content: flex-start;
+}
+.profile-status-action {
+  margin-top: 12px;
+  height: 57px;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+.profile-subject-selector {
+  display: flex;
+  width: fit-content;
+  margin-bottom: 12px;
+}
+.profile-subject-selector button {
+  min-height: 44px;
+  min-width: 88px;
+}
+.profile-single-subject {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.overview-layout .overview-subject-panel + .overview-subject-panel {
+  border: 0;
+  margin: 0;
+  padding-top: 12px;
+}
+.profile-heading-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.profile-heading-copy {
+  min-width: 0;
+}
+.profile-heading-identity > .profile-name-medals {
+  flex-shrink: 0;
+  align-self: center;
+}
+.profile-name-medals {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.profile-name-medals > span {
+  display: inline-flex;
+}
+.profile-medal-art {
+  --medal-fill: #f5e7be;
+  --medal-edge: #b78c35;
+  --medal-ink: #896314;
+  display: block;
+  width: 36px;
+  height: 43px;
+  flex: 0 0 auto;
+}
+.profile-medal-art.bronze {
+  --medal-fill: #eed4bb;
+  --medal-edge: #b37d4f;
+  --medal-ink: #86552c;
+}
+.profile-medal-art.silver {
+  --medal-fill: #e8edf1;
+  --medal-edge: #a0adb9;
+  --medal-ink: #526777;
+}
+.profile-medal-art.platinum {
+  --medal-fill: #dceff1;
+  --medal-edge: #8cb7c1;
+  --medal-ink: #477785;
+}
+.overview-layout .overview-subjects {
+  display: flex;
+  flex-direction: column;
+}
+.overview-layout .overview-subject-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.profile-achievement {
+  margin-top: auto;
+  padding-top: 12px;
+}
+.profile-achievement-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  min-height: 44px;
+}
+.profile-achievement-heading h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.profile-achievement-heading .text-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+.profile-award-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.profile-award-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 120px;
+  min-height: 68px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-sizing: border-box;
+}
+.profile-award-item.current {
+  background: var(--brand-soft);
+}
+.profile-award-item .profile-medal-art {
+  width: 24px;
+  height: 29px;
+}
+.profile-award-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.profile-award-item strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.profile-award-item span {
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.profile-award-item .profile-award-state {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand);
+}
+.profile-medal-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.profile-medal-fields label {
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+}
+.profile-medal-fields input,
+.profile-medal-fields select {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 13px;
+}
+@media (max-width: 380px) {
+  .profile-medal-fields {
+    grid-template-columns: 1fr;
   }
 }

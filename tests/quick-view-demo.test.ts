@@ -10,6 +10,15 @@ test('separate Quick View fixture has real issued packet identities, varied mode
   validateDatabase(db);
   assert.match(db.operations!.center.name, /FICTIONAL/);
   assert.equal(db.students.length, 3);
+  assert.deepEqual(
+    new Set(db.operations!.achievements.map((a) => a.distinction)),
+    new Set(['Bronze', 'Silver', 'Gold', 'Platinum']),
+  );
+  assert.ok(
+    db.operations!.achievements.every(
+      (a) => db.students.some((s) => s.id === a.studentId) && a.verifiedBy.startsWith('Fictional'),
+    ),
+  );
   assert.equal(db.operations!.completions.length, 0);
   const [paper, mixed, single] = db.students;
   const sets = (id: string) =>

@@ -27,7 +27,38 @@ export function quickViewDemo(now = new Date()) {
     student.initials = ['AD', 'MD', 'ID'][index];
     student.subjects = index === 2 ? ['Reading'] : ['Math', 'Reading'];
     student.earlyLearner = index === 0;
+    for (const subject of student.subjects as ('Math' | 'Reading')[]) {
+      if (index === 0)
+        op.achievements.push({
+          id: 'fictional-demo-prior-medal-' + subject,
+          studentId: student.id,
+          subject,
+          distinction: 'Bronze',
+          date: addDays(priorDate, -120),
+          evidence: '',
+          verifiedBy: teacher.name,
+          createdAt: priorAt.toISOString(),
+        });
+      op.achievements.push({
+        id: 'fictional-demo-medal-' + index + '-' + subject,
+        studentId: student.id,
+        subject,
+        distinction:
+          index === 0
+            ? subject === 'Math'
+              ? 'Gold'
+              : 'Silver'
+            : index === 1
+              ? 'Bronze'
+              : 'Platinum',
+        date: priorDate,
+        evidence: '',
+        verifiedBy: teacher.name,
+        createdAt: priorAt.toISOString(),
+      });
+    }
     const cfg = op.students[student.id];
+    cfg.grade = ['Grade 1', 'Grade 4', 'Kindergarten'][index];
     cfg.visitDays = [1, 4];
     cfg.goals = '';
     cfg.awayUntil = null;
