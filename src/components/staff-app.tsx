@@ -23,8 +23,7 @@ import { dayKey, isOpenVisit, type Snapshot, type Student } from '@/lib/model';
 import type { Command } from '@/lib/domain';
 import type { V2Command } from '@/lib/v2-domain';
 import type { V3Command } from '@/lib/v3-domain';
-import { expectedOn } from '@/lib/schedule';
-import { dailyRoster } from '@/lib/v3-planning';
+import { homeRoster, type HomeFilter } from '@/lib/v3-planning';
 import { measuredMinutes } from '@/lib/v3-analytics';
 import { request } from '@/lib/client';
 import { Avatar, Empty, time, elapsed } from './shared-ui';
@@ -47,6 +46,7 @@ const nav = [
 export function StaffApp() {
   const [db, setDb] = useState<Snapshot | null>(null),
     [view, setView] = useState<View>('home'),
+    [homeFilter, setHomeFilter] = useState<HomeFilter | null>(null),
     [profileId, setProfile] = useState<string | null>(null),
     [visitId, setVisit] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
@@ -194,8 +194,7 @@ export function StaffApp() {
   const op = db.operations,
     teacher = db.staff.role !== 'assistant',
     today = dayKey(now, db.timezone),
-    active = db.visits.filter(isOpenVisit),
-    roster = dailyRoster(db, today),
+    home = homeRoster(db, today, homeFilter),
     student = profileId ? db.students.find((s) => s.id === profileId) : undefined,
     visit = visitId ? db.visits.find((v) => v.id === visitId) : undefined;
   const prepCount = new Set(
@@ -389,34 +388,61 @@ export function StaffApp() {
               {view === 'home' && (
                 <>
                   <div className="home-v3-metrics">
-                    <div>
-                      <span>Expected today</span>
-                      <b>{db.students.filter((s) => expectedOn(op, s.id, today)).length}</b>
-                    </div>
-                    <div>
-                      <span>Here now</span>
-                      <b>{active.length}</b>
-                    </div>
-                    <div>
-                      <span>Early learners here</span>
-                      <b>
-                        {
-                          active.filter(
-                            (v) => db.students.find((s) => s.id === v.studentId)?.earlyLearner,
-                          ).length
-                        }
-                      </b>
-                    </div>
+                    {(
+                      [
+                        ['expected', 'Still expected'],
+                        ['here', 'Here now'],
+                        ['early', 'Early learners here'],
+                        ['out', 'Checked out'],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={homeFilter === id}
+                        onClick={() => setHomeFilter(homeFilter === id ? null : id)}
+                      >
+                        <span>{label}</span>
+                        <b>{home.counts[id]}</b>
+                      </button>
+                    ))}
                   </div>
                   <section className="panel live-v3">
                     <header>
                       <h2>Today’s students</h2>
-                      <span>Waiting students first · tap for Quick View</span>
+                      <span aria-live="polite">
+                        {homeFilter
+                          ? {
+                              expected: 'Still expected',
+                              here: 'Here now',
+                              early: 'Early learners here',
+                              out: 'Checked out',
+                            }[homeFilter] + ' · press the selected tile to show all'
+                          : 'Waiting students first · not arrived opens profile'}
+                      </span>
                     </header>
                     <div className="live-v3-list">
-                      {roster.map((v) => {
-                        const s = db.students.find((s) => s.id === v.studentId)!,
-                          here = isOpenVisit(v),
+                      {home.rows.map(({ student: s, visit: v }) => {
+                        if (!v)
+                          return (
+                            <button
+                              className="live-v3-row expected"
+                              key={'expected:' + s.id}
+                              data-expected-student-id={s.id}
+                              onClick={() => profile(s.id)}
+                            >
+                              <Avatar student={s} />
+                              <div className="live-v3-person">
+                                <b>
+                                  {s.name}
+                                  {s.earlyLearner && <small>Early learner</small>}
+                                </b>
+                                <span>{s.subjects.join(' / ')}</span>
+                              </div>
+                              <span className="handoff-state">Not arrived</span>
+                            </button>
+                          );
+                        const here = isOpenVisit(v),
                           status = here ? (v.handoff ? 'ready' : 'waiting') : 'departed',
                           duration = measuredMinutes(v);
                         return (
@@ -482,10 +508,16 @@ export function StaffApp() {
                           </button>
                         );
                       })}
-                      {!roster.length && (
+                      {!home.rows.length && (
                         <Empty
-                          title="No visits yet today"
-                          text="Kiosk or Student Roster check-in records physical attendance. Instructor handoff is separate."
+                          title={
+                            homeFilter ? 'No students match this view' : 'No students to show today'
+                          }
+                          text={
+                            homeFilter
+                              ? 'Press the selected tile again to show all students.'
+                              : 'Kiosk or Student Roster check-in records physical attendance. Instructor handoff is separate.'
+                          }
                         />
                       )}
                     </div>

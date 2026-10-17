@@ -1,8 +1,8 @@
-import type { Database, Visit } from './model';
+import type { Database, Student, Visit } from './model';
 import { dayKey, isOpenVisit } from './model';
 import type { Assignment, Range, Subject } from './v2-model';
 import type { Activity, Packet } from './v3-model';
-import { addDays, datesBetween, nextExpected, recurring } from './schedule';
+import { addDays, datesBetween, expectedOn, nextExpected, recurring } from './schedule';
 
 export const packetLabel = (p: Packet | Range) => {
   const r = 'range' in p ? p.range : p;
@@ -308,4 +308,46 @@ export function dailyRoster(db: Database, today: string) {
               a.departedAt || a.closedAt || a.arrivedAt,
             );
     });
+}
+
+export type HomeFilter = 'expected' | 'here' | 'early' | 'out';
+export type HomeRow = { student: Student; visit: Visit | null };
+export function homeRoster(db: Database, today: string, filter: HomeFilter | null = null) {
+  const tz = db.operations!.center.timezone,
+    students = new Map(db.students.map((s) => [s.id, s])),
+    visits = dailyRoster(db, today),
+    present = visits.filter(isOpenVisit),
+    arrived = new Set(
+      db.visits
+        .filter((v) => dayKey(v.arrivedAt, tz) === today || isOpenVisit(v))
+        .map((v) => v.studentId),
+    ),
+    expected: HomeRow[] = db.students
+      .filter((s) => expectedOn(db.operations!, s.id, today) && !arrived.has(s.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((student) => ({ student, visit: null })),
+    checkedOut = db.visits
+      .filter(
+        (v) => v.departedAt && v.departureVerified === true && dayKey(v.departedAt, tz) === today,
+      )
+      .sort((a, b) => b.departedAt!.localeCompare(a.departedAt!)),
+    departed = [
+      ...new Map(
+        [...visits.filter((v) => !isOpenVisit(v)), ...checkedOut].map((v) => [v.id, v]),
+      ).values(),
+    ].sort((a, b) =>
+      (b.departedAt || b.closedAt || b.arrivedAt).localeCompare(
+        a.departedAt || a.closedAt || a.arrivedAt,
+      ),
+    ),
+    rows = (items: Visit[]): HomeRow[] =>
+      items.map((visit) => ({ student: students.get(visit.studentId)!, visit })),
+    here = rows(present),
+    early = here.filter((r) => r.student.earlyLearner),
+    out = rows(checkedOut),
+    groups = { expected, here, early, out };
+  return {
+    rows: filter ? groups[filter] : [...here, ...expected, ...rows(departed)],
+    counts: { expected: expected.length, here: here.length, early: early.length, out: out.length },
+  };
 }

@@ -11,15 +11,16 @@ import {
   handoff,
   simulatedClosure,
 } from './helpers';
-import { dayKey } from '../../src/lib/model';
-test('Home has three metrics, direct waiting Quick View and only the V3 navigation', async ({
+import { dayKey, isOpenVisit } from '../../src/lib/model';
+import type { Visit } from '../../src/lib/model';
+test('Home has four metrics, direct waiting Quick View and only the V3 navigation', async ({
   page,
 }) => {
   await login(page);
   const s = await learner(page, 'CONNECT'),
     v = await arrive(page, s.id);
   await page.reload();
-  await expect(page.locator('.home-v3-metrics>div')).toHaveCount(3);
+  await expect(page.locator('.home-v3-metrics>button')).toHaveCount(4);
   await expect(page.getByLabel('Global student or family search')).toHaveCount(0);
   for (const name of ['Corrections', 'Calendar', 'Review queue', 'Attendance'])
     await expect(page.locator('.sidebar').getByRole('button', { name, exact: true })).toHaveCount(
@@ -37,6 +38,104 @@ test('Home has three metrics, direct waiting Quick View and only the V3 navigati
   await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
   await page.getByRole('button', { name: 'Expand sidebar' }).click();
   await page.screenshot({ path: 'test-results/v3-home.png' });
+});
+test('Home tiles toggle exclusive filters, preserve repeated visits and open expected profiles without attendance', async ({
+  page,
+}) => {
+  await login(page);
+  const db = await state(page),
+    at = '2026-10-12T20:00:00Z';
+  db.students = db.students.slice(0, 6);
+  for (const [index, s] of db.students.entries()) {
+    const cfg = db.operations!.students[s.id];
+    cfg.active = true;
+    cfg.awayUntil = null;
+    cfg.visitDays = [1];
+    s.earlyLearner = index === 0;
+  }
+  db.operations!.center.closedDates = [];
+  const visit = (index: number, id: string): Visit => ({
+    id,
+    studentId: db.students[index].id,
+    arrivedAt: at,
+    departedAt: null,
+  });
+  db.visits = [
+    visit(0, 'home-waiting'),
+    visit(1, 'home-other'),
+    { ...visit(2, 'home-left'), departedAt: '2026-10-12T20:30:00Z', departureVerified: true },
+    { ...visit(3, 'home-auto'), closedAt: '2026-10-12T20:40:00Z', departureVerified: false },
+    {
+      ...visit(0, 'home-repeat'),
+      arrivedAt: '2026-10-12T18:00:00Z',
+      departedAt: '2026-10-12T19:00:00Z',
+      departureVerified: true,
+    },
+  ];
+  await page.clock.install({ time: new Date('2026-10-12T21:00:00Z') });
+  await page.route('**/api/state', (route) => route.fulfill({ json: db }));
+  let writes = 0;
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/commands')) writes++;
+  });
+  await page.reload();
+  const tiles = page.locator('.home-v3-metrics'),
+    rows = page.locator('.live-v3-row'),
+    expected = tiles.getByRole('button', { name: /^Still expected/ }),
+    here = tiles.getByRole('button', { name: /^Here now/ }),
+    early = tiles.getByRole('button', { name: /^Early learners here/ }),
+    out = tiles.getByRole('button', { name: /^Checked out/ });
+  await expect(rows).toHaveCount(7);
+  for (const [tile, count] of [
+    [expected, '2'],
+    [here, '2'],
+    [early, '1'],
+    [out, '2'],
+  ] as const) {
+    await expect(tile.locator('b')).toHaveText(count);
+    await expect(tile).toHaveAttribute('aria-pressed', 'false');
+  }
+  await expected.click();
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText('Not arrived');
+  await expect(expected).toHaveAttribute('aria-pressed', 'true');
+  await here.click();
+  await expect(rows).toHaveCount(2);
+  await expect(expected).toHaveAttribute('aria-pressed', 'false');
+  await early.click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toHaveAttribute('data-visit-id', 'home-waiting');
+  await expect(here).toHaveAttribute('aria-pressed', 'false');
+  await out.focus();
+  await page.keyboard.press('Enter');
+  await expect(rows).toHaveCount(2);
+  await expect(page.locator('[data-visit-id="home-auto"]')).toHaveCount(0);
+  await expect(page.locator('[data-visit-id="home-repeat"]')).toBeVisible();
+  await expect(tiles.locator('[aria-pressed="true"]')).toHaveCount(1);
+  await out.click();
+  await expect(rows).toHaveCount(7);
+  await expect(tiles.locator('[aria-pressed="true"]')).toHaveCount(0);
+  for (const width of [1440, 1024, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(out).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: `test-results/home-tiles-${width}.png`, fullPage: true });
+  }
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expected.click();
+  await page.locator('[data-expected-student-id="' + db.students[4].id + '"]').click();
+  await expect(page.getByRole('heading', { name: new RegExp(db.students[4].name) })).toBeVisible();
+  expect(writes).toBe(0);
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await here.click();
+  db.visits[0].departedAt = '2026-10-12T21:00:00Z';
+  db.visits[0].departureVerified = true;
+  await expect(here.locator('b')).toHaveText('1', { timeout: 15000 });
+  await expect(rows).toHaveCount(1);
+  await expect(out.locator('b')).toHaveText('3');
+  expect(writes).toBe(0);
 });
 test('roster creates, consolidated edit sets defaults, withdrawal/reactivation and QR preserve identity', async ({
   page,
@@ -491,14 +590,28 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
     });
   }
   await page.reload();
+  db = await state(page);
   await expect(
-    page.locator('.home-v3-metrics>div').filter({ hasText: 'Expected today' }),
-  ).toContainText('50');
+    page.locator('.home-v3-metrics>button').filter({ hasText: 'Still expected' }).locator('b'),
+  ).toHaveText(
+    String(
+      ids
+        .slice(0, 50)
+        .filter(
+          (id) =>
+            !db.visits.some(
+              (v) =>
+                v.studentId === id &&
+                (dayKey(v.arrivedAt, db.timezone) === today || isOpenVisit(v)),
+            ),
+        ).length,
+    ),
+  );
   const attended = [];
   for (const id of ids.slice(0, 8)) attended.push(await arrive(page, id));
   await page.reload();
   await expect(
-    page.locator('.home-v3-metrics>div').filter({ hasText: 'Early learners here' }),
+    page.locator('.home-v3-metrics>button').filter({ hasText: 'Early learners here' }),
   ).toContainText('6');
   const second = await browser.newContext(),
     other = await second.newPage();
@@ -587,9 +700,23 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   );
   await command(page, 'v3', { action: 'away', studentId: ids[49], until: '2026-11-02' });
   await page.reload();
+  db = await state(page);
   await expect(
-    page.locator('.home-v3-metrics>div').filter({ hasText: 'Expected today' }),
-  ).toContainText('49');
+    page.locator('.home-v3-metrics>button').filter({ hasText: 'Still expected' }).locator('b'),
+  ).toHaveText(
+    String(
+      ids
+        .slice(0, 49)
+        .filter(
+          (id) =>
+            !db.visits.some(
+              (v) =>
+                v.studentId === id &&
+                (dayKey(v.arrivedAt, db.timezone) === today || isOpenVisit(v)),
+            ),
+        ).length,
+    ),
+  );
   db = await state(page);
   expect(ids.every((id) => db.students.some((s) => s.id === id))).toBe(true);
   expect(db.operations!.completions.length).toBe(0);

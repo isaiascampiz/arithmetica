@@ -9,6 +9,7 @@ import { applyV2 } from '../src/lib/v2-domain';
 import {
   currentSets,
   dailyRoster,
+  homeRoster,
   packetLabel,
   paperProposal,
   recommend,
@@ -181,6 +182,147 @@ test('one continuous roster sorts longest waiting, newer ready, newer departed (
     ['wait-old', 'wait-new', 'ready-new', 'ready-old', 'left-new', 'left-old'],
   );
   assert.equal(db.visits[2].handoff, undefined);
+});
+test('Home groups present, still expected and departed without changing visits or repeat identities', () => {
+  const db = fixture();
+  db.students = db.students.slice(0, 6);
+  for (const s of db.students) {
+    db.operations!.students[s.id].visitDays = [1];
+    s.earlyLearner = s.id === db.students[0].id;
+  }
+  db.students[4].name = 'Zoe Fictional';
+  db.students[5].name = 'Amy Fictional';
+  const visit = (index: number, id: string): Visit => ({
+    id,
+    studentId: db.students[index].id,
+    arrivedAt: '2026-10-12T18:00:00Z',
+    departedAt: null,
+  });
+  db.visits = [
+    visit(0, 'waiting'),
+    {
+      ...visit(1, 'ready'),
+      handoff: {
+        at: now.toISOString(),
+        actor: teacher.name,
+        activities: {},
+        assignmentIds: [],
+        incoming: 'unknown',
+        events: [],
+      },
+    },
+    { ...visit(2, 'left'), departedAt: '2026-10-12T21:00:00Z', departureVerified: true },
+    { ...visit(3, 'auto'), closedAt: '2026-10-12T22:00:00Z', departureVerified: false },
+    {
+      ...visit(0, 'earlier-visit'),
+      arrivedAt: '2026-10-12T16:00:00Z',
+      departedAt: '2026-10-12T17:00:00Z',
+      departureVerified: true,
+    },
+  ];
+  const before = structuredClone(db),
+    home = homeRoster(db, '2026-10-12');
+  assert.deepEqual(home.counts, { expected: 2, here: 2, early: 1, out: 2 });
+  assert.deepEqual(
+    home.rows.map((r) => r.visit?.id || r.student.name),
+    ['waiting', 'ready', 'Amy Fictional', 'Zoe Fictional', 'auto', 'left', 'earlier-visit'],
+  );
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'expected').rows.map((r) => r.student.name),
+    ['Amy Fictional', 'Zoe Fictional'],
+  );
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'here').rows.map((r) => r.visit!.id),
+    ['waiting', 'ready'],
+  );
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'early').rows.map((r) => r.visit!.id),
+    ['waiting'],
+  );
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'out').rows.map((r) => r.visit!.id),
+    ['left', 'earlier-visit'],
+  );
+  assert.deepEqual(db, before);
+});
+test('Home Checked out requires explicit verification and uses departure date in the center timezone', () => {
+  const db = fixture(),
+    studentId = db.students[0].id;
+  db.visits = [
+    {
+      id: 'overnight',
+      studentId,
+      arrivedAt: '2026-10-11T23:00:00Z',
+      departedAt: '2026-10-12T07:00:00Z',
+      departureVerified: true,
+    },
+    {
+      id: 'late',
+      studentId,
+      arrivedAt: '2026-10-12T23:00:00Z',
+      departedAt: '2026-10-13T06:59:59Z',
+      departureVerified: true,
+    },
+    {
+      id: 'tomorrow',
+      studentId,
+      arrivedAt: '2026-10-12T23:00:00Z',
+      departedAt: '2026-10-13T07:00:00Z',
+      departureVerified: true,
+    },
+    {
+      id: 'unverified',
+      studentId,
+      arrivedAt: now.toISOString(),
+      departedAt: now.toISOString(),
+      departureVerified: false,
+    },
+    {
+      id: 'legacy-unknown',
+      studentId,
+      arrivedAt: now.toISOString(),
+      departedAt: now.toISOString(),
+    },
+    {
+      id: 'auto',
+      studentId,
+      arrivedAt: now.toISOString(),
+      departedAt: null,
+      closedAt: now.toISOString(),
+      departureVerified: false,
+    },
+  ];
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'out').rows.map((r) => r.visit!.id),
+    ['late', 'overnight'],
+  );
+  assert.ok(homeRoster(db, '2026-10-12').rows.some((r) => r.visit?.id === 'overnight'));
+  assert.deepEqual(
+    homeRoster(db, '2026-10-13', 'out').rows.map((r) => r.visit!.id),
+    ['tomorrow'],
+  );
+});
+test('Home Still expected honors scheduling and does not duplicate a previous open visit', () => {
+  const db = fixture();
+  db.students = db.students.slice(0, 4);
+  for (const s of db.students) db.operations!.students[s.id].visitDays = [1];
+  db.operations!.students[db.students[1].id].active = false;
+  db.operations!.students[db.students[2].id].awayUntil = '2026-10-19';
+  db.visits = [
+    {
+      id: 'old-open',
+      studentId: db.students[3].id,
+      arrivedAt: '2026-10-11T20:00:00Z',
+      departedAt: null,
+    },
+  ];
+  assert.deepEqual(
+    homeRoster(db, '2026-10-12', 'expected').rows.map((r) => r.student.id),
+    [db.students[0].id],
+  );
+  assert.equal(homeRoster(db, '2026-10-12', 'here').counts.here, 1);
+  db.operations!.center.closedDates.push('2026-10-12');
+  assert.equal(homeRoster(db, '2026-10-12', 'expected').rows.length, 0);
 });
 test('early learners count actual presence, not assistance flags (10)', () => {
   const db = fixture();
