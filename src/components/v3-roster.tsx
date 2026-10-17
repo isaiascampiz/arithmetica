@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { isOpenVisit, type Snapshot, type Student } from '@/lib/model';
 import { filterRoster, type RosterFilter } from '@/lib/v3-analytics';
@@ -33,9 +33,12 @@ export function RosterV3({
   error: string;
 }) {
   const [f, setF] = useState(initial),
+    [draft, setDraft] = useState(initial),
+    [filtersOpen, setFiltersOpen] = useState(false),
     [add, setAdd] = useState(false),
     [name, setName] = useState(''),
     [early, setEarly] = useState(false);
+  const filtersButton = useRef<HTMLButtonElement>(null);
   const students = filterRoster(db, f),
     today = dayKey(new Date(), db.timezone),
     teacher = db.staff.role !== 'assistant';
@@ -48,6 +51,23 @@ export function RosterV3({
           value={f.query}
           onChange={(e) => setF({ ...f, query: e.target.value })}
         />
+        <button
+          ref={filtersButton}
+          className="secondary"
+          aria-expanded={filtersOpen}
+          aria-controls="roster-filters"
+          onClick={() => {
+            setDraft(f);
+            setFiltersOpen(!filtersOpen);
+          }}
+        >
+          Filters
+          {(f.subject !== initial.subject ||
+            f.format !== initial.format ||
+            f.status !== initial.status ||
+            f.early ||
+            f.days.length > 0) && <span className="small"> (active)</span>}
+        </button>
         {teacher && (
           <button className="primary" onClick={() => setAdd(true)}>
             <Plus size={17} />
@@ -55,73 +75,106 @@ export function RosterV3({
           </button>
         )}
       </div>
-      <div className="roster-v3-filters">
-        <label>
-          Subject
-          <select value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })}>
-            <option value="All">All subjects</option>
-            <option>Math</option>
-            <option>Reading</option>
-          </select>
-        </label>
-        <label>
-          Format
-          <select value={f.format} onChange={(e) => setF({ ...f, format: e.target.value })}>
-            <option value="All">All formats</option>
-            <option value="Paper">PAPER</option>
-            <option value="CONNECT">Kumon CONNECT</option>
-          </select>
-        </label>
-        <label>
-          Medal filter
-          <select value={f.medal} onChange={(e) => setF({ ...f, medal: e.target.value })}>
-            {['All', 'None', 'Bronze', 'Silver', 'Gold', 'Platinum'].map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Enrollment status
-          <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>
-            {['Active', 'Inactive', 'All'].map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label className="check-label">
-          <input
-            type="checkbox"
-            checked={f.early}
-            onChange={(e) => setF({ ...f, early: e.target.checked })}
-          />
-          Early learner
-        </label>
-        <fieldset>
-          <legend>Visit weekdays</legend>
-          <div className="day-options">
-            {['Mon', 'Tue', 'Wed', 'Thu'].map((d, i) => (
-              <label key={d}>
-                <input
-                  type="checkbox"
-                  checked={f.days.includes(i + 1)}
-                  onChange={(e) =>
-                    setF({
-                      ...f,
-                      days: e.target.checked
-                        ? [...f.days, i + 1]
-                        : f.days.filter((n) => n !== i + 1),
-                    })
-                  }
-                />
-                {d}
-              </label>
-            ))}
+      {filtersOpen && (
+        <form
+          id="roster-filters"
+          aria-label="Roster filters"
+          className="roster-v3-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setF({ ...draft, query: f.query });
+            setFiltersOpen(false);
+            filtersButton.current?.focus();
+          }}
+        >
+          <div className="roster-filter-fields">
+            <label>
+              Subject
+              <select
+                aria-label="Subject"
+                value={draft.subject}
+                onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+              >
+                <option value="All">All subjects</option>
+                <option>Math</option>
+                <option>Reading</option>
+              </select>
+            </label>
+            <label>
+              Format
+              <select
+                aria-label="Format"
+                value={draft.format}
+                onChange={(e) => setDraft({ ...draft, format: e.target.value })}
+              >
+                <option value="All">All formats</option>
+                <option value="Paper">PAPER</option>
+                <option value="CONNECT">Kumon CONNECT</option>
+              </select>
+            </label>
+            <label>
+              Enrollment status
+              <select
+                aria-label="Enrollment status"
+                value={draft.status}
+                onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+              >
+                {['Active', 'Inactive', 'All'].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </label>
           </div>
-        </fieldset>
-        <button className="text-button" onClick={() => setF(initial)}>
-          Clear Filters
-        </button>
-      </div>
+          <div className="roster-filter-options">
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={draft.early}
+                onChange={(e) => setDraft({ ...draft, early: e.target.checked })}
+              />
+              Early learner
+            </label>
+            <fieldset>
+              <legend>Visit weekdays</legend>
+              <div className="day-options">
+                {['Mon', 'Tue', 'Wed', 'Thu'].map((d, i) => (
+                  <label key={d}>
+                    <input
+                      type="checkbox"
+                      checked={draft.days.includes(i + 1)}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          days: e.target.checked
+                            ? [...draft.days, i + 1]
+                            : draft.days.filter((n) => n !== i + 1),
+                        })
+                      }
+                    />
+                    {d}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+          <div className="roster-filter-actions">
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                const cleared = { ...initial, query: f.query };
+                setF(cleared);
+                setDraft(cleared);
+              }}
+            >
+              Clear
+            </button>
+            <button className="primary" type="submit">
+              Apply
+            </button>
+          </div>
+        </form>
+      )}
       <div className="roster-result-count" role="status">
         {students.length} students
       </div>
@@ -143,10 +196,9 @@ export function RosterV3({
                       .map(
                         (sub) =>
                           sub +
-                          ' · ' +
-                          (c.subjects[sub as 'Math' | 'Reading'].format === 'Paper'
-                            ? 'PAPER'
-                            : 'CONNECT'),
+                          (c.subjects[sub as 'Math' | 'Reading'].format === 'CONNECT'
+                            ? ' · CONNECT'
+                            : ''),
                       )
                       .join(' / ')}
                     {s.earlyLearner ? ' · Early learner' : ''}

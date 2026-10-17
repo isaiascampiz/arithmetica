@@ -69,6 +69,134 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
   ).toBeVisible();
   await page.screenshot({ path: 'test-results/v3-profile.png' });
 });
+test('roster filters are requested, applied explicitly and cleared without losing search', async ({
+  page,
+}) => {
+  await login(page);
+  const s = await learner(page),
+    db = await state(page),
+    cfg = structuredClone(db.operations!.students[s.id]);
+  cfg.subjects.Reading = { ...cfg.subjects.Math, enrolled: true, format: 'CONNECT' };
+  await command(page, 'v3', {
+    action: 'student-save',
+    studentId: s.id,
+    name: s.name,
+    earlyLearner: false,
+    settings: cfg,
+    enrollmentDate: '2026-01-01',
+    visitDays: [1, 3],
+    tiles: [],
+    goals: '',
+    arrivalWindow: '',
+  });
+  await page.getByRole('button', { name: 'Student Roster', exact: true }).click();
+  const search = page.getByRole('textbox', { name: 'Search Student Roster' }),
+    filters = page.getByRole('button', { name: /^Filters/ }),
+    panel = page.getByRole('form', { name: 'Roster filters' }),
+    rows = page.locator('.roster-v3-row');
+  await expect(search).toBeVisible();
+  await expect(filters).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel).toHaveCount(0);
+  await search.fill(s.id);
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toContainText('Math / Reading · CONNECT');
+  await expect(rows).not.toContainText('PAPER');
+
+  await filters.focus();
+  await page.keyboard.press('Enter');
+  await expect(panel).toBeVisible();
+  async function checkFilterLayout(width: number) {
+    await page.setViewportSize({ width, height: 1000 });
+    const selects = await panel.locator('select').evaluateAll((elements) =>
+      elements.map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      }),
+    );
+    expect(selects).toHaveLength(3);
+    for (const select of selects) expect(select.height).toBeGreaterThanOrEqual(44);
+    for (let i = 1; i < selects.length; i++) {
+      expect(selects[i].width).toBeCloseTo(selects[0].width, 0);
+      if (width > 700) {
+        expect(selects[i].y).toBeCloseTo(selects[0].y, 0);
+        expect(selects[i].x).toBeGreaterThan(selects[i - 1].x);
+      } else {
+        expect(selects[i].x).toBeCloseTo(selects[0].x, 0);
+        expect(selects[i].y).toBeGreaterThan(selects[i - 1].y + selects[i - 1].height);
+      }
+    }
+    const clear = (await panel.getByRole('button', { name: 'Clear', exact: true }).boundingBox())!,
+      apply = (await panel.getByRole('button', { name: 'Apply', exact: true }).boundingBox())!,
+      searchBox = (await search.boundingBox())!,
+      panelBox = (await panel.boundingBox())!,
+      weekdays = (await panel.getByRole('group', { name: 'Visit weekdays' }).boundingBox())!;
+    expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(panelBox.y);
+    expect(clear.x + clear.width).toBeLessThan(apply.x);
+    expect(clear.y).toBeCloseTo(apply.y, 0);
+    expect(clear.y).toBeGreaterThanOrEqual(weekdays.y + weekdays.height);
+    expect(clear.height).toBeGreaterThanOrEqual(44);
+    expect(apply.height).toBeGreaterThanOrEqual(44);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: `test-results/roster-filters-${width}.png`, fullPage: true });
+  }
+  await checkFilterLayout(1440);
+  await checkFilterLayout(1024);
+  await expect(page.getByLabel('Medal filter')).toHaveCount(0);
+  await panel.getByLabel('Subject', { exact: true }).selectOption('Math');
+  await panel.getByLabel('Format', { exact: true }).selectOption('CONNECT');
+  await expect(rows).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(rows).toHaveCount(0);
+  await expect(filters).toBeFocused();
+  await expect(filters).toContainText('(active)');
+  await expect(panel).toHaveCount(0);
+
+  await filters.click();
+  await panel.getByLabel('Subject', { exact: true }).selectOption('Reading');
+  await panel.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(rows).toHaveCount(1);
+  await filters.click();
+  await panel.getByLabel('Subject', { exact: true }).selectOption('Math');
+  await filters.click();
+  await filters.click();
+  await expect(panel.getByLabel('Subject', { exact: true })).toHaveValue('Reading');
+  await panel.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(search).toHaveValue(s.id);
+  await expect(filters).not.toContainText('(active)');
+  await expect(rows).toHaveCount(1);
+  await expect(panel.getByLabel('Enrollment status')).toHaveValue('Active');
+
+  for (const control of ['Early learner', 'Tue', 'Enrollment status']) {
+    if (control === 'Enrollment status')
+      await panel.getByLabel(control, { exact: true }).selectOption('Inactive');
+    else await panel.getByLabel(control, { exact: true }).check();
+    await expect(rows).toHaveCount(1);
+    await panel.getByRole('button', { name: 'Apply', exact: true }).click();
+    await expect(rows).toHaveCount(0);
+    await filters.click();
+    await panel.getByRole('button', { name: 'Clear', exact: true }).click();
+    await expect(rows).toHaveCount(1);
+  }
+
+  await panel.getByLabel('Subject', { exact: true }).selectOption('Math');
+  await panel.getByLabel('Format', { exact: true }).selectOption('Paper');
+  await panel.getByLabel('Mon', { exact: true }).check();
+  await panel.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(rows).toHaveCount(1);
+  await search.fill(s.name);
+  await expect(rows).toHaveCount(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await filters.click();
+  await checkFilterLayout(390);
+  await checkFilterLayout(320);
+  await expect(panel.getByRole('button', { name: 'Apply', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await panel.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(search).toHaveValue(s.name);
+  await expect(rows).toHaveCount(1);
+});
 test('compact preparation shows every packet, supports partial subject readiness and prepared is never issued', async ({
   page,
 }) => {
