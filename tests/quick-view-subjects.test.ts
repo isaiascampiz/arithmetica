@@ -582,3 +582,112 @@ test('observational ratings are optional, bounded, attributed and preserve custo
     /instructor/,
   );
 });
+
+test('session snapshots preserve historical packet ranges independently of later plans', () => {
+  const db = quickViewDemo(now),
+    v = visit(db),
+    c = command(db, v, 'Math');
+  const prior = incomingPackets(db, v.studentId, 'Math');
+  c.subjects[0].incoming = [{ id: prior[0].id, state: 'unfinished' }];
+  c.subjects[0].exception = true;
+  applyV3(db, c, teacher, now);
+  const record = v.sessionRecords![0];
+  assert.equal(record.incoming.find((r) => r.packet.id === prior[0].id)!.outcome, 'unfinished');
+  assert.equal(
+    record.incoming.find((r) => r.packet.id === prior[1].id)!.outcome,
+    'assumed completed',
+  );
+  const stored = JSON.stringify(record);
+  currentSets(db, v)[0].v3!.issued[0].range.start = 199;
+  assert.equal(JSON.stringify(record), stored);
+  assert.equal(record.actor, teacher.name);
+});
+test('observation edits append versions, preserve original attribution and reject stale or unauthorized changes', () => {
+  const db = quickViewDemo(now),
+    v = visit(db);
+  applyV3(
+    db,
+    v3CommandInput.parse({
+      action: 'observation',
+      visitId: v.id,
+      choices: [],
+      text: 'Original note',
+      skillRatings: [{ id: 'focus', label: 'Focus', score: 3 }],
+    }),
+    teacher,
+    now,
+  );
+  const o = db.observations.at(-1)!;
+  o.reviewedAt = now.toISOString();
+  o.reviewedBy = 'Fictional reviewer';
+  const materials = JSON.stringify({ visits: db.visits, assignments: db.operations!.assignments });
+  const edit = v3CommandInput.parse({
+    action: 'observation-edit',
+    id: o.id,
+    expectedVersion: 0,
+    text: 'Amended note',
+    skillRatings: [{ id: 'focus', label: 'Focus', score: 4 }],
+  });
+  applyV3(
+    db,
+    edit,
+    { name: 'Second instructor', role: 'instructor' },
+    new Date(now.getTime() + 60000),
+  );
+  assert.equal(o.text, 'Original note');
+  assert.equal(o.skillRatings![0].score, 3);
+  assert.equal(o.revisions![0].actor, 'Second instructor');
+  assert.equal(o.revisions![0].skillRatings[0].score, 4);
+  assert.equal(o.reviewedBy, 'Fictional reviewer');
+  assert.equal(o.author, teacher.name);
+  assert.equal(
+    JSON.stringify({ visits: db.visits, assignments: db.operations!.assignments }),
+    materials,
+  );
+  assert.throws(() => applyV3(db, edit, teacher, now), /Observation changed/);
+  assert.throws(
+    () => applyV3(db, edit, { name: 'Assistant', role: 'assistant' }, now),
+    /instructor/,
+  );
+});
+
+test('additional dictated notes are separate attributed entries without changing original observations', () => {
+  const db = quickViewDemo(now),
+    v = visit(db);
+  applyV3(
+    db,
+    v3CommandInput.parse({
+      action: 'observation',
+      visitId: v.id,
+      choices: [],
+      text: 'During class',
+    }),
+    teacher,
+    now,
+  );
+  const original = structuredClone(db.observations.at(-1));
+  const input = {
+    action: 'observation',
+    context: 'additional',
+    visitId: v.id,
+    choices: [],
+    text: 'Fictional later dictated note',
+  };
+  assert.throws(
+    () => applyV3(db, v3CommandInput.parse(input), teacher, now),
+    /dictated transcript/,
+  );
+  applyV3(
+    db,
+    v3CommandInput.parse({ ...input, inputMethod: 'dictation' }),
+    teacher,
+    new Date(now.getTime() + 3600000),
+  );
+  const added = db.observations.at(-1)!;
+  assert.equal(added.context, 'additional');
+  assert.equal(added.inputMethod, 'dictation');
+  assert.equal(added.visitId, v.id);
+  assert.equal(added.author, teacher.name);
+  assert.equal(added.createdAt, new Date(now.getTime() + 3600000).toISOString());
+  assert.deepEqual(db.observations.at(-2), original);
+});

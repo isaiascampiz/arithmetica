@@ -1,5 +1,19 @@
 import type { Range, Subject } from './v2-model';
 export type Activity = 'Worksheets' | 'Corrections only' | 'Both';
+export type SessionRecord = {
+  subject: Subject;
+  at: string;
+  actor: string;
+  activity: Activity;
+  format: 'Paper' | 'CONNECT';
+  incoming: {
+    packet: Packet;
+    outcome: 'assumed completed' | 'finished' | 'unfinished' | 'missing';
+  }[];
+  center: Packet | null;
+  outgoing: Packet[];
+  reason: string;
+};
 export type Packet = {
   id: string;
   range: Range;

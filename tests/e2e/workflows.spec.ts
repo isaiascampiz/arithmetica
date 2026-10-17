@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, state, learner, arrive, physical, openProfile, command } from './helpers';
+import { login, state, learner, arrive, physical, openProfile, command, prepare } from './helpers';
 test('instructor notes and existing follow-up survive checkout/reload and review', async ({
   page,
 }) => {
@@ -26,18 +26,19 @@ test('instructor notes and existing follow-up survive checkout/reload and review
   await page.reload();
   await openProfile(page, s.name);
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+  await page.getByRole('button', { name: 'View session', exact: true }).click();
   const newNote = page.locator('.history-note').filter({ hasText: note });
   await expect(newNote).toBeVisible();
   await expect(newNote).not.toContainText('Follow-up');
   const card = page.locator('.history-note').filter({ hasText: existingFollowUp });
   await expect(card).toBeVisible();
   await expect(card).toContainText('Follow-up');
-  await card.getByRole('button', { name: 'Mark reviewed' }).click();
-  await expect(card).toContainText('Reviewed');
+  await expect(card.getByRole('button', { name: 'Mark reviewed' })).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+  await page.getByRole('button', { name: 'View session', exact: true }).click();
   await expect(page.locator('.history-note').filter({ hasText: existingFollowUp })).toContainText(
-    'Reviewed',
+    existingFollowUp,
   );
 });
 test('kiosk manual flow is idempotent and cannot read staff records', async ({ page }) => {
@@ -153,4 +154,160 @@ test('anonymous access and foreign-origin writes remain denied', async ({ page }
   expect(r.status()).toBe(403);
   await page.goto('/');
   await expect(page).toHaveURL(/login/);
+});
+
+for (const width of [1024, 390])
+  test(
+    'past session is read-only and observation edits retain history at ' + width,
+    async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await login(page, 'instructor');
+      const s = await learner(page, width === 1024 ? 'Paper' : 'CONNECT'),
+        v = await arrive(page, s.id);
+      if (width === 1024) await prepare(page, s.id);
+      await page.reload();
+      await page.locator('[data-visit-id="' + v.id + '"]').click();
+      let dialog = page.getByRole('dialog');
+      await dialog.getByLabel('Optional instructor note').fill('Original fictional session note');
+      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('3');
+      await dialog.getByRole('button', { name: 'Check in Math', exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+      await physical(page, s.id, 'out');
+      await page.reload();
+      const before = await state(page);
+      if (width < 600) await page.getByRole('button', { name: 'Open navigation' }).click();
+      await openProfile(page, s.name);
+      await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+      await page.getByRole('button', { name: 'View session', exact: true }).click();
+      dialog = page.getByRole('dialog');
+      await expect(dialog).toContainText('Past visit');
+      if (width === 390) await expect(dialog).toContainText('Kumon CONNECT');
+      else {
+        const packets = dialog.locator('.history-packets .packet-chip');
+        expect((await packets.first().boundingBox())!.x).toBe(
+          (await packets.last().boundingBox())!.x,
+        );
+      }
+      await expect(
+        dialog.getByRole('button', { name: /Check in|Adjust|Repeat|Reset/ }),
+      ).toHaveCount(0);
+      await expect(dialog.locator('.history-skill-ratings')).toContainText('Focus');
+      await expect(dialog.locator('.history-skill-ratings')).toContainText('3/5');
+      await dialog.getByRole('button', { name: 'Edit observation', exact: true }).click();
+      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('5');
+      await dialog
+        .getByLabel('Instructional note', { exact: true })
+        .fill('Amended fictional session note');
+      await dialog.getByRole('button', { name: 'Reset', exact: true }).click();
+      await expect(dialog.getByRole('slider')).toHaveCount(0);
+      await expect(dialog).toContainText('Original fictional session note');
+      await expect(dialog).not.toContainText('Amended fictional session note');
+      await dialog.getByRole('button', { name: 'Edit observation', exact: true }).click();
+      await expect(dialog.getByRole('slider', { name: 'Focus rating' })).toHaveValue('3');
+      await expect(dialog.getByLabel('Instructional note', { exact: true })).toHaveValue(
+        'Original fictional session note',
+      );
+      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('5');
+      await dialog
+        .getByLabel('Instructional note', { exact: true })
+        .fill('Amended fictional session note');
+      await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
+      await page.screenshot({ path: 'test-results/session-observation-editor-' + width + '.png' });
+      await dialog.getByRole('button', { name: 'Update observation', exact: true }).click();
+      await expect(dialog.locator('.history-skill-ratings')).toContainText('5/5');
+      await expect(dialog).toContainText('Amended fictional session note');
+      await expect(
+        dialog.getByRole('button', { name: 'Additional note', exact: true }),
+      ).toHaveCount(0);
+      await expect(dialog.getByText('Edit history', { exact: true })).toHaveCount(0);
+      await expect(dialog).not.toContainText('Edited by');
+      await expect(dialog.getByRole('slider')).toHaveCount(0);
+      await expect(dialog.getByRole('meter', { name: 'Focus', exact: true })).toHaveAttribute(
+        'aria-valuenow',
+        '5',
+      );
+      await expect(dialog.getByRole('button', { name: 'Mark reviewed' })).toHaveCount(0);
+      await expect(dialog).not.toContainText('Fictional speech only');
+      expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      await page.screenshot({ path: 'test-results/session-history-' + width + '.png' });
+      const after = await state(page);
+      expect(after.visits).toEqual(before.visits);
+      expect(after.operations!.assignments).toEqual(before.operations!.assignments);
+      await dialog.getByRole('button', { name: 'Close panel' }).click();
+      await page.reload();
+      await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+      await page.getByRole('button', { name: 'View session', exact: true }).click();
+      await expect(page.getByRole('dialog')).toContainText('Amended fictional session note');
+    },
+  );
+
+test('visit history date lookup and duration sorting use recorded center-local visits', async ({
+  page,
+}) => {
+  await login(page);
+  const s = await learner(page, 'CONNECT');
+  const snapshot = await state(page);
+  snapshot.visits = snapshot.visits.filter((v) => v.studentId !== s.id);
+  snapshot.visits.push(
+    {
+      id: 'history-long',
+      studentId: s.id,
+      arrivedAt: '2026-10-17T01:00:00Z',
+      departedAt: '2026-10-17T02:00:00Z',
+      departureVerified: true,
+    },
+    {
+      id: 'history-short',
+      studentId: s.id,
+      arrivedAt: '2026-10-18T01:00:00Z',
+      departedAt: '2026-10-18T01:15:00Z',
+      departureVerified: true,
+    },
+    {
+      id: 'history-unknown',
+      studentId: s.id,
+      arrivedAt: '2026-10-19T01:00:00Z',
+      departedAt: null,
+      closedAt: '2026-10-19T03:00:00Z',
+      departureVerified: false,
+    },
+  );
+  await page.route('**/api/state', (route) => route.fulfill({ json: snapshot }));
+  await page.reload();
+  await openProfile(page, s.name);
+  await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+  const cards = page.locator('[data-history-visit]');
+  await expect(cards).toHaveCount(3);
+  await expect(cards.first()).toHaveAttribute('data-history-visit', 'history-unknown');
+  await expect(page.getByText('Visit details', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Visit date', { exact: true })).not.toBeVisible();
+  await page.getByRole('button', { name: 'Filter & sort' }).click();
+  const dateControl = await page.getByLabel('Visit date', { exact: true }).boundingBox();
+  const sortControl = await page.getByLabel('Sort visits').boundingBox();
+  expect(dateControl!.y).toBe(sortControl!.y);
+  const filterBox = (await page.locator('#visit-filters').boundingBox())!;
+  const cardBox = (await cards.first().boundingBox())!;
+  expect(filterBox.width).toBe(cardBox.width);
+  await page.screenshot({ path: 'test-results/visit-history-filters.png' });
+  await page.getByLabel('Visit date', { exact: true }).fill('2026-10-17');
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText('Saturday, October 17, 2026');
+  await expect(cards).toContainText('15 minutes');
+  await page.getByRole('button', { name: 'Clear date' }).click();
+  await page.getByLabel('Sort visits').selectOption('longest');
+  await expect(cards.first()).toHaveAttribute('data-history-visit', 'history-long');
+  await expect(cards.last()).toHaveAttribute('data-history-visit', 'history-unknown');
+  await page.getByLabel('Sort visits').selectOption('shortest');
+  await expect(cards.first()).toHaveAttribute('data-history-visit', 'history-short');
+  await expect(cards.last()).toContainText('Duration unverified');
+  await page.getByLabel('Sort visits').selectOption('oldest');
+  await expect(cards.first()).toHaveAttribute('data-history-visit', 'history-long');
+  await page.getByRole('button', { name: 'Filter & sort' }).click();
+  const normalCard = (await cards.first().boundingBox())!;
+  const sessionButton = (await cards.first().getByRole('button', { name: 'View session' }).boundingBox())!;
+  expect(Math.abs((sessionButton.y + sessionButton.height / 2) - (normalCard.y + normalCard.height / 2))).toBeLessThan(2);
+  await expect(page.getByLabel('Visit date', { exact: true })).not.toBeVisible();
+  await expect(cards.first().locator('.visit-summary')).toContainText('ObservationsNo');
+  await expect(cards.first().locator('.visit-summary')).toContainText('NoteNo');
+  await page.screenshot({ path: 'test-results/visit-history-list.png' });
 });

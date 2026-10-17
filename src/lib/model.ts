@@ -21,13 +21,22 @@ export type Visit = {
   events?: { at: string; kind: string; actor: string; reason?: string; value?: string }[];
   handoff?: import('./v3-model').Handoff;
   subjectCheckIns?: Partial<Record<import('./v2-model').Subject, import('./v3-model').Handoff>>;
+  sessionRecords?: import('./v3-model').SessionRecord[];
 };
 export type Observation = {
+  context?: 'additional';
+  inputMethod?: 'dictation';
   id: string;
   studentId: string;
   visitId: string | null;
   choices: string[];
   skillRatings?: { id: string; label: string; score: number }[];
+  revisions?: {
+    at: string;
+    actor: string;
+    text: string;
+    skillRatings: { id: string; label: string; score: number }[];
+  }[];
   text: string;
   followUp: boolean;
   createdAt: string;

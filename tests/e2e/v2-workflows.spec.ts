@@ -630,7 +630,8 @@ for (const size of [
       await openProfile(page, s.name);
       await expect(page.getByRole('button', { name: 'Edit Student', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Visit History', exact: true }).click();
-      await expect(page.locator('.visit-entry')).toContainText('No observations recorded');
+      await expect(page.locator('.visit-entry')).toContainText('Checked in');
+      await expect(page.getByText('Visit details', { exact: true })).toHaveCount(0);
       await page.screenshot({ path: 'test-results/v3-viewport-' + size.width + '.png' });
     },
   );

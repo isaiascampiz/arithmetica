@@ -106,12 +106,16 @@ export function DictatedNote({
   label = 'Optional instructor note',
   buttonLabel = 'Dictate note',
   maxLength = 1200,
+  dictationOnly = false,
+  showPrivacyHint = true,
 }: {
   text: string;
   setText: (s: string) => void;
   label?: string;
   buttonLabel?: string;
   maxLength?: number;
+  dictationOnly?: boolean;
+  showPrivacyHint?: boolean;
 }) {
   const fieldId = useId();
   const [listening, setListening] = useState(false),
@@ -125,7 +129,11 @@ export function DictatedNote({
     };
     const R = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!R) {
-      setError('Dictation unavailable; type or use the keyboard microphone.');
+      setError(
+        dictationOnly
+          ? 'Dictation unavailable in this browser.'
+          : 'Dictation unavailable; type or use the keyboard microphone.',
+      );
       return;
     }
     if (listening) {
@@ -151,7 +159,11 @@ export function DictatedNote({
           .slice(0, maxLength),
       );
     r.onerror = () => {
-      setError('Dictation failed. Typed input remains available.');
+      setError(
+        dictationOnly
+          ? 'Dictation failed. Please try again.'
+          : 'Dictation failed. Typed input remains available.',
+      );
       setListening(false);
     };
     r.onend = () => setListening(false);
@@ -171,6 +183,7 @@ export function DictatedNote({
         maxLength={maxLength}
         rows={2}
         value={text}
+        readOnly={dictationOnly}
         onChange={(e) => setText(e.target.value)}
         placeholder="A brief note for this visit…"
       />
@@ -178,9 +191,11 @@ export function DictatedNote({
         <Mic size={17} />
         {listening ? 'Stop dictation' : buttonLabel}
       </button>
-      <small className="muted">
-        Fictional speech only; browser/provider privacy requires approval.
-      </small>
+      {showPrivacyHint && (
+        <small className="muted">
+          Fictional speech only; browser/provider privacy requires approval.
+        </small>
+      )}
       {error && <p role="status">{error}</p>}
     </div>
   );

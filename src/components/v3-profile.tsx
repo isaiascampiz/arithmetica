@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
 import { ArrowLeft, Edit3, QrCode } from 'lucide-react';
-import { isOpenVisit, type Snapshot, type Student, type Visit } from '@/lib/model';
+import { dayKey, isOpenVisit, type Snapshot, type Student, type Visit } from '@/lib/model';
 import { recurring, zonedTimestamp } from '@/lib/schedule';
 import { matchVisit, measuredMinutes } from '@/lib/v3-analytics';
 import type { Subject } from '@/lib/v2-model';
@@ -11,6 +11,7 @@ import type { V2Command } from '@/lib/v2-domain';
 import { Medals, Modal, type V3Act } from './v3-shared';
 import { ProgressCharts } from './v3-charts';
 import { time, date, Empty, useNow } from './shared-ui';
+import { SessionHistory } from './v3-session-history';
 const days = ['Mon', 'Tue', 'Wed', 'Thu'];
 export function StudentProfileV3({
   db,
@@ -20,7 +21,6 @@ export function StudentProfileV3({
   busy,
   error,
   back,
-  quick,
   review,
 }: {
   db: Snapshot;
@@ -35,13 +35,30 @@ export function StudentProfileV3({
 }) {
   const [tab, setTab] = useState('Overview'),
     [edit, setEdit] = useState(false),
+    [session, setSession] = useState<string | null>(null),
+    [visitDate, setVisitDate] = useState(''),
+    [visitSort, setVisitSort] = useState('newest'),
+    [filtersOpen, setFiltersOpen] = useState(false),
     [qr, setQr] = useState('');
   const op = db.operations!,
     cfg = op.students[s.id],
     teacher = db.staff.role !== 'assistant';
   const visits = db.visits
-    .filter((v) => v.studentId === s.id)
-    .sort((a, b) => b.arrivedAt.localeCompare(a.arrivedAt));
+    .filter(
+      (v) => v.studentId === s.id && (!visitDate || dayKey(v.arrivedAt, db.timezone) === visitDate),
+    )
+    .sort((a, b) => {
+      if (visitSort === 'longest' || visitSort === 'shortest') {
+        const x = measuredMinutes(a),
+          y = measuredMinutes(b);
+        if (x === null || y === null)
+          return x === y ? b.arrivedAt.localeCompare(a.arrivedAt) : x === null ? 1 : -1;
+        return (visitSort === 'longest' ? y - x : x - y) || b.arrivedAt.localeCompare(a.arrivedAt);
+      }
+      return visitSort === 'oldest'
+        ? a.arrivedAt.localeCompare(b.arrivedAt)
+        : b.arrivedAt.localeCompare(a.arrivedAt);
+    });
   const orphanNotes = db.observations.filter(
     (o) => o.studentId === s.id && !matchVisit(db, s.id, o.createdAt, o.visitId),
   );
@@ -176,7 +193,7 @@ export function StudentProfileV3({
           {teacher && (
             <button
               className="text-button"
-              disabled={busy || visits.some(isOpenVisit)}
+              disabled={busy || db.visits.some((v) => v.studentId === s.id && isOpenVisit(v))}
               onClick={() =>
                 void legacyAct({ action: 'student-active', studentId: s.id, active: !cfg.active })
               }
@@ -192,114 +209,110 @@ export function StudentProfileV3({
       {tab === 'Progress' && <ProgressCharts db={db} student={s} />}
       {tab === 'Visit History' && (
         <div className="visit-timeline">
+          <div className="visit-history-toolbar">
+            <button
+              type="button"
+              className="secondary"
+              aria-expanded={filtersOpen}
+              aria-controls="visit-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              Filter &amp; sort
+            </button>
+            <div
+              id="visit-filters"
+              hidden={!filtersOpen}
+              className="visit-history-controls visit-history-dropdown"
+            >
+              <h3>Filter &amp; sort</h3>
+              <label>
+                Visit date
+                <input
+                  type="date"
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                />
+              </label>
+              <button
+                className="text-button"
+                disabled={!visitDate}
+                onClick={() => setVisitDate('')}
+              >
+                Clear date
+              </button>
+              <label>
+                Sort visits
+                <select value={visitSort} onChange={(e) => setVisitSort(e.target.value)}>
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="longest">Longest visit</option>
+                  <option value="shortest">Shortest visit</option>
+                </select>
+              </label>
+            </div>
+          </div>
           {visits.map((v) => {
             const notes = db.observations.filter(
-                (o) =>
-                  o.studentId === s.id && matchVisit(db, s.id, o.createdAt, o.visitId)?.id === v.id,
-              ),
-              evals = op.evaluations.filter(
-                (e) => e.studentId === s.id && matchVisit(db, s.id, e.createdAt)?.id === v.id,
-              ),
-              decisions = op.decisions.filter(
-                (d) => d.studentId === s.id && matchVisit(db, s.id, d.createdAt)?.id === v.id,
-              ),
-              minutes = measuredMinutes(v),
-              issued = op.assignments.filter((a) => a.v3?.visitId === v.id);
+              (o) =>
+                o.studentId === s.id && matchVisit(db, s.id, o.createdAt, o.visitId)?.id === v.id,
+            );
+            const ratings = notes
+              .filter((o) => o.context !== 'additional')
+              .reduce(
+                (n, o) => n + (o.revisions?.at(-1)?.skillRatings || o.skillRatings || []).length,
+                0,
+              );
+            const minutes = measuredMinutes(v);
             return (
-              <article className="panel visit-entry" key={v.id}>
+              <article className="panel visit-entry" key={v.id} data-history-visit={v.id}>
                 <header>
-                  <div>
-                    <h2>
-                      {date(v.arrivedAt, db.timezone)} · {time(v.arrivedAt, db.timezone)}
-                    </h2>
-                    <p>
-                      {v.departedAt
-                        ? 'Departed ' + time(v.departedAt, db.timezone)
-                        : v.closedAt
-                          ? 'Departure unverified'
-                          : 'Physically here'}{' '}
-                      · {minutes === null ? 'Duration unverified' : Math.round(minutes) + ' min'}
-                    </p>
-                  </div>
-                  {teacher && (
-                    <button className="secondary" onClick={() => quick(v)}>
-                      Visit note / Quick View
-                    </button>
-                  )}
+                  <h2>
+                    {new Intl.DateTimeFormat('en-US', {
+                      timeZone: db.timezone,
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    }).format(new Date(v.arrivedAt))}
+                  </h2>
                 </header>
-                <small>Session {v.id}</small>
-                <p>
-                  {v.handoff
-                    ? 'Handoff complete · ' +
-                      v.handoff.actor +
-                      ' · ' +
-                      time(v.handoff.at, db.timezone)
-                    : 'Instructor handoff not recorded'}
-                </p>
-                {v.handoff && (
-                  <p>
-                    {Object.entries(v.handoff.activities)
-                      .map(([sub, activity]) => sub + ': ' + activity)
-                      .join(' · ')}{' '}
-                    · Incoming: {v.handoff.incoming}
-                  </p>
-                )}
-                {issued.map((a) => (
-                  <p key={a.id}>
-                    {a.subject} issued:{' '}
-                    {a
-                      .v3!.issued.map((p) => p.range.level + p.range.start + '–' + p.range.end)
-                      .join(', ') || 'No outgoing paper'}
-                    {a.v3!.held.length
-                      ? ' · Held: ' +
-                        a
-                          .v3!.held.map((p) => p.range.level + p.range.start + '–' + p.range.end)
-                          .join(', ')
-                      : ''}
-                  </p>
-                ))}
-                {!notes.length && !evals.length && (
-                  <p className="muted">No observations recorded</p>
-                )}
-                {notes.map((o) => (
-                  <div className="history-note" key={o.id}>
-                    <b>{o.choices.join(' · ') || 'Instructor note'}</b>
-                    <p>{o.text}</p>
-                    <small>
-                      {o.author} · {time(o.createdAt, db.timezone)}
-                      {o.followUp ? ' · Follow-up' : ''}
-                      {o.reviewedAt ? ' · Reviewed by ' + o.reviewedBy : ''}
-                    </small>
-                    {teacher && !o.reviewedAt && (
-                      <button
-                        className="text-button"
-                        disabled={busy}
-                        onClick={() => void review(o.id)}
-                      >
-                        Mark reviewed
-                      </button>
-                    )}
+                <dl className="visit-summary">
+                  <div>
+                    <dt>Checked in</dt>
+                    <dd>{time(v.arrivedAt, db.timezone)}</dd>
                   </div>
-                ))}
-                {evals.map((e) => (
-                  <div className="history-note" key={e.id}>
-                    <b>{e.subject} · historical evaluation</b>
-                    <p>
-                      {Object.entries(e.ratings)
-                        .filter(([, r]) => r !== 'Not assessed')
-                        .map(([d, r]) => d + ': ' + r)
-                        .join(' · ') || 'Not assessed'}
-                    </p>
-                    <p>{e.text}</p>
-                    <small>{e.author}</small>
+                  <div>
+                    <dt>Checked out</dt>
+                    <dd>
+                      {v.departedAt && v.departureVerified !== false
+                        ? time(v.departedAt, db.timezone)
+                        : v.closedAt || v.departedAt
+                          ? 'Departure unverified'
+                          : 'Physically here'}
+                    </dd>
                   </div>
-                ))}
-                {decisions.map((d) => (
-                  <p key={d.id}>
-                    {d.subject} · {d.kind} · {d.range.level}
-                    {d.range.start}–{d.range.end} · {d.note}
-                  </p>
-                ))}
+                  <div>
+                    <dt>Visit duration</dt>
+                    <dd>
+                      {minutes === null ? 'Duration unverified' : Math.round(minutes) + ' minutes'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Observations</dt>
+                    <dd>{ratings > 0 || notes.some((o) => o.choices.length) ? 'Yes' : 'No'}</dd>
+                  </div>
+                  <div>
+                    <dt>Note</dt>
+                    <dd>
+                      {notes.some((o) => (o.revisions?.at(-1)?.text ?? o.text).trim())
+                        ? 'Yes'
+                        : 'No'}
+                    </dd>
+                  </div>
+                </dl>
+                <button className="secondary" onClick={() => setSession(v.id)}>
+                  View session
+                </button>
                 {teacher && v.closedAt && !v.departureVerified && (
                   <details>
                     <summary>Reconcile unverified departure</summary>
@@ -311,7 +324,7 @@ export function StudentProfileV3({
           })}
           {!visits.length && (
             <Empty
-              title="No attended sessions"
+              title={visitDate ? 'No visits on this date' : 'No attended sessions'}
               text="Every attendance session will appear here, even without observations."
             />
           )}
@@ -386,6 +399,17 @@ export function StudentProfileV3({
               ))}
           </details>
         </div>
+      )}
+      {session && db.visits.some((v) => v.id === session) && (
+        <SessionHistory
+          db={db}
+          visit={db.visits.find((v) => v.id === session)!}
+          act={act}
+          busy={busy}
+          review={review}
+          error={error}
+          close={() => setSession(null)}
+        />
       )}
       {edit && (
         <EditStudent

@@ -43,6 +43,13 @@ const observations = {
 };
 export const v3CommandInput = z.discriminatedUnion('action', [
   z.object({
+    action: z.literal('observation-edit'),
+    id: z.string(),
+    expectedVersion: z.number().int().min(0),
+    text: z.string().trim().max(1200),
+    skillRatings: observations.skillRatings,
+  }),
+  z.object({
     action: z.literal('prepare'),
     ids: z.array(z.string()).min(1).max(2),
     versions: z.record(z.string(), z.number().int()),
@@ -74,6 +81,8 @@ export const v3CommandInput = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('observation'),
+    context: z.literal('additional').optional(),
+    inputMethod: z.literal('dictation').optional(),
     ...observations,
     visitId: z.string(),
     choices: tiles,
@@ -178,7 +187,27 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         throw new DomainError('Duplicate observation skills.');
     }
   }
-  if (c.action === 'prepare') {
+  if (c.action === 'observation-edit') {
+    teacher();
+    const entry = db.observations.find((o) => o.id === c.id);
+    if (!entry) throw new DomainError('Observation not found.', 404);
+    if ((entry.revisions?.length || 0) !== c.expectedVersion)
+      throw new DomainError('Observation changed. Reopen the session before editing.', 409);
+    const ratings = c.skillRatings || [];
+    const previous = entry.revisions?.at(-1)?.skillRatings || entry.skillRatings || [];
+    if (
+      new Set(ratings.map((r) => r.id)).size !== ratings.length ||
+      ratings.some((r) => !previous.some((p) => p.id === r.id && p.label === r.label))
+    )
+      throw new DomainError('Only the recorded observation skills can be edited.');
+    (entry.revisions ??= []).push({
+      at,
+      actor: staff.name,
+      text: c.text,
+      skillRatings: structuredClone(ratings),
+    });
+    id = entry.id;
+  } else if (c.action === 'prepare') {
     for (const key of c.ids) {
       const a = op.assignments.find((a) => a.id === key && a.v3);
       if (!a) throw new DomainError('Preparation not found.', 404);
@@ -322,7 +351,17 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     id = c.id;
   } else if (c.action === 'observation') {
     teacher();
+    if (
+      c.context === 'additional' &&
+      (c.inputMethod !== 'dictation' ||
+        !c.text.trim() ||
+        c.choices.length ||
+        c.skillRatings?.length)
+    )
+      throw new DomainError('Additional notes require a dictated transcript without ratings.');
     observe(c.visitId, c.choices, c.text, c.followUp, c.skillRatings);
+    if (c.context === 'additional')
+      Object.assign(db.observations.at(-1)!, { context: 'additional', inputMethod: 'dictation' });
     id = c.visitId;
   } else if (c.action === 'temporary-paper') {
     teacher();
@@ -394,6 +433,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     const activities: Partial<Record<Subject, 'Worksheets' | 'Corrections only' | 'Both'>> = {};
     if (c.subject && !sets.length) activities[c.subject] = c.activity || 'Worksheets';
     const ids: string[] = [];
+    const sessionRecords: import('./v3-model').SessionRecord[] = [];
     // All validation occurs against a transaction copy: thrown commands are never saved.
     for (const input of c.subjects) {
       const a = sets.find((a) => a.id === input.assignmentId && a.subject === input.subject);
@@ -402,6 +442,14 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       const v = a.v3!,
         cfg = op.students[visit.studentId].subjects[input.subject];
       const prior = incomingPackets(db, visit.studentId, input.subject, a.id);
+      const recordedIncoming = prior.map((p) => ({
+        packet: structuredClone(p),
+        outcome:
+          input.incoming.find((i) => i.id === p.id)?.state ||
+          (p.status === 'unfinished' || p.status === 'missing'
+            ? p.status
+            : ('assumed completed' as const)),
+      }));
       const incoming = prior.map((p) => ({
         ...p,
         status: input.incoming.find((i) => i.id === p.id)?.state || p.status,
@@ -697,8 +745,32 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         }
       }
       activities[input.subject] = input.activity;
+      sessionRecords.push({
+        subject: input.subject,
+        at,
+        actor: staff.name,
+        activity: input.activity,
+        format: 'Paper',
+        incoming: recordedIncoming,
+        center: structuredClone(input.activity === 'Corrections only' ? null : v.inCenter),
+        outgoing: structuredClone(v.issued),
+        reason: input.reason || input.repeat?.reason || c.correctionReason,
+      });
       ids.push(a.id);
     }
+    if (c.subject && !sets.length)
+      sessionRecords.push({
+        subject: c.subject,
+        at,
+        actor: staff.name,
+        activity: c.activity || 'Worksheets',
+        format: 'CONNECT',
+        incoming: [],
+        center: null,
+        outgoing: [],
+        reason: c.correctionReason,
+      });
+    (visit.sessionRecords ??= []).push(...sessionRecords);
     const confirmation = {
       at: recorded?.at || at,
       actor: recorded?.actor || staff.name,
@@ -761,7 +833,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     cfg.version++;
     cfg.updatedAt = at;
   }
-  if (c.action !== 'observation' && c.action !== 'shortcuts')
+  if (c.action !== 'observation' && c.action !== 'observation-edit' && c.action !== 'shortcuts')
     synchronizePreparation(db, dayKey(now, op.center.timezone));
   db.audit.push({
     id: randomUUID(),
