@@ -19,7 +19,6 @@ test('failed observation save keeps the draft and displays its error inside Quic
   await page.reload();
   await page.locator('[data-visit-id="' + v.id + '"]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Focused well', exact: true }).click();
   await dialog.getByLabel('Optional instructor note').fill('Keep this fictional unsaved draft.');
   await page.route('**/api/commands', (route) =>
     route.fulfill({
@@ -28,14 +27,10 @@ test('failed observation save keeps the draft and displays its error inside Quic
       body: JSON.stringify({ error: 'Fictional test server unavailable. Please retry.' }),
     }),
   );
-  await dialog.getByRole('button', { name: 'Save observation', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save observations', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('server unavailable');
   await expect(dialog.getByLabel('Optional instructor note')).toHaveValue(
     'Keep this fictional unsaved draft.',
-  );
-  await expect(dialog.getByRole('button', { name: 'Focused well', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
   );
 });
 test('installed service worker gives a generic offline page without cached student data', async ({

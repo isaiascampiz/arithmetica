@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Mic, X, Award } from 'lucide-react';
 import type { Database, Student } from '@/lib/model';
 import type { Packet } from '@/lib/v3-model';
@@ -8,12 +8,14 @@ import type { V3Command } from '@/lib/v3-domain';
 export type V3Act = (c: V3Command) => Promise<boolean>;
 export function Modal({
   title,
+  titleLabel,
   children,
   footer,
   close,
   className = '',
 }: {
-  title: string;
+  title: ReactNode;
+  titleLabel?: string;
   children: ReactNode;
   footer?: ReactNode;
   close: () => void;
@@ -40,7 +42,9 @@ export function Modal({
       }}
     >
       <header>
-        <h2 id="modal-title">{title}</h2>
+        <h2 id="modal-title" aria-label={titleLabel}>
+          {title}
+        </h2>
         <button type="button" className="icon-button" aria-label="Close panel" onClick={close}>
           <X size={21} />
         </button>
@@ -96,7 +100,20 @@ type Recognition = {
   onerror: (() => void) | null;
   onend: (() => void) | null;
 };
-export function DictatedNote({ text, setText }: { text: string; setText: (s: string) => void }) {
+export function DictatedNote({
+  text,
+  setText,
+  label = 'Optional instructor note',
+  buttonLabel = 'Dictate note',
+  maxLength = 1200,
+}: {
+  text: string;
+  setText: (s: string) => void;
+  label?: string;
+  buttonLabel?: string;
+  maxLength?: number;
+}) {
+  const fieldId = useId();
   const [listening, setListening] = useState(false),
     [error, setError] = useState('');
   const recognition = useRef<Recognition | null>(null);
@@ -131,7 +148,7 @@ export function DictatedNote({ text, setText }: { text: string; setText: (s: str
             .join(' ')
         )
           .trim()
-          .slice(0, 1200),
+          .slice(0, maxLength),
       );
     r.onerror = () => {
       setError('Dictation failed. Typed input remains available.');
@@ -147,20 +164,19 @@ export function DictatedNote({ text, setText }: { text: string; setText: (s: str
     }
   }
   return (
-    <div>
-      <label>
-        Optional instructor note
-        <textarea
-          maxLength={1200}
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="A brief note for this visit…"
-        />
-      </label>
+    <div className="dictated-note">
+      <label htmlFor={fieldId}>{label}</label>
+      <textarea
+        id={fieldId}
+        maxLength={maxLength}
+        rows={2}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="A brief note for this visit…"
+      />
       <button className="text-button" type="button" onClick={dictate}>
         <Mic size={17} />
-        {listening ? 'Stop dictation' : 'Dictate note'}
+        {listening ? 'Stop dictation' : buttonLabel}
       </button>
       <small className="muted">
         Fictional speech only; browser/provider privacy requires approval.

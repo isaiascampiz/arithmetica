@@ -1,32 +1,44 @@
 import { test, expect } from '@playwright/test';
-import { login, state, learner, arrive, physical, openProfile } from './helpers';
-test('instructor follow-up survives checkout/reload and is reviewed in unified Visit History', async ({
+import { login, state, learner, arrive, physical, openProfile, command } from './helpers';
+test('instructor notes and existing follow-up survive checkout/reload and review', async ({
   page,
 }) => {
   await login(page, 'instructor');
   const s = await learner(page, 'CONNECT'),
     v = await arrive(page, s.id);
+  const existingFollowUp = 'Existing fictional follow-up ' + Date.now();
+  await command(page, 'v3', {
+    action: 'observation',
+    visitId: v.id,
+    choices: [],
+    text: existingFollowUp,
+    followUp: true,
+  });
   await page.reload();
   await page.locator('[data-visit-id="' + v.id + '"]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Needed help', exact: true }).click();
   const note = 'Fictional regression observation ' + Date.now();
   await dialog.getByLabel('Optional instructor note').fill(note);
-  await dialog.getByLabel('Follow-up needed').check();
-  await dialog.getByRole('button', { name: 'Complete instructor check-in' }).click();
+  await expect(dialog.getByLabel('Follow-up needed')).toHaveCount(0);
+  await dialog.getByRole('button', { name: /Check in (Math|Reading)/ }).click();
   await expect(dialog).toHaveCount(0);
   await physical(page, s.id, 'out');
   await page.reload();
   await openProfile(page, s.name);
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
-  const card = page.locator('.history-note').filter({ hasText: note });
+  const newNote = page.locator('.history-note').filter({ hasText: note });
+  await expect(newNote).toBeVisible();
+  await expect(newNote).not.toContainText('Follow-up');
+  const card = page.locator('.history-note').filter({ hasText: existingFollowUp });
   await expect(card).toBeVisible();
   await expect(card).toContainText('Follow-up');
   await card.getByRole('button', { name: 'Mark reviewed' }).click();
   await expect(card).toContainText('Reviewed');
   await page.reload();
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
-  await expect(page.locator('.history-note').filter({ hasText: note })).toContainText('Reviewed');
+  await expect(page.locator('.history-note').filter({ hasText: existingFollowUp })).toContainText(
+    'Reviewed',
+  );
 });
 test('kiosk manual flow is idempotent and cannot read staff records', async ({ page }) => {
   await login(page);

@@ -248,6 +248,408 @@
   flex-wrap: wrap;
   font-size: 13px;
 }
+.quick-view > header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.quick-view {
+  height: min(850px, calc(100dvh - 36px));
+}
+.quick-view .v3-modal-body {
+  flex: 1;
+}
+.quick-view .quick-student-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quick-view .quick-student-identity small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.quick-view .quick-context:empty {
+  display: none;
+}
+.quick-view .quick-subject-card {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.quick-view .quick-subject-card > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.quick-view .quick-subject-card h4 {
+  font-size: 13px;
+  margin: 18px 0 8px;
+  color: var(--muted);
+}
+.quick-view .quick-subject-card fieldset {
+  margin-bottom: 0;
+}
+.quick-view .quick-subject-card .activity-choices {
+  flex-wrap: wrap;
+}
+.quick-view .quick-note {
+  border-bottom: 0;
+}
+.quick-view .quick-pinned-context {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--surface);
+}
+.quick-view .quick-subject-tabs {
+  order: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.quick-view .quick-save-scope {
+  order: 1;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+.quick-view .quick-subject-tabs button {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 110px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--bg);
+}
+.quick-view .quick-subject-tabs [aria-selected='true'] {
+  z-index: 1;
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.quick-view .quick-subject-card[hidden] {
+  display: none;
+}
+.quick-view .quick-confirmed-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.quick-view .quick-subject-card h4 {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  color: var(--ink);
+  font-size: 14px;
+}
+.quick-view .quick-subject-card > h4:first-child {
+  margin-top: 0;
+  padding-top: 4px;
+  border-top: 0;
+}
+.quick-view .quick-outgoing-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  margin: 18px 0 12px;
+  padding-top: 16px;
+}
+.quick-view .quick-outgoing-heading h4 {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.quick-view .activity-choices {
+  gap: 8px;
+  padding: 0;
+  background: none;
+}
+.quick-view .quick-in-center {
+  display: grid;
+  gap: 12px;
+}
+.quick-view .quick-in-center .quick-directions {
+  margin: 0;
+}
+.quick-view .activity-choices button {
+  flex: 0 1 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.quick-view .activity-choices button.selected {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+}
+.quick-view .quick-edit-actions .text-button,
+.quick-view .packet-editor > .text-button {
+  background: transparent;
+  color: var(--brand);
+  border: 0;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.quick-view .quick-packet-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.quick-view .quick-packet-cards .packet-chip {
+  min-height: 44px;
+  color: var(--ink);
+}
+.quick-view .quick-packet-cards .unfinished {
+  color: #b42318;
+  background: #fff1f0;
+  border-color: #b42318;
+}
+.quick-view .quick-outgoing-cards .packet-chip {
+  min-height: 44px;
+  border-color: var(--brand);
+  color: var(--brand);
+  text-align: left;
+}
+.quick-view .quick-outgoing-cards .packet-chip,
+.quick-view .held-packet {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  justify-content: center;
+}
+.quick-view .packet-chip small {
+  font-size: 11px;
+  font-weight: 400;
+}
+.quick-view .quick-outgoing-cards .shifted {
+  background: var(--brand-soft);
+}
+.quick-view .held-packet:disabled {
+  opacity: 1;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px dashed var(--line);
+}
+.quick-view .held-packet > span {
+  text-decoration: line-through;
+}
+.quick-view .quick-directions {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.quick-view .quick-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 8px 0 0;
+}
+.quick-view .quick-plan-editor {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.quick-view .quick-plan-editor h5,
+.quick-view .quick-plan-editor p,
+.quick-view .quick-plan-editor .packet-editor-row,
+.quick-view .quick-plan-editor label,
+.quick-view .quick-plan-editor fieldset {
+  margin: 0;
+}
+.quick-view .quick-plan-editor h5 {
+  font-size: 13px;
+}
+.quick-view .quick-plan-editor label {
+  min-width: 0;
+  font-size: 12px;
+}
+.quick-view .quick-plan-editor .packet-editor-row {
+  grid-template-columns: 64px repeat(3, minmax(0, 1fr)) 64px;
+  align-items: center;
+  gap: 8px;
+}
+.quick-view .quick-adjustment-queue {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.quick-view .quick-queue-head {
+  display: grid;
+  grid-template-columns: 64px repeat(3, minmax(0, 1fr)) 64px;
+  gap: 8px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.quick-view .quick-queue-row {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.quick-view .quick-queue-row > [role='cell'] {
+  min-width: 0;
+}
+.quick-view .quick-queue-kind {
+  font-size: 11px;
+  color: var(--muted);
+}
+.quick-view .today-row {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.quick-view .today-row .quick-queue-kind {
+  color: var(--brand);
+}
+.quick-view .quick-queue-remove .text-button {
+  font-size: 11px;
+  padding: 4px;
+}
+@media (max-width: 600px) {
+  .quick-view .quick-plan-editor {
+    padding: 12px;
+  }
+  .quick-view .quick-plan-editor .packet-editor-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .quick-view .quick-queue-head {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .quick-view .quick-queue-head .quick-queue-kind,
+  .quick-view .quick-queue-head .quick-queue-remove {
+    display: none;
+  }
+  .quick-view .quick-queue-row .quick-queue-kind,
+  .quick-view .quick-queue-row .quick-queue-remove {
+    grid-column: 1 / -1;
+  }
+  .quick-view .quick-queue-row .quick-queue-remove {
+    justify-self: end;
+  }
+}
+.quick-view .quick-plan-editor .form-grid {
+  gap: 12px;
+}
+.quick-view .quick-repeat-start {
+  padding: 0;
+  border: 0;
+}
+.quick-view .quick-repeat-start legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.quick-view .quick-repeat-options {
+  display: flex;
+  gap: 8px;
+}
+.quick-view .quick-repeat-options button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.quick-view .quick-repeat-options button[aria-pressed='true'] {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.quick-view .quick-proposed-plan {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.quick-view .quick-proposed-plan .packet-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quick-view .quick-editor-links,
+.quick-view .quick-editor-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quick-view .quick-editor-confirm {
+  justify-content: flex-end;
+}
+.quick-view .quick-editor-confirm .primary {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 12px;
+}
+.quick-view .quick-plan-editor .dictated-note {
+  display: grid;
+  gap: 8px;
+}
+.quick-view .quick-plan-editor .dictated-note textarea {
+  margin: 0;
+}
+.quick-view .quick-plan-editor .dictated-note .text-button {
+  justify-self: start;
+  font-size: 11px;
+  padding: 0;
+  gap: 6px;
+}
+.quick-view .quick-plan-editor .dictated-note .text-button svg {
+  width: 14px;
+  height: 14px;
+}
+.quick-view .quick-plan-editor .dictated-note small {
+  display: block;
+  line-height: 1.5;
+}
+.quick-view .packet-editor > .secondary,
+.quick-view .packet-editor > .text-button {
+  margin: 8px 8px 8px 0;
+}
+.quick-view .quick-note textarea {
+  min-height: 104px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.quick-view .quick-note .text-button {
+  margin: 2px 0 4px;
+}
+.quick-view .quick-note small {
+  display: block;
+  margin-top: 4px;
+}
 .quick-context > span {
   color: var(--muted);
 }
@@ -1058,5 +1460,73 @@
   }
   .chart-card header {
     flex-wrap: wrap;
+  }
+}
+.quick-view .quick-observations,
+.quick-view .quick-observation-note {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.quick-view .quick-observation-heading,
+.quick-view .quick-skill-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.quick-view .quick-observation-heading h3 {
+  margin: 0;
+}
+.quick-view .quick-observations > p {
+  margin: 0 0 8px;
+}
+.quick-view .quick-skill {
+  padding: 6px 0;
+}
+.quick-view .quick-skill-heading label {
+  margin: 0;
+  font-weight: 500;
+}
+.quick-view .quick-skill-heading output {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.quick-view .quick-skill input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--brand);
+  border: 0;
+  background: transparent;
+}
+.quick-view .quick-skill-actions {
+  display: flex;
+  gap: 8px;
+}
+.quick-view .quick-skill-actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.quick-view .quick-add-skill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.quick-view .quick-add-skill input {
+  flex: 1;
+  min-width: 140px;
+}
+.quick-view .quick-observation-note h3 {
+  margin-top: 0;
+}
+@media (max-width: 480px) {
+  .quick-view .quick-observations,
+  .quick-view .quick-observation-note {
+    padding: 12px;
   }
 }

@@ -11,6 +11,7 @@ export type Packet = {
 export type PaperSet = {
   visitDate: string;
   inCenter: Packet | null;
+  inCenterReturns?: Packet[];
   planned: Packet[];
   issued: Packet[];
   held: Packet[];

@@ -20,6 +20,7 @@ export type StudentSettings = {
   visitDays?: number[];
   awayUntil?: string | null;
   observationTiles?: string[];
+  observationSkills?: { id: string; label: string }[];
   goals?: string;
   arrivalWindow?: string;
   version: number;

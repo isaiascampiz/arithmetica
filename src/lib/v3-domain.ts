@@ -10,6 +10,9 @@ import {
   incomingPackets,
   paperProposal,
   recommend,
+  subjectPlan,
+  reuseSequence,
+  repeatSequence,
   synchronizePreparation,
   validateRange,
 } from './v3-planning';
@@ -30,6 +33,14 @@ const packet = z.object({
   status: z.enum(['planned', 'issued', 'held', 'finished', 'unfinished', 'missing', 'routine']),
 });
 const tiles = z.array(z.string().trim().min(1).max(48)).max(6);
+const skill = z.object({ id: z.string().min(1).max(100), label: z.string().trim().min(1).max(48) });
+const observations = {
+  skillRatings: z
+    .array(skill.extend({ score: z.number().int().min(1).max(5) }))
+    .max(12)
+    .optional(),
+  skillSettings: z.object({ version: z.number().int(), skills: z.array(skill).max(12) }).optional(),
+};
 export const v3CommandInput = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('prepare'),
@@ -63,6 +74,7 @@ export const v3CommandInput = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('observation'),
+    ...observations,
     visitId: z.string(),
     choices: tiles,
     text: z.string().trim().max(1200),
@@ -70,6 +82,9 @@ export const v3CommandInput = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('handoff'),
+    ...observations,
+    subject: subject.optional(),
+    activity: z.enum(['Worksheets', 'Corrections only', 'Both']).optional(),
     visitId: z.string(),
     expectedAt: z.string().nullable(),
     subjects: z
@@ -86,8 +101,17 @@ export const v3CommandInput = z.discriminatedUnion('action', [
             )
             .max(100),
           actual: z.array(packet).max(100).nullable(),
+          center: packet.nullable().optional(),
           repeat: z
-            .object({ level: z.string(), start: z.number().int().min(1), restart: z.boolean() })
+            .object({
+              level: z.string(),
+              start: z.number().int().min(1),
+              restart: z.boolean(),
+              packetsPerDay: z.number().int().min(0).max(10).optional(),
+              sheetsPerPacket: z.number().int().min(1).max(100).optional(),
+              reason: z.string().trim().max(400).optional(),
+              startWith: z.enum(['today', 'homework']).optional(),
+            })
             .nullable(),
           physicalConfirmed: z.boolean(),
           reason: z.string().trim().max(400),
@@ -116,8 +140,14 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     if (!s) throw new DomainError('Student not found.', 404);
     return s;
   };
-  const observe = (visitId: string, choices: string[], text: string, followUp: boolean) => {
-    if (!choices.length && !text) return;
+  const observe = (
+    visitId: string,
+    choices: string[],
+    text: string,
+    followUp: boolean,
+    skillRatings: { id: string; label: string; score: number }[] = [],
+  ) => {
+    if (!choices.length && !text && !skillRatings.length) return;
     const v = db.visits.find((v) => v.id === visitId);
     if (!v) throw new DomainError('Visit not found.', 404);
     db.observations.push({
@@ -125,6 +155,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       studentId: v.studentId,
       visitId,
       choices: [...new Set(choices)],
+      ...(skillRatings.length ? { skillRatings } : {}),
       text,
       followUp,
       createdAt: at,
@@ -133,6 +164,20 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       reviewedBy: null,
     });
   };
+  if (c.action === 'observation' || c.action === 'handoff') {
+    teacher();
+    const visit = db.visits.find((v) => v.id === c.visitId);
+    if (!visit) throw new DomainError('Visit not found.', 404);
+    if (new Set((c.skillRatings || []).map((s) => s.id)).size !== (c.skillRatings || []).length)
+      throw new DomainError('Duplicate observation skills.');
+    if (c.skillSettings) {
+      const cfg = op.students[visit.studentId];
+      if (cfg.version !== c.skillSettings.version)
+        throw new DomainError('Student settings changed. Reopen Quick View before saving.', 409);
+      if (new Set(c.skillSettings.skills.map((s) => s.id)).size !== c.skillSettings.skills.length)
+        throw new DomainError('Duplicate observation skills.');
+    }
+  }
   if (c.action === 'prepare') {
     for (const key of c.ids) {
       const a = op.assignments.find((a) => a.id === key && a.v3);
@@ -277,7 +322,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     id = c.id;
   } else if (c.action === 'observation') {
     teacher();
-    observe(c.visitId, c.choices, c.text, c.followUp);
+    observe(c.visitId, c.choices, c.text, c.followUp, c.skillRatings);
     id = c.visitId;
   } else if (c.action === 'temporary-paper') {
     teacher();
@@ -326,16 +371,28 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     teacher();
     const visit = db.visits.find((v) => v.id === c.visitId);
     if (!visit) throw new DomainError('Visit not found.', 404);
-    if ((visit.handoff?.at || null) !== c.expectedAt)
+    if (!c.subject && Object.keys(visit.subjectCheckIns || {}).length)
+      throw new DomainError('This visit uses subject check-ins. Reopen Quick View.', 409);
+    if (c.subject && !op.students[visit.studentId].subjects[c.subject].enrolled)
+      throw new DomainError('Subject is not enrolled. Reopen Quick View.', 409);
+    const recorded = c.subject
+      ? visit.subjectCheckIns?.[c.subject] || visit.handoff
+      : visit.handoff;
+    if ((recorded?.at || null) !== c.expectedAt)
       throw new DomainError('Handoff changed on another device. Reopen Quick View.', 409);
-    if (!visit.handoff && !isOpenVisit(visit))
+    if (!recorded && !isOpenVisit(visit))
       throw new DomainError('Student has departed; save a visit note instead.');
-    if (visit.handoff && !c.correctionReason.trim())
+    if (recorded && !c.correctionReason.trim())
       throw new DomainError('Explain a correction to an already-confirmed handoff.');
-    const sets = currentSets(db, visit);
-    if (!visit.handoff && sets.length !== c.subjects.length)
+    const sets = currentSets(db, visit).filter((a) => !c.subject || a.subject === c.subject);
+    if (c.subject && c.subjects.some((input) => input.subject !== c.subject))
+      throw new DomainError('Only the selected subject can be checked in.');
+    if (new Set(c.subjects.map((input) => input.assignmentId)).size !== c.subjects.length)
+      throw new DomainError('Duplicate subject assignment.');
+    if ((!recorded || c.subject) && sets.length !== c.subjects.length)
       throw new DomainError('Paper assignment changed. Reopen Quick View.', 409);
     const activities: Partial<Record<Subject, 'Worksheets' | 'Corrections only' | 'Both'>> = {};
+    if (c.subject && !sets.length) activities[c.subject] = c.activity || 'Worksheets';
     const ids: string[] = [];
     // All validation occurs against a transaction copy: thrown commands are never saved.
     for (const input of c.subjects) {
@@ -344,46 +401,155 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         throw new DomainError('Paper set changed. Reopen Quick View.', 409);
       const v = a.v3!,
         cfg = op.students[visit.studentId].subjects[input.subject];
-      const prior = incomingPackets(db, visit.studentId, input.subject).filter(
-        (p) => p.sourceAssignmentId !== a.id,
-      );
+      const prior = incomingPackets(db, visit.studentId, input.subject, a.id);
       const incoming = prior.map((p) => ({
         ...p,
         status: input.incoming.find((i) => i.id === p.id)?.state || p.status,
       }));
       if (input.incoming.some((i) => !prior.some((p) => p.id === i.id)))
         throw new DomainError('Incoming packet does not belong to the student.');
-      const recommended = recommend(
-        a,
-        input.activity,
-        input.exception ? incoming.filter((p) => p.status === 'unfinished') : [],
-      );
+      const returned = incoming.filter((p) => p.status === 'unfinished');
+      const rebuilding = !!c.subject && (input.center !== undefined || !!input.repeat?.startWith);
+      if (input.center !== undefined && !c.subject)
+        throw new DomainError('Center adjustment requires a subject check-in.');
+      if (rebuilding && !(input.reason || input.repeat?.reason)?.trim())
+        throw new DomainError('Enter an adjustment or repeat reason.');
+      let subjectReview: ReturnType<typeof reuseSequence> | null = c.subject
+        ? subjectPlan(db, a, input.activity, returned, input.actual?.length)
+        : null;
+      let recommended: { out: Packet[]; held: Packet[]; review: string[] } =
+        subjectReview ||
+        recommend(
+          a,
+          input.activity,
+          input.exception && !c.subject ? incoming.filter((p) => p.status === 'unfinished') : [],
+        );
       let actual = input.actual ? structuredClone(input.actual) : recommended.out;
+      if (input.center !== undefined && !input.repeat?.startWith) {
+        if (input.activity !== 'Corrections only' && !input.center)
+          throw new DomainError('Choose one in-center packet for Packet or Both.');
+        if (input.activity === 'Corrections only' && input.center)
+          throw new DomainError('Corrections-only cannot have an in-center packet.');
+        subjectReview = reuseSequence(db, a, input.center, actual, returned);
+        recommended = subjectReview;
+        actual = subjectReview.out;
+      }
       if (input.repeat) {
-        const start = input.repeat.start,
-          size = cfg.sheetsPerPacket;
-        actual = Array.from({ length: actual.length }, (_, i) => ({
-          id: randomUUID(),
-          range: {
-            level: input.repeat!.level,
-            start: start + i * size,
-            end: start + (i + 1) * size - 1,
-          },
-          sourceAssignmentId: a.id,
-          purpose: 'homework' as const,
-          prepared: false,
-          status: 'planned' as const,
-        }));
+        if (c.subject && input.repeat.startWith) {
+          const proposal = repeatSequence(
+            db,
+            a,
+            {
+              level: input.repeat.level,
+              start: input.repeat.start,
+              packetsPerDay: input.repeat.packetsPerDay ?? cfg.packetsPerDay,
+              sheetsPerPacket: input.repeat.sheetsPerPacket ?? cfg.sheetsPerPacket,
+              startWith: input.repeat.startWith,
+            },
+            input.activity,
+            input.center || subjectReview!.center,
+            returned,
+          );
+          if (!proposal || proposal.v3!.review.length)
+            throw new DomainError(
+              proposal?.v3!.review.join(' ') || 'Repeat planning is unavailable.',
+            );
+          subjectReview = reuseSequence(
+            db,
+            a,
+            proposal.v3!.inCenter,
+            proposal.v3!.planned,
+            returned,
+          );
+          recommended = subjectReview;
+          actual = subjectReview.out;
+          v.review = [];
+        } else if (
+          input.repeat.packetsPerDay !== undefined ||
+          input.repeat.sheetsPerPacket !== undefined
+        ) {
+          if (!input.repeat.reason?.trim()) throw new DomainError('Enter a repeat reason.');
+          const preview = structuredClone(db);
+          preview.operations!.students[visit.studentId].subjects[input.subject] = {
+            ...cfg,
+            level: input.repeat.level,
+            nextStart: input.repeat.start,
+            packetsPerDay: input.repeat.packetsPerDay ?? cfg.packetsPerDay,
+            sheetsPerPacket: input.repeat.sheetsPerPacket ?? cfg.sheetsPerPacket,
+          };
+          const proposal = paperProposal(
+            preview,
+            visit.studentId,
+            input.subject,
+            v.visitDate,
+            a.id + ':repeat:' + v.version,
+            true,
+          );
+          if (!proposal || proposal.v3!.review.length)
+            throw new DomainError(
+              proposal?.v3!.review.join(' ') || 'Repeat planning is unavailable.',
+            );
+          if (v.inCenter) v.held.push({ ...v.inCenter, status: 'held' });
+          v.inCenter = proposal.v3!.inCenter;
+          v.review = [];
+          if (c.subject) {
+            subjectReview = subjectPlan(db, proposal, input.activity, returned);
+            recommended = subjectReview;
+            actual = subjectReview.out;
+          } else actual = proposal.v3!.planned;
+        } else {
+          const start = input.repeat.start,
+            size = cfg.sheetsPerPacket;
+          actual = Array.from({ length: actual.length }, (_, i) => ({
+            id: randomUUID(),
+            range: {
+              level: input.repeat!.level,
+              start: start + i * size,
+              end: start + (i + 1) * size - 1,
+            },
+            sourceAssignmentId: a.id,
+            purpose: 'homework' as const,
+            prepared: false,
+            status: 'planned' as const,
+          }));
+        }
+      }
+      if (subjectReview) {
+        if (subjectReview.center) {
+          const error = validateRange(db, input.subject, subjectReview.center.range);
+          if (error) throw new DomainError(error);
+        }
+        if (
+          v.inCenter &&
+          v.inCenter.id !== subjectReview.center?.id &&
+          !actual.some((p) => p.id === v.inCenter!.id)
+        )
+          v.held.push({ ...v.inCenter, status: 'held' });
+        v.inCenter = subjectReview.center;
       }
       if (v.review.length) throw new DomainError(v.review.join(' '));
-      if (recommended.review.length && !input.actual && !input.repeat)
+      if (recommended.review.length && !input.actual && (subjectReview || !input.repeat))
         throw new DomainError(recommended.review.join(' '));
       if (a.stale && !input.physicalConfirmed)
         throw new DomainError('Confirm the physical adjustment after settings changed.');
       const seen = new Set<string>();
+      if (
+        subjectReview &&
+        !rebuilding &&
+        returned.some((p) => p.id !== v.inCenter?.id && !actual.some((q) => q.id === p.id))
+      )
+        throw new DomainError('Include every remaining unfinished packet in outgoing homework.');
       for (const p of actual) {
         const error = validateRange(db, input.subject, p.range);
         if (error) throw new DomainError(error);
+        if (
+          subjectReview &&
+          v.inCenter &&
+          p.range.level === v.inCenter.range.level &&
+          p.range.start <= v.inCenter.range.end &&
+          v.inCenter.range.start <= p.range.end
+        )
+          throw new DomainError("Today's packet cannot also be outgoing homework.");
         for (let n = p.range.start; n <= p.range.end; n++) {
           const key = p.range.level + ':' + n;
           if (seen.has(key))
@@ -427,11 +593,14 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         purpose: 'homework' as const,
       }));
       const issuedIds = new Set(newActual.map((p) => p.id));
+      const allocatedIds = new Set([...issuedIds, ...(v.inCenter ? [v.inCenter.id] : [])]);
       v.held = [
         ...new Map(
           [
-            ...v.held,
-            ...v.planned.filter((p) => !issuedIds.has(p.id)),
+            ...v.held.filter((p) => !allocatedIds.has(p.id)),
+            ...(rebuilding ? returned.filter((p) => !allocatedIds.has(p.id)) : []),
+            ...(subjectReview?.held || []).filter((p) => !allocatedIds.has(p.id)),
+            ...v.planned.filter((p) => !allocatedIds.has(p.id)),
             ...(v.inCenter && input.activity === 'Corrections only' && !issuedIds.has(v.inCenter.id)
               ? [v.inCenter]
               : []),
@@ -456,9 +625,14 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
               actor: staff.name,
             });
           } else if (!input.exception && p.status === 'issued') p.status = 'routine';
-          if (issuedIds.has(p.id)) p.status = 'held';
+          if (allocatedIds.has(p.id) || (rebuilding && returned.some((q) => q.id === p.id)))
+            p.status = 'held';
         }
       v.issued = newActual;
+      if (c.subject)
+        v.inCenterReturns = incoming
+          .filter((p) => p.status === 'unfinished' && p.id === v.inCenter?.id)
+          .map((p) => ({ ...p, status: 'unfinished' }));
       if (v.inCenter) {
         v.inCenter.status =
           input.activity === 'Corrections only'
@@ -492,9 +666,12 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
             start: input.repeat.start,
             end: newActual.at(-1)?.range.end || input.repeat.start,
           },
-          note: input.repeat.restart
-            ? 'Explicit permanent progression restart'
-            : 'One-time repeat; permanent cursor not reset',
+          note:
+            input.repeat.reason ||
+            input.reason ||
+            (input.repeat.restart
+              ? 'Explicit permanent progression restart'
+              : 'One-time repeat; permanent cursor not reset'),
           createdAt: at,
           author: staff.name,
           approvedAt: at,
@@ -522,19 +699,67 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       activities[input.subject] = input.activity;
       ids.push(a.id);
     }
-    visit.handoff = {
-      at: visit.handoff?.at || at,
-      actor: visit.handoff?.actor || staff.name,
+    const confirmation = {
+      at: recorded?.at || at,
+      actor: recorded?.actor || staff.name,
       activities,
       assignmentIds: ids,
-      incoming: c.subjects.some((s) => s.exception) ? 'exception' : 'routine-no-exception',
+      incoming: c.subjects.some((s) => s.exception)
+        ? ('exception' as const)
+        : ('routine-no-exception' as const),
       events: [
-        ...(visit.handoff?.events || []),
+        ...(recorded?.events || []),
         { at, actor: staff.name, reason: c.correctionReason || 'Instructor check-in completed' },
       ],
     };
-    observe(visit.id, c.choices, c.text, c.followUp);
+    if (c.subject) {
+      visit.subjectCheckIns ??= {};
+      const enrolled = (['Math', 'Reading'] as Subject[]).filter(
+        (s) => op.students[visit.studentId].subjects[s].enrolled,
+      );
+      // Preserve confirmations from older combined records when correcting one subject.
+      if (visit.handoff)
+        for (const s of enrolled) {
+          if (visit.subjectCheckIns[s]) continue;
+          const assignmentIds = visit.handoff.assignmentIds.filter((id) =>
+            op.assignments.some((a) => a.id === id && a.subject === s),
+          );
+          if (
+            visit.handoff.activities[s] ||
+            assignmentIds.length ||
+            op.students[visit.studentId].subjects[s].format === 'CONNECT'
+          )
+            visit.subjectCheckIns[s] = {
+              ...visit.handoff,
+              activities: visit.handoff.activities[s] ? { [s]: visit.handoff.activities[s] } : {},
+              assignmentIds,
+            };
+        }
+      visit.subjectCheckIns[c.subject] = confirmation;
+      if (enrolled.every((s) => visit.subjectCheckIns?.[s])) {
+        const confirmations = enrolled.map((s) => visit.subjectCheckIns![s]!);
+        visit.handoff = {
+          ...confirmation,
+          at: visit.handoff?.at || confirmation.at,
+          actor: visit.handoff?.actor || confirmation.actor,
+          activities: Object.assign({}, ...confirmations.map((h) => h.activities)),
+          assignmentIds: confirmations.flatMap((h) => h.assignmentIds),
+          incoming: confirmations.some((h) => h.incoming === 'exception')
+            ? 'exception'
+            : 'routine-no-exception',
+          events: confirmations.flatMap((h) => h.events),
+        };
+      }
+    } else visit.handoff = confirmation;
+    observe(visit.id, c.choices, c.text, c.followUp, c.skillRatings);
     id = visit.id;
+  }
+  if ((c.action === 'observation' || c.action === 'handoff') && c.skillSettings) {
+    const visit = db.visits.find((v) => v.id === c.visitId)!;
+    const cfg = op.students[visit.studentId];
+    cfg.observationSkills = c.skillSettings.skills.map((s) => ({ ...s }));
+    cfg.version++;
+    cfg.updatedAt = at;
   }
   if (c.action !== 'observation' && c.action !== 'shortcuts')
     synchronizePreparation(db, dayKey(now, op.center.timezone));

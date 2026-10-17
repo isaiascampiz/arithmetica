@@ -12,6 +12,7 @@
     "test:e2e": "node scripts/e2e.mjs",
     "backup": "node scripts/run-ts.cjs scripts/backup.ts",
     "demo:restore": "node scripts/run-ts.cjs scripts/restore-demo.ts",
+    "demo:quick-view": "node scripts/run-ts.cjs scripts/quick-view-demo.ts",
     "restore:test": "node scripts/run-ts.cjs scripts/restore-test.ts",
     "cloud:provision": "node scripts/run-ts.cjs scripts/cloud-provision.ts"
   },

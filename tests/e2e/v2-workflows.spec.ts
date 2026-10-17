@@ -12,6 +12,7 @@ import {
   simulatedClosure,
 } from './helpers';
 import { dayKey, isOpenVisit } from '../../src/lib/model';
+import { currentSets, packetLabel } from '../../src/lib/v3-planning';
 import type { Visit } from '../../src/lib/model';
 test('Home has four metrics, direct waiting Quick View and only the V3 navigation', async ({
   page,
@@ -345,6 +346,91 @@ test('compact preparation shows every packet, supports partial subject readiness
   await page.getByLabel('Search preparation').fill('');
   await page.screenshot({ path: 'test-results/v3-preparation.png' });
 });
+test('Quick View saves subjects independently and preserves context and attendance', async ({
+  page,
+}) => {
+  await login(page);
+  const s = await learner(page),
+    db = await state(page),
+    cfg = structuredClone(db.operations!.students[s.id]);
+  cfg.subjects.Reading = { ...cfg.subjects.Math, enrolled: true, level: '4A' };
+  await command(page, 'v3', {
+    action: 'student-save',
+    studentId: s.id,
+    name: s.name,
+    earlyLearner: true,
+    settings: cfg,
+    enrollmentDate: null,
+    visitDays: [1, 3],
+    tiles: [],
+    goals: 'Practice careful handwriting',
+    arrivalWindow: '',
+  });
+  const visit = await arrive(page, s.id);
+  await prepare(page, s.id);
+  await page.reload();
+  await page.locator('[data-visit-id="' + visit.id + '"]').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: s.name, exact: true })).toBeVisible();
+  await expect(dialog.locator('.quick-student-identity')).toContainText('Waited:');
+  await expect(dialog.locator('.quick-context')).toContainText('Practice careful handwriting');
+  await expect(dialog.getByRole('button', { name: 'Check in Math', exact: true })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Corrections', exact: true }).click();
+  await dialog.getByRole('tab', { name: 'Reading', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Packet', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.keyboard.press('ArrowLeft');
+  await expect(dialog.getByRole('tab', { name: 'Math', exact: true })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Corrections', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(dialog.locator('.v3-modal-body > section').last()).toHaveClass(/quick-note/);
+  await dialog.getByRole('slider', { name: 'Focus rating' }).fill('4');
+  await dialog.getByRole('button', { name: '+ Add custom', exact: true }).click();
+  await dialog
+    .getByRole('textbox', { name: 'Custom observation skill' })
+    .fill('Following instructions');
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByLabel('Optional instructor note').fill('Fictional independent Math review.');
+  await dialog.getByRole('button', { name: 'Check in Math', exact: true }).click();
+  await expect(dialog.getByRole('tab', { name: 'Math confirmed', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Check in Reading', exact: true })).toBeVisible();
+  const partial = await state(page),
+    pending = partial.visits.find((v) => v.id === visit.id)!;
+  expect(partial.observations.filter((o) => o.visitId === visit.id).at(-1)!.skillRatings).toEqual([
+    { id: 'focus', label: 'Focus', score: 4 },
+  ]);
+  expect(partial.operations!.students[s.id].observationSkills!.at(-1)!.label).toBe(
+    'Following instructions',
+  );
+  await expect(dialog.getByRole('slider', { name: 'Focus rating' })).toHaveValue('0');
+  expect(pending.subjectCheckIns!.Math!.activities.Math).toBe('Corrections only');
+  expect(pending.subjectCheckIns!.Reading).toBeUndefined();
+  expect(pending.handoff).toBeUndefined();
+  expect(pending.departedAt).toBeNull();
+  expect(
+    partial
+      .operations!.assignments.filter((a) => a.v3?.visitId === visit.id && a.subject === 'Reading')
+      .every((a) => !a.v3!.issuedAt),
+  ).toBe(true);
+  await dialog.getByRole('button', { name: 'Check in Reading', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const saved = await state(page),
+    latest = saved.visits.find((v) => v.id === visit.id)!;
+  expect(latest.handoff!.activities).toEqual({ Math: 'Corrections only', Reading: 'Worksheets' });
+  expect(latest.handoff!.assignmentIds).toHaveLength(2);
+  expect(latest.departedAt).toBeNull();
+  expect(saved.operations!.completions.length).toBe(db.operations!.completions.length);
+  await page.locator('[data-visit-id="' + visit.id + '"]').click();
+  await expect(dialog.getByRole('tab', { name: 'Math confirmed', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('tab', { name: 'Reading confirmed', exact: true })).toBeVisible();
+  await expect(dialog.locator('.quick-student-identity')).toContainText('Time here:');
+  await page.keyboard.press('Escape');
+});
+
 test('Quick View corrections-only, one-time repeat and manual overrides record actual packets and preserve defaults', async ({
   page,
 }) => {
@@ -357,21 +443,35 @@ test('Quick View corrections-only, one-time repeat and manual overrides record a
     await page.locator('[data-visit-id="' + v.id + '"]').click();
     const d = page.getByRole('dialog');
     if (mode === 'shift') {
-      await d.getByRole('button', { name: 'Corrections only', exact: true }).click();
-      await expect(d.locator('.physical-instruction')).toContainText('keep');
+      await d.getByRole('button', { name: 'Corrections', exact: true }).click();
+      await expect(d.getByRole('button', { name: 'Corrections', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     } else {
-      await d.getByRole('button', { name: 'Adjust / Repeat' }).click();
+      await d
+        .getByRole('button', { name: mode === 'repeat' ? 'Repeat' : 'Adjust', exact: true })
+        .click();
       if (mode === 'repeat') {
-        await d.getByLabel('Repeat from worksheet', { exact: true }).check();
-        await d.getByLabel('Repeat starting worksheet').fill('1');
+        await d.getByLabel('Starting worksheet/page', { exact: true }).fill('1');
+        await d.getByLabel('Repeat reason', { exact: true }).fill('Fictional focused practice');
+        await expect(d.getByRole('heading', { name: 'Proposed plan' })).toBeVisible();
+        await d.getByRole('button', { name: 'Confirm repeat plan', exact: true }).click();
       } else {
+        const originalStart = await d.getByLabel('Math packet 1 start').inputValue();
+        await d.getByLabel('Math packet 1 start').fill('80');
+        await d.getByRole('button', { name: 'Reset', exact: true }).click();
+        await d.getByRole('button', { name: 'Adjust', exact: true }).click();
+        await expect(d.getByLabel('Math packet 1 start')).toHaveValue(originalStart);
         await d.getByLabel('Math packet 1 start').fill('80');
         await d.getByLabel('Math packet 1 end').fill('84');
+        await expect(d.locator('.quick-outgoing-heading')).toContainText('Prepared');
         await d.getByLabel('Adjustment reason').fill('Fictional instructor override');
+        await d.getByRole('button', { name: 'Confirm adjustment', exact: true }).click();
+        await expect(d.locator('.quick-outgoing-heading')).toContainText('Not prepared');
       }
-      await d.getByLabel('Physical materials adjusted and ready to hand over').check();
     }
-    await d.getByRole('button', { name: 'Complete instructor check-in' }).click();
+    await d.getByRole('button', { name: /Check in (Math|Reading)/ }).click();
     await expect(d).toHaveCount(0);
     await expect(page.locator('[data-visit-id="' + v.id + '"]')).toHaveClass(/ready/);
     const latest = await state(page),
@@ -380,15 +480,16 @@ test('Quick View corrections-only, one-time repeat and manual overrides record a
     expect(latest.operations!.completions.length).toBe(0);
     if (mode === 'shift') {
       expect(a.v3!.held.length).toBe(1);
-      expect(a.v3!.issued[0].id).toBe(a.v3!.inCenter!.id);
+      expect(a.v3!.inCenter).toBeNull();
     }
     if (mode === 'repeat') {
-      expect(a.v3!.issued[0].range.start).toBe(1);
+      expect(a.v3!.inCenter!.range.start).toBe(1);
+      expect(a.v3!.issued[0].range.start).toBe(6);
       expect(latest.operations!.students[s.id].subjects.Math.nextStart).toBe(16);
     }
     if (mode === 'manual') expect(a.v3!.issued[0].range.start).toBe(80);
     await page.locator('[data-visit-id="' + v.id + '"]').click();
-    await expect(d.getByRole('button', { name: 'Complete instructor check-in' })).toHaveCount(0);
+    await expect(d.getByRole('button', { name: /Check in (Math|Reading)/ })).toHaveCount(0);
     await page.keyboard.press('Escape');
   }
 });
@@ -506,7 +607,7 @@ for (const size of [
       await page.reload();
       await page.locator('[data-visit-id="' + v.id + '"]').click();
       const d = page.getByRole('dialog'),
-        primary = d.getByRole('button', { name: 'Complete instructor check-in' });
+        primary = d.getByRole('button', { name: /Check in (Math|Reading)/ });
       await expect(primary).toBeVisible();
       const box = await primary.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
@@ -539,6 +640,15 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
 }) => {
   test.setTimeout(120000);
   await login(page);
+  async function confirmSubjects(client: typeof page) {
+    const dialog = client.getByRole('dialog');
+    for (let count = 0; count < 2 && (await dialog.isVisible()); count++) {
+      const pending = dialog.getByRole('tab').filter({ hasNotText: 'confirmed' }).first();
+      await pending.click();
+      await dialog.getByRole('button', { name: /^Check in (Math|Reading)$/ }).click();
+    }
+    await expect(dialog).toHaveCount(0);
+  }
   let db = await state(page);
   const ids = db.students.filter((s) => /^demo-student-/.test(s.id)).map((s) => s.id);
   for (const s of db.students.filter((s) => !ids.includes(s.id))) {
@@ -619,21 +729,15 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   const connect = attended[0];
   await other.locator('[data-visit-id="' + connect.id + '"]').click();
   await expect(other.getByRole('dialog').locator('.packet-row')).toHaveCount(0);
-  await other.getByRole('button', { name: 'Complete instructor check-in' }).click();
+  await confirmSubjects(other);
   await expect(other.getByRole('dialog')).toHaveCount(0);
   const paper = attended[2];
   await prepare(page, paper.studentId);
   await page.reload();
   await page.locator('[data-visit-id="' + paper.id + '"]').click();
-  await page
-    .getByRole('dialog')
-    .getByRole('group', { name: 'Math', exact: true })
-    .getByRole('button', { name: 'Corrections only', exact: true })
-    .click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Complete instructor check-in' })
-    .click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Math', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Corrections', exact: true }).click();
+  await confirmSubjects(page);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Reconcile prior packets on a separate session without touching real data.
   for (const [index, status] of [
@@ -648,20 +752,51 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
     await physical(page, first.studentId, 'out');
     const next = await arrive(page, first.studentId);
     await prepare(page, first.studentId);
+    if (status === 'missing') {
+      const a = currentSets(await state(page), next).find((a) => a.subject === 'Math')!;
+      await command(page, 'v3', {
+        action: 'handoff',
+        subject: 'Math',
+        activity: 'Worksheets',
+        visitId: next.id,
+        expectedAt: null,
+        subjects: [
+          {
+            subject: 'Math',
+            assignmentId: a.id,
+            version: a.v3!.version,
+            activity: 'Worksheets',
+            exception: true,
+            incoming: [{ id: prior.id, state: 'missing' }],
+            actual: null,
+            repeat: null,
+            physicalConfirmed: true,
+            reason: 'Fictional missing packet',
+          },
+        ],
+        choices: [],
+        text: '',
+        followUp: false,
+        correctionReason: '',
+      });
+    }
     await page.reload();
     await page.locator('[data-visit-id="' + next.id + '"]').click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Homework unfinished or not returned').check();
-    await dialog
-      .getByLabel('Incoming ' + prior.range.level + prior.range.start + '–' + prior.range.end)
-      .selectOption(status);
-    await dialog.getByRole('button', { name: 'Complete instructor check-in' }).click();
-    await expect(dialog).toHaveCount(0);
+    if (status === 'unfinished')
+      await dialog
+        .getByRole('button', { name: 'Mark unfinished ' + packetLabel(prior), exact: true })
+        .click();
+    await confirmSubjects(page);
     const actual = (await state(page)).operations!.assignments.find(
-      (a) => a.v3?.visitId === next.id,
-    )!.v3!.issued;
-    expect(actual.some((p) => p.id === prior.id)).toBe(status === 'unfinished');
+      (a) => a.v3?.visitId === next.id && a.subject === 'Math',
+    )!.v3!;
+    expect(actual.issued.some((p) => p.id === prior.id)).toBe(false);
+    expect(actual.inCenterReturns?.some((p) => p.id === prior.id) || false).toBe(
+      status === 'unfinished',
+    );
   }
+
   for (const [index, mode] of [
     [8, 'repeat'],
     [9, 'manual'],
@@ -671,17 +806,20 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
     await page.reload();
     await page.locator('[data-visit-id="' + v.id + '"]').click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Adjust / Repeat', exact: true }).click();
+    await dialog
+      .getByRole('button', { name: mode === 'repeat' ? 'Repeat' : 'Adjust', exact: true })
+      .click();
     if (mode === 'repeat') {
-      await dialog.getByLabel('Repeat from worksheet', { exact: true }).check();
-      await dialog.getByLabel('Repeat starting worksheet').fill('1');
+      await dialog.getByLabel('Starting worksheet/page', { exact: true }).fill('1');
+      await dialog.getByLabel('Repeat reason', { exact: true }).fill('Fictional focused practice');
+      await dialog.getByRole('button', { name: 'Confirm repeat plan', exact: true }).click();
     } else {
       await dialog.getByLabel('Math packet 1 start').fill('80');
       await dialog.getByLabel('Math packet 1 end').fill('84');
       await dialog.getByLabel('Adjustment reason').fill('Fictional busy-day override');
+      await dialog.getByRole('button', { name: 'Confirm adjustment', exact: true }).click();
     }
-    await dialog.getByLabel('Physical materials adjusted and ready to hand over').check();
-    await dialog.getByRole('button', { name: 'Complete instructor check-in' }).click();
+    await confirmSubjects(page);
     await expect(dialog).toHaveCount(0);
   }
   const unresolved = await arrive(page, ids[10]);

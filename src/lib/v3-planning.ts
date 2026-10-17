@@ -28,6 +28,8 @@ export function paperProposal(
   subject: Subject,
   visitDate: string,
   id: string,
+  explicitPosition = false,
+  includeCenter = true,
 ): Assignment | null {
   const op = db.operations!,
     cfg = op.students[studentId],
@@ -72,6 +74,7 @@ export function paperProposal(
         d.approvedAt >= previous.updatedAt,
     );
   const priorEnd =
+    !explicitPosition &&
     previous &&
     !explicitLater &&
     !op.assignments.some(
@@ -86,7 +89,7 @@ export function paperProposal(
       : s.nextStart;
   const start = priorEnd,
     size = s.sheetsPerPacket;
-  const ranges = Array.from({ length: Math.min(count + 1, 101) }, (_, i) => ({
+  const ranges = Array.from({ length: Math.min(count + (includeCenter ? 1 : 0), 101) }, (_, i) => ({
     level: s.level,
     start: start + i * size,
     end: start + (i + 1) * size - 1,
@@ -127,8 +130,8 @@ export function paperProposal(
   };
   // Never publish even a partial invalid range as a physical pulling task.
   const valid = review.length === 0;
-  const inCenter = valid ? make(ranges[0], 0) : null,
-    planned = valid ? ranges.slice(1).map((r, i) => make(r, i + 1)) : [];
+  const inCenter = valid && includeCenter ? make(ranges[0], 0) : null,
+    planned = valid ? ranges.slice(includeCenter ? 1 : 0).map((r, i) => make(r, i + 1)) : [];
   return {
     id,
     studentId,
@@ -168,7 +171,7 @@ export function paperProposal(
       review,
       adjustment: [],
       originalCursor: { level: s.level, start },
-      advanceCursor: { level: s.level, start: start + (count + 1) * size },
+      advanceCursor: { level: s.level, start: start + (count + (includeCenter ? 1 : 0)) * size },
       preparedAt: null,
       preparedBy: null,
       issuedAt: null,
@@ -202,6 +205,7 @@ export function synchronizePreparation(
     if (!visitDate) continue;
     for (const subject of ['Math', 'Reading'] as Subject[]) {
       const cfg = c.subjects[subject];
+      if (open && !open.handoff && open.subjectCheckIns?.[subject]) continue;
       if (!cfg.enrolled || cfg.format !== 'Paper') continue;
       const existing = op.assignments.find(
         (a) => a.v3 && a.studentId === student.id && a.subject === subject && !a.v3.issuedAt,
@@ -241,14 +245,25 @@ export function currentSets(db: Database, visit: Visit) {
       a.studentId === visit.studentId &&
       (a.v3.visitId === visit.id ||
         (!a.v3.issuedAt &&
-          (a.v3.temporaryPaper || db.operations!.students[visit.studentId].subjects[a.subject].enrolled&&db.operations!.students[visit.studentId].subjects[a.subject].format==='Paper') &&
+          (a.v3.temporaryPaper ||
+            (db.operations!.students[visit.studentId].subjects[a.subject].enrolled &&
+              db.operations!.students[visit.studentId].subjects[a.subject].format === 'Paper')) &&
           a.v3.visitDate === dayKey(visit.arrivedAt, db.operations!.center.timezone))),
   );
 }
-export function incomingPackets(db: Database, studentId: string, subject: Subject) {
+export function incomingPackets(
+  db: Database,
+  studentId: string,
+  subject: Subject,
+  excludeAssignmentId?: string,
+) {
   return db
     .operations!.assignments.filter(
-      (a) => a.studentId === studentId && a.subject === subject && a.v3?.issuedAt,
+      (a) =>
+        a.id !== excludeAssignmentId &&
+        a.studentId === studentId &&
+        a.subject === subject &&
+        a.v3?.issuedAt,
     )
     .flatMap((a) =>
       a.v3!.issued.filter((p) => !['finished', 'held', 'routine'].includes(p.status)),
@@ -293,6 +308,210 @@ export function recommend(set: Assignment, activity: Activity, returned: Packet[
     );
   return { out, held, review: [...new Set(review)], messages };
 }
+
+/** Subject review shares physical packet identities with preparation; no completion is inferred. */
+export function subjectPlan(
+  db: Database,
+  set: Assignment,
+  activity: Activity,
+  returned: Packet[] = [],
+  outgoingSlots = set.v3!.issuedAt ? set.v3!.issued.length : set.v3!.planned.length,
+) {
+  const v = set.v3!,
+    review = [...v.review];
+  const available = [
+    ...new Map(returned.filter((p) => p.status === 'unfinished').map((p) => [p.id, p])).values(),
+  ];
+  for (const p of available) {
+    const error = validateRange(db, set.subject, p.range);
+    if (error) review.push(error);
+  }
+  const order = (p: Packet) =>
+    db.operations!.v3!.catalog.find((c) => c.subject === set.subject && c.id === p.range.level)
+      ?.order ?? Infinity;
+  available.sort(
+    (a, b) =>
+      order(a) - order(b) ||
+      a.range.start - b.range.start ||
+      a.range.end - b.range.end ||
+      a.id.localeCompare(b.id),
+  );
+  const materials = [
+    ...(v.inCenter ? [v.inCenter] : []),
+    ...(v.issuedAt ? [...v.issued, ...v.held] : v.planned),
+  ];
+  const queue = [...new Map([...available, ...materials].map((p) => [p.id, p])).values()];
+  const center = activity === 'Corrections only' ? null : queue.shift() || null;
+  const out = queue.slice(0, outgoingSlots).map((p) => ({ ...p, purpose: 'homework' as const }));
+  const used = new Set([...(center ? [center.id] : []), ...out.map((p) => p.id)]);
+  if (available.some((p) => !used.has(p.id)))
+    review.push(
+      'More unfinished packets than scheduled homework slots. Use Adjust to include the remaining packets.',
+    );
+  const held = materials.filter((p) => !used.has(p.id));
+  return {
+    center: center ? { ...center, purpose: 'in-center' as const } : null,
+    out,
+    held,
+    review: [...new Set(review)],
+  };
+}
+/** Rebuild by exact ranges, reusing physical identities rather than inserting an old queue. */
+export function reuseSequence(
+  db: Database,
+  set: Assignment,
+  center: Packet | null,
+  out: Packet[],
+  returned: Packet[] = [],
+) {
+  const v = set.v3!;
+  const local = [
+    ...returned,
+    ...(v.inCenter ? [v.inCenter] : []),
+    ...v.issued,
+    ...v.planned,
+    ...v.held,
+  ];
+  const pool = [
+    ...local,
+    ...db
+      .operations!.assignments.filter(
+        (a) =>
+          a.id !== set.id && a.studentId === set.studentId && a.subject === set.subject && a.v3,
+      )
+      .flatMap((a) => a.v3!.held),
+  ];
+  const used = new Set<string>(),
+    seen = new Set<string>(),
+    review: string[] = [];
+  const take = (p: Packet): Packet => {
+    const error = validateRange(db, set.subject, p.range);
+    if (error) review.push(error);
+    for (let n = p.range.start; n <= Math.min(p.range.end, p.range.start + 10000); n++) {
+      const key = p.range.level + ':' + n;
+      if (seen.has(key))
+        review.push('A worksheet cannot appear in more than one packet in this plan.');
+      seen.add(key);
+    }
+    const match = pool.find(
+      (q) =>
+        !used.has(q.id) &&
+        q.status !== 'missing' &&
+        q.range.level === p.range.level &&
+        q.range.start === p.range.start &&
+        q.range.end === p.range.end &&
+        !db.operations!.assignments.some(
+          (a) =>
+            a.id !== set.id &&
+            a.v3?.issued.some(
+              (r) => r.id === q.id && ['issued', 'unfinished', 'missing'].includes(r.status),
+            ) &&
+            !returned.some((r) => r.id === q.id),
+        ) &&
+        !db.operations!.assignments.some(
+          (a) =>
+            a.id !== set.id &&
+            a.v3 &&
+            !a.v3.issuedAt &&
+            (a.v3.inCenter?.id === q.id || a.v3.planned.some((r) => r.id === q.id)),
+        ),
+    );
+    const result = match || {
+      ...p,
+      ...(pool.some((q) => q.id === p.id)
+        ? { id: `${set.id}:adjust:${p.range.level}:${p.range.start}:${p.range.end}` }
+        : {}),
+      sourceAssignmentId: set.id,
+    };
+    if (
+      !match &&
+      !pool.some((q) => q.id === p.id) &&
+      db.operations!.assignments.some(
+        (a) =>
+          a.v3 &&
+          [a.v3.inCenter, ...a.v3.planned, ...a.v3.issued, ...a.v3.held].some(
+            (q) => q?.id === p.id,
+          ),
+      )
+    )
+      review.push('Packet identity belongs to another assignment. Reopen Quick View.');
+    if (used.has(result.id)) review.push('A physical packet cannot be used twice in this plan.');
+    used.add(result.id);
+    return { ...result, purpose: p.purpose, status: 'planned' };
+  };
+  const inCenter = center ? take({ ...center, purpose: 'in-center' }) : null;
+  const outgoing = out.map((p) => take({ ...p, purpose: 'homework' }));
+  return {
+    center: inCenter,
+    out: outgoing,
+    held: [...new Map(local.filter((p) => !used.has(p.id)).map((p) => [p.id, p])).values()],
+    review: [...new Set(review)],
+  };
+}
+
+export type RepeatSequence = {
+  level: string;
+  start: number;
+  packetsPerDay: number;
+  sheetsPerPacket: number;
+  startWith: 'today' | 'homework';
+};
+export function repeatSequence(
+  db: Database,
+  set: Assignment,
+  plan: RepeatSequence,
+  activity: Activity,
+  currentCenter: Packet | null,
+  returned: Packet[] = [],
+) {
+  const copy = structuredClone(db);
+  Object.assign(copy.operations!.students[set.studentId].subjects[set.subject], {
+    level: plan.level,
+    nextStart: plan.start,
+    packetsPerDay: plan.packetsPerDay,
+    sheetsPerPacket: plan.sheetsPerPacket,
+  });
+  const today = plan.startWith === 'today' && activity !== 'Corrections only';
+  const proposal = paperProposal(
+    copy,
+    set.studentId,
+    set.subject,
+    set.v3!.visitDate,
+    set.id + ':repeat:' + set.v3!.version,
+    true,
+    today,
+  );
+  if (!proposal) return null;
+  const startError = validateRange(db, set.subject, {
+    level: plan.level,
+    start: plan.start,
+    end: plan.start,
+  });
+  if (startError) proposal.v3!.review.push(startError);
+  const resolved = reuseSequence(
+    db,
+    set,
+    today ? proposal.v3!.inCenter : activity === 'Corrections only' ? null : currentCenter,
+    proposal.v3!.planned,
+    returned,
+  );
+  proposal.v3!.inCenter = resolved.center;
+  proposal.v3!.planned = resolved.out;
+  proposal.v3!.review = [...new Set([...proposal.v3!.review, ...resolved.review])];
+  if (
+    !Number.isInteger(plan.start) ||
+    plan.start < 1 ||
+    !Number.isInteger(plan.packetsPerDay) ||
+    plan.packetsPerDay < 0 ||
+    plan.packetsPerDay > 10 ||
+    !Number.isInteger(plan.sheetsPerPacket) ||
+    plan.sheetsPerPacket < 1 ||
+    plan.sheetsPerPacket > 100
+  )
+    proposal.v3!.review.push('Enter valid whole-number packet quantities and starting page.');
+  return proposal;
+}
+
 export function dailyRoster(db: Database, today: string) {
   return db.visits
     .filter((v) => dayKey(v.arrivedAt, db.operations!.center.timezone) === today || isOpenVisit(v))
