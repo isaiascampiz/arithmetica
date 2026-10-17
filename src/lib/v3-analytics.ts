@@ -32,7 +32,15 @@ export function filterRoster(db: Database, f: RosterFilter) {
         const medals = op.achievements.filter(
           (a) => a.studentId === s.id && (f.subject === 'All' || a.subject === f.subject),
         );
-        if (f.medal === 'None' ? medals.length > 0 : !medals.some((a) => a.distinction === f.medal))
+        if (
+          f.medal === 'None'
+            ? medals.length > 0
+            : !subs.some(
+                (sub) =>
+                  (f.format === 'All' || c.subjects[sub].format === f.format) &&
+                  medals.some((a) => a.subject === sub && a.distinction === f.medal),
+              )
+        )
           return false;
       }
       return true;

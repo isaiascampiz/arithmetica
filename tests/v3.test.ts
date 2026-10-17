@@ -499,6 +499,100 @@ test('medals and combined format+subject filters match same subject (47,57,58)',
   assert.equal(filterRoster(db, { ...filter, query: s.name, days: [2] }).length, 0);
   assert.equal(filterRoster(db, { ...filter, query: s.name, days: [1], early: true }).length, 1);
 });
+for (const { name, subject, format, medal, expected } of [
+  {
+    name: 'rejects cross-subject format/medal matches',
+    subject: 'All',
+    format: 'CONNECT',
+    medal: 'Gold',
+    expected: 0,
+  },
+  {
+    name: 'accepts same-subject format/medal matches',
+    subject: 'All',
+    format: 'Paper',
+    medal: 'Gold',
+    expected: 1,
+  },
+  {
+    name: 'preserves explicit-subject medal exclusion',
+    subject: 'Math',
+    format: 'CONNECT',
+    medal: 'Gold',
+    expected: 0,
+  },
+  {
+    name: 'preserves explicit-subject medal matches',
+    subject: 'Reading',
+    format: 'Paper',
+    medal: 'Gold',
+    expected: 1,
+  },
+  {
+    name: 'preserves CONNECT matches without a medal filter',
+    subject: 'All',
+    format: 'CONNECT',
+    medal: 'All',
+    expected: 1,
+  },
+  {
+    name: 'preserves PAPER matches without a medal filter',
+    subject: 'All',
+    format: 'Paper',
+    medal: 'All',
+    expected: 1,
+  },
+  {
+    name: 'preserves explicit-subject format exclusion without a medal filter',
+    subject: 'Math',
+    format: 'Paper',
+    medal: 'All',
+    expected: 0,
+  },
+  {
+    name: 'preserves medal matches without a format filter',
+    subject: 'All',
+    format: 'All',
+    medal: 'Gold',
+    expected: 1,
+  },
+  {
+    name: 'preserves None medal exclusion across all subjects',
+    subject: 'All',
+    format: 'CONNECT',
+    medal: 'None',
+    expected: 0,
+  },
+  {
+    name: 'preserves explicit-subject None medal matches',
+    subject: 'Math',
+    format: 'CONNECT',
+    medal: 'None',
+    expected: 1,
+  },
+]) {
+  test('roster filtering ' + name, () => {
+    const db = fixture(),
+      student = db.students[0],
+      settings = db.operations!.students[student.id];
+    settings.subjects.Math.format = 'CONNECT';
+    settings.subjects.Reading = { ...settings.subjects.Math, enrolled: true, format: 'Paper' };
+    db.operations!.achievements.push({
+      id: 'reading-gold',
+      studentId: student.id,
+      subject: 'Reading',
+      distinction: 'Gold',
+      date: '2026-10-12',
+      evidence: 'Fictional approved medal',
+      verifiedBy: teacher.name,
+      createdAt: now.toISOString(),
+    });
+    assert.deepEqual(
+      filterRoster(db, { ...filter, query: student.name, subject, format, medal }).map((s) => s.id),
+      expected ? [student.id] : [],
+    );
+  });
+}
 test('profile edit sets early learner, enrollment, modes and shorts in one command (48)', () => {
   const db = fixture(),
     s = db.students[0],
