@@ -129,6 +129,7 @@ export function academicPlot(db: Database, subject: Subject, events: AcademicEve
 }
 
 export const academicPeriods = [
+  '8 weeks',
   'All time',
   '1 year',
   '6 months',
@@ -137,18 +138,24 @@ export const academicPeriods = [
   '1 week',
 ] as const;
 export type AcademicPeriod = (typeof academicPeriods)[number];
+export type AcademicWindowPeriod = AcademicPeriod | '8 weeks';
 const dateNumber = (day: string) => Date.parse(day + 'T12:00:00Z');
 const shiftedDay = (day: string, count: number) =>
   new Date(dateNumber(day) + count * 86400000).toISOString().slice(0, 10);
 
 /** Calendar windows use center-local day keys, keeping DST and month lengths out of millisecond arithmetic. */
 export function academicWindow(
-  period: AcademicPeriod,
+  period: AcademicWindowPeriod,
   offset: number,
   today: string,
   first: string,
 ) {
   if (period === 'All time') return { start: first, end: today };
+  if (period === '8 weeks') {
+    const monday = shiftedDay(today, -((new Date(dateNumber(today)).getUTCDay() + 6) % 7));
+    const start = shiftedDay(monday, -49 + offset * 56);
+    return { start, end: offset === 0 ? today : shiftedDay(start, 55) };
+  }
   const d = new Date(dateNumber(today));
   if (period === '1 week') {
     const monday = shiftedDay(today, -((d.getUTCDay() + 6) % 7) + offset * 7);
@@ -164,7 +171,7 @@ export function academicWindow(
 
 export function academicCheckpoints<T extends { at: string; id: string }>(
   points: T[],
-  period: AcademicPeriod,
+  period: AcademicWindowPeriod,
   timezone: string,
 ) {
   const daily = new Map<string, T>();
@@ -228,28 +235,30 @@ export function academicYDomain(positions: number[], low: number, high: number) 
   const min = Math.min(...positions) * 200,
     max = Math.max(...positions) * 200;
   const padding = Math.max(max === min ? 5 : 1, (max - min) * 0.08);
-  const candidates: { bottom: number; top: number; step: number; rows: number }[] = [];
-  for (let power = 0; power <= 5; power++)
-    for (const base of [1, 2, 5]) {
+  const lower = low * 200,
+    upper = high * 200;
+  for (let power = -1; power <= 6; power++) {
+    for (const base of [1, 2, 2.5, 5]) {
       const step = base * 10 ** power;
-      const bottom = Math.max(low * 200, Math.floor((min - padding) / step) * step);
-      const top = Math.min(high * 200, Math.ceil((max + padding) / step) * step);
-      const rows = (top - bottom) / step;
-      if (rows >= 2 && rows <= 12 && Math.abs(rows - Math.round(rows)) < 0.00001)
-        candidates.push({ bottom, top, step, rows: Math.round(rows) });
+      if (!Number.isInteger(step)) continue;
+      const span = step * 4;
+      if (span < max - min + padding * 2 || span > upper - lower) continue;
+      const bottom = Math.max(
+        lower,
+        Math.min(Math.floor((min - padding) / step) * step, upper - span),
+      );
+      const top = bottom + span;
+      if (bottom > min || top < max) continue;
+      return {
+        bottom: bottom / 200,
+        top: top / 200,
+        ticks: Array.from({ length: 5 }, (_, i) => (bottom + step * i) / 200),
+      };
     }
-  const best = candidates.toSorted(
-    (a, b) => Math.abs(a.rows - 6) - Math.abs(b.rows - 6) || a.top - a.bottom - (b.top - b.bottom),
-  )[0];
-  if (!best)
-    return {
-      bottom: low,
-      top: high,
-      ticks: Array.from({ length: 7 }, (_, i) => low + ((high - low) * i) / 6),
-    };
+  }
   return {
-    bottom: best.bottom / 200,
-    top: best.top / 200,
-    ticks: Array.from({ length: best.rows + 1 }, (_, i) => (best.bottom + i * best.step) / 200),
+    bottom: low,
+    top: high,
+    ticks: Array.from({ length: 5 }, (_, i) => low + ((high - low) * i) / 4),
   };
 }

@@ -118,7 +118,11 @@ export function ProgressCharts({ db, student }: { db: Snapshot; student: Student
         aria-labelledby={subject ? 'progress-tab-' + subject : undefined}
       >
         {(Object.keys(titles) as Card[]).map((card) => (
-          <article className="panel progress-card" key={card} aria-label={titles[card]}>
+          <article
+            className="panel progress-card progress-summary-card"
+            key={card}
+            aria-label={titles[card]}
+          >
             <header>
               <h2>{titles[card]}</h2>
             </header>

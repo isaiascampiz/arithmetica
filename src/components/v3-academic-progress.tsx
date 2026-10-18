@@ -9,10 +9,11 @@ import {
   academicPeriods,
   academicWindow,
   academicCheckpoints,
-  academicDateTicks,
   academicYDomain,
-  type AcademicPeriod,
+  type AcademicWindowPeriod,
 } from '@/lib/academic-progress';
+import { progressDayX, progressTimeAxis, progressDateLabel } from '@/lib/progress-chart';
+import { useProgressPlotWidth } from './v3-progress-chart';
 import { Empty, useNow } from './shared-ui';
 import type { AcademicEvent } from '@/lib/academic-progress';
 
@@ -27,11 +28,9 @@ export function AcademicProgress({
   subject: Subject;
   detail: boolean;
 }) {
-  const [period, setPeriod] = useState<AcademicPeriod>('All time');
+  const [period, setPeriod] = useState<AcademicWindowPeriod>('8 weeks');
   const [offset, setOffset] = useState(0);
-  const [plotWidth, setPlotWidth] = useState(600);
   const plotRef = useRef<HTMLDivElement>(null);
-  const contextRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [history, setHistory] = useState<'pages' | 'repeats' | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,7 +66,7 @@ export function AcademicProgress({
   const today = dayKey(useNow(), db.timezone);
   const all = useMemo(() => academicHistory(db, student.id, subject), [db, student.id, subject]);
   const firstDay = all.length ? dayKey(all[0].at, db.timezone) : today;
-  const window = academicWindow(period, offset, today, firstDay);
+  const window = academicWindow(detail ? period : '8 weeks', detail ? offset : 0, today, firstDay);
   const events = useMemo(
     () =>
       all.filter((e) => {
@@ -81,44 +80,29 @@ export function AcademicProgress({
     [db, subject, events],
   );
   const { daily, checkpoints: points } = useMemo(
-    () => academicCheckpoints(rawPoints, period, db.timezone),
-    [rawPoints, period, db.timezone],
+    () => academicCheckpoints(rawPoints, detail ? period : '8 weeks', db.timezone),
+    [rawPoints, period, detail, db.timezone],
   );
   const pointDays = useMemo(
     () => new Map(daily.map((p) => [p.at, dayKey(p.at, db.timezone)])),
     [daily, db.timezone],
   );
-  useLayoutEffect(() => {
-    const plot = plotRef.current;
-    const surface = plot || contextRef.current;
-    if (!surface) return;
-    const measure = () => setPlotWidth(Math.max(1, surface.clientWidth - (plot ? 0 : 78)));
-    const observer = new ResizeObserver(measure);
-    observer.observe(surface);
-    measure();
-    return () => observer.disconnect();
-  }, [detail, period, offset, points.length]);
-  // Match the expanded plot's roughly 2:1 proportions, with a readability floor for phones.
-  const previewHeight = Math.min(300, Math.max(220, Math.round(plotWidth / 2) + 80));
+  const plotWidth = useProgressPlotWidth(plotRef, rawPoints.length > 0);
   const selectedPoint = points.find((p) => p.id === selected);
   const repeats = events.filter((e) => e.kind === 'repeat').toReversed();
   const number = (day: string) => Date.parse(day + 'T12:00:00Z');
   const left = number(window.start),
     right = Math.max(left + 86400000, number(window.end));
   const x = (at: string) =>
-    ((number(pointDays.get(at) || dayKey(at, db.timezone)) - left) / (right - left)) * 100;
-  const columns = Math.max(
-    1,
-    Math.min(period === '1 week' ? 6 : 12, Math.round((right - left) / 86400000)),
-  );
+    progressDayX(pointDays.get(at) || dayKey(at, db.timezone), window.start, window.end);
   const {
     bottom,
     top,
     ticks: yTicks,
   } = academicYDomain(
-    points.map((p) => p.position),
-    points.length ? Math.min(...points.map((p) => p.rank)) : 0,
-    points.length ? Math.max(...points.map((p) => p.rank)) + 1 : 1,
+    rawPoints.map((p) => p.position),
+    rawPoints.length ? Math.min(...rawPoints.map((p) => p.rank)) : 0,
+    rawPoints.length ? Math.max(...rawPoints.map((p) => p.rank)) + 1 : 1,
   );
   const y = (position: number) => 100 - ((position - bottom) / (top - bottom)) * 100;
   const date = (at: string | number, full = false) =>
@@ -145,30 +129,32 @@ export function AcademicProgress({
     };
   });
   const pageEvents = events.filter((e) => e.kind === 'completion');
-  const gridTicks = Array.from({ length: columns + 1 }, (_, i) => i);
-  const dateTicks = academicDateTicks(
+  const { grids: gridTicks, labels: dateTicks } = progressTimeAxis(
     window.start,
     window.end,
-    Math.max(2, Math.floor(plotWidth / (right - left > 365 * 86400000 ? 70 : 52))),
+    plotWidth,
+    detail,
   );
-  const tickLabel = (day: string) =>
-    new Date(number(day)).toLocaleDateString('en-US', {
-      timeZone: db.timezone,
-      month: 'short',
-      ...(right - left < 60 * 86400000 ? { day: 'numeric' as const } : {}),
-      ...(right - left > 365 * 86400000 ? { year: '2-digit' as const } : {}),
-    });
+  const tickLabel = (day: string) => progressDateLabel(day, window.start, window.end);
   const move = (amount: number) => {
     setOffset(offset + amount);
     setSelected(null);
     persistent.current = false;
   };
   return (
-    <>
-      <div className="academic-context" ref={contextRef}>
-        <p className="progress-context">
-          {subject} · Current level {db.operations!.students[student.id].subjects[subject].level}
-        </p>
+    <div className={'academic-progress' + (detail ? ' detailed' : '')}>
+      <div className="academic-context">
+        <div>
+          <p className="progress-context">
+            {subject} {'\u00b7'} {detail ? 'Academic progress' : 'Last 8 weeks'}
+          </p>
+          <div className="academic-summary">
+            <strong>
+              {db.operations!.students[student.id].subjects[subject].level || '\u2014'}
+            </strong>
+            <span>Current level</span>
+          </div>
+        </div>
         {detail && (
           <label className="progress-period">
             <span className="academic-period-label">Period</span>
@@ -214,10 +200,10 @@ export function AcademicProgress({
           </button>
         </div>
       )}
+      <div className="progress-axis-row" aria-hidden="true" />
       {points.length ? (
         <div
           className={'academic-chart' + (detail ? ' detailed' : '')}
-          style={detail ? undefined : { height: previewHeight }}
           role={detail ? 'group' : 'img'}
           aria-label={subject + ' packet completion history'}
           onKeyDown={(event) => {
@@ -229,7 +215,7 @@ export function AcademicProgress({
             }
           }}
         >
-          <span className="academic-axis-title">Level / page</span>
+          <p className="academic-unit progress-y-title">Level / page</p>
           <div className="academic-level-labels">
             {ticks.map((level) => (
               <span key={level.id} style={{ top: y(level.position) + '%' }}>
@@ -249,7 +235,7 @@ export function AcademicProgress({
               <div
                 key={i}
                 className="academic-grid-vertical"
-                style={{ left: (i / columns) * 100 + '%' }}
+                style={{ left: progressDayX(i, window.start, window.end) + '%' }}
               />
             ))}
             <svg
@@ -258,6 +244,20 @@ export function AcademicProgress({
               aria-hidden="true"
               className="academic-connection"
             >
+              {points.length > 1 && (
+                <polygon
+                  className="academic-area"
+                  fill="var(--brand)"
+                  points={
+                    x(points[0].at) +
+                    ',100 ' +
+                    points.map((p) => x(p.at) + ',' + y(p.position)).join(' ') +
+                    ' ' +
+                    x(points.at(-1)!.at) +
+                    ',100'
+                  }
+                />
+              )}
               <path
                 d={points
                   .map((p, i) => (i ? 'L ' : 'M ') + x(p.at) + ' ' + y(p.position))
@@ -359,14 +359,13 @@ export function AcademicProgress({
                 <span
                   key={day}
                   data-date={day}
-                  style={{ left: ((number(day) - left) / (right - left)) * 100 + '%' }}
+                  style={{ left: progressDayX(day, window.start, window.end) + '%' }}
                 >
                   {tickLabel(day)}
                 </span>
               ))}
             </div>
           </div>
-          <span className="academic-time-title">Date</span>
           {detail && selectedPoint && (
             <PointPopup
               id={chartId + '-popup'}
@@ -381,16 +380,15 @@ export function AcademicProgress({
           )}
         </div>
       ) : (
-        <div
-          className={'academic-empty-chart' + (detail ? ' detailed' : '')}
-          style={detail ? undefined : { height: previewHeight }}
-        >
+        <div className={'academic-empty-chart' + (detail ? ' detailed' : '')}>
+          <p className="academic-unit progress-y-title">Level / page</p>
           <Empty
             title="No packet completions recorded"
             text="Issued and unfinished packets do not create completion points."
           />
         </div>
       )}
+      <p className="academic-footnote">Recorded packet completions; missing work is excluded.</p>
       {detail && (
         <>
           {unknown.length > 0 && (
@@ -475,7 +473,7 @@ export function AcademicProgress({
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }
 
@@ -504,23 +502,17 @@ function PointPopup({
       const box = popup.current,
         anchor = document.getElementById(anchorId);
       if (!box || !anchor) return;
-      const dot = anchor.getBoundingClientRect(),
-        size = box.getBoundingClientRect();
+      const dot = anchor.getBoundingClientRect();
+      const plot = anchor.parentElement!.getBoundingClientRect();
+      box.style.width = Math.min(300, plot.width) + 'px';
+      const size = box.getBoundingClientRect();
       const dialog = box.closest('dialog')!.getBoundingClientRect();
-      const left = Math.max(
-        dialog.left + 12,
-        Math.min(dot.x + dot.width / 2 - size.width / 2, dialog.right - size.width - 12),
-      );
-      const below = dot.bottom + 4;
-      const top = Math.max(
-        dialog.top + 64,
-        Math.min(
-          below + size.height < dialog.bottom - 12 ? below : dot.top - size.height - 4,
-          dialog.bottom - size.height - 12,
-        ),
-      );
-      box.style.left = left + 'px';
-      box.style.top = top + 'px';
+      box.style.left =
+        Math.max(
+          plot.left,
+          Math.min(dot.x + dot.width / 2 - size.width / 2, plot.right - size.width),
+        ) + 'px';
+      box.style.top = Math.max(dialog.top + 64, plot.top - size.height - 6) + 'px';
       box.style.visibility = 'visible';
     };
     place();

@@ -9,7 +9,7 @@ import {
   durationTotals,
   durationAxis,
 } from '@/lib/center-duration';
-import { addDays, weekday } from '@/lib/schedule';
+import { progressBarUnit, progressBarLabels, progressDateLabel } from '@/lib/progress-chart';
 import { time, useNow } from './shared-ui';
 
 export function CenterDuration({
@@ -21,7 +21,7 @@ export function CenterDuration({
   student: Student;
   detail: boolean;
 }) {
-  const [period, setPeriod] = useState<AcademicPeriod>('3 months');
+  const [period, setPeriod] = useState<AcademicPeriod>('8 weeks');
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [history, setHistory] = useState(false);
@@ -34,18 +34,13 @@ export function CenterDuration({
   const first = visits[0]?.day || today;
   const window = detail
     ? academicWindow(period, offset, today, first)
-    : { start: addDays(today, -((weekday(today) + 6) % 7) - 49), end: today };
+    : academicWindow('8 weeks', 0, today, first);
   const end = window.end < today ? window.end : today;
   const visible = useMemo(
     () => visits.filter((r) => r.day >= window.start && r.day <= end),
     [visits, window.start, end],
   );
-  const unit =
-    !detail || period === '1 month' || period === '3 months'
-      ? 'week'
-      : period === '1 week'
-        ? 'day'
-        : 'month';
+  const unit = progressBarUnit(detail ? period : '8 weeks', window.start, end);
   const buckets = useMemo(
     () => durationBuckets(visible, window.start, end, unit),
     [visible, window.start, end, unit],
@@ -102,9 +97,6 @@ export function CenterDuration({
     <div className="center-time-summary">
       <strong>{total.average === null ? '\u2014' : Math.round(total.average) + ' min'}</strong>
       <span>{total.average === null ? 'No measured visits' : 'Average visit'}</span>
-      <small>
-        {total.count} measured {total.count === 1 ? 'visit' : 'visits'}
-      </small>
     </div>
   );
   return (
@@ -166,9 +158,10 @@ export function CenterDuration({
           </button>
         </div>
       )}
-      <p className="center-time-unit">Minutes per visit</p>
+      <div className="progress-axis-row" aria-hidden="true" />
       <div
         className="center-time-chart"
+        data-grouping={unit}
         role={detail ? 'group' : 'img'}
         aria-label="Average visit duration in minutes"
         onKeyDown={(e) => {
@@ -179,6 +172,7 @@ export function CenterDuration({
           }
         }}
       >
+        <p className="center-time-unit progress-y-title">Minutes per visit</p>
         <div className="center-time-y-labels">
           {axis.ticks.map((n) => (
             <span key={n} style={{ bottom: (n / axis.top) * 100 + '%' }}>
@@ -280,19 +274,26 @@ export function CenterDuration({
             </div>
           ))}
           <div className="center-time-x-labels">
-            {buckets.map(
-              (b, i) =>
-                i % Math.max(1, Math.ceil(buckets.length / (detail ? 4 : 3))) === 0 && (
-                  <span key={b.start} style={{ left: ((i + 0.5) / buckets.length) * 100 + '%' }}>
-                    {date(b.start)}
-                  </span>
-                ),
-            )}
+            {progressBarLabels(buckets.length, unit, detail).map((i) => (
+              <span
+                key={buckets[i].start}
+                data-date={buckets[i].start}
+                style={{ left: ((i + 0.5) / buckets.length) * 100 + '%' }}
+              >
+                {progressDateLabel(buckets[i].start, window.start, window.end)}
+              </span>
+            ))}
           </div>
           {detail && chosen && (
             <div
               id={id + '-tooltip'}
               className="center-time-tooltip"
+              style={{
+                left:
+                  'clamp(0px, calc(' +
+                  ((selected! + 0.5) / buckets.length) * 100 +
+                  '% - 150px), max(0px, calc(100% - 300px)))',
+              }}
               role="tooltip"
               aria-label="Visit duration summary"
               onPointerEnter={cancelClose}

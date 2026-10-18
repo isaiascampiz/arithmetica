@@ -77,7 +77,7 @@ for (const viewport of [
       await expect(card.locator('.center-time-summary strong')).toHaveText(
         Math.round(expected.average!) + ' min',
       );
-      await expect(card).toContainText(expected.count + ' measured visits');
+      await expect(card).not.toContainText(expected.count + ' measured visits');
       await expect(card.locator('.center-time-column')).toHaveCount(8);
       expect(
         await card
@@ -107,7 +107,7 @@ for (const viewport of [
       const dialog = page.getByRole('dialog', { name: 'Time spent at center', exact: true });
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('combobox', { name: 'Duration period' })).toHaveValue(
-        '3 months',
+        '8 weeks',
       );
       await expect(dialog.locator('.center-time-y-labels span').first()).toHaveText('0');
       await expect(dialog.getByRole('list', { name: 'Recorded visit history' })).not.toBeVisible();
@@ -119,6 +119,15 @@ for (const viewport of [
       await page.keyboard.press('Enter');
       const popup = dialog.getByRole('tooltip', { name: 'Visit duration summary' });
       await expect(popup).toBeVisible();
+      await expect(dialog.locator('.progress-period > span')).not.toBeVisible();
+      const firstTip = (await popup.boundingBox())!;
+      await dialog.locator('.center-time-bar-target').last().focus();
+      const lastTip = (await popup.boundingBox())!;
+      if (viewport.width > 760) expect(lastTip.x).toBeGreaterThan(firstTip.x);
+      const plotFrame = (await dialog.locator('.center-time-plot').boundingBox())!;
+      expect(lastTip.x).toBeGreaterThanOrEqual(plotFrame.x - 1);
+      expect(lastTip.x + lastTip.width).toBeLessThanOrEqual(plotFrame.x + plotFrame.width + 1);
+      await bar.focus();
       await expect(popup).toContainText('minutes total');
       expect(await popup.evaluate((el) => el.getBoundingClientRect().right <= innerWidth)).toBe(
         true,
@@ -141,13 +150,23 @@ for (const viewport of [
       await expect(dialog.locator('.center-time-period-nav span')).toHaveText(range);
       await period.selectOption('1 week');
       await expect(dialog.locator('.center-time-summary strong')).toHaveText('105 min');
-      await expect(dialog.locator('.center-time-summary')).toContainText('2 measured visits');
+      await expect(dialog.locator('.center-time-summary')).not.toContainText('2 measured visits');
       expect(
         Number(await dialog.locator('.center-time-y-labels span').last().innerText()),
       ).toBeGreaterThanOrEqual(105);
       await dialog.getByRole('button', { name: 'Previous duration period' }).click();
       await expect(dialog.locator('.center-time-column')).toHaveCount(7);
       expect(await dialog.locator('.center-time-no-visit').count()).toBeGreaterThan(0);
+      await period.selectOption('1 month');
+      await dialog.getByRole('button', { name: 'Previous duration period' }).click();
+      await expect(dialog.locator('.center-time-chart')).toHaveAttribute('data-grouping', 'day');
+      await expect(dialog.locator('.center-time-column')).toHaveCount(30);
+      await period.selectOption('6 months');
+      await expect(dialog.locator('.center-time-chart')).toHaveAttribute('data-grouping', 'week');
+      expect(await dialog.locator('.center-time-column').count()).toBeGreaterThan(20);
+      await period.selectOption('1 year');
+      await expect(dialog.locator('.center-time-chart')).toHaveAttribute('data-grouping', 'month');
+      await expect(dialog.locator('.center-time-column')).toHaveCount(10);
       await period.selectOption('All time');
       await dialog.getByRole('button', { name: 'Visit history', exact: true }).click();
       const history = dialog.getByRole('list', { name: 'Recorded visit history' });

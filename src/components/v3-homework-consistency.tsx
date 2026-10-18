@@ -5,7 +5,7 @@ import { dayKey, type Snapshot, type Student } from '@/lib/model';
 import type { Subject } from '@/lib/v2-model';
 import { academicPeriods, academicWindow, type AcademicPeriod } from '@/lib/academic-progress';
 import { homeworkReviews, homeworkBuckets, homeworkTotals } from '@/lib/homework-consistency';
-import { addDays, weekday } from '@/lib/schedule';
+import { progressBarUnit, progressBarLabels, progressDateLabel } from '@/lib/progress-chart';
 import { packetLabel } from '@/lib/v3-planning';
 import { useNow } from './shared-ui';
 
@@ -20,7 +20,7 @@ export function HomeworkConsistency({
   subject: Subject;
   detail: boolean;
 }) {
-  const [period, setPeriod] = useState<AcademicPeriod>('3 months');
+  const [period, setPeriod] = useState<AcademicPeriod>('8 weeks');
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [history, setHistory] = useState(false);
@@ -36,18 +36,13 @@ export function HomeworkConsistency({
   const first = reviews[0]?.day || today;
   const window = detail
     ? academicWindow(period, offset, today, first)
-    : { start: addDays(today, -((weekday(today) + 6) % 7) - 49), end: today };
+    : academicWindow('8 weeks', 0, today, first);
   const end = window.end < today ? window.end : today;
   const visible = useMemo(
     () => reviews.filter((r) => r.day >= window.start && r.day <= end),
     [reviews, window.start, end],
   );
-  const unit =
-    !detail || period === '1 month' || period === '3 months'
-      ? 'week'
-      : period === '1 week'
-        ? 'day'
-        : 'month';
+  const unit = progressBarUnit(detail ? period : '8 weeks', window.start, end);
   const buckets = useMemo(
     () => homeworkBuckets(visible, window.start, end, unit),
     [visible, window.start, end, unit],
@@ -99,6 +94,18 @@ export function HomeworkConsistency({
       ),
     );
   };
+  const legend = (
+    <div className="homework-legend" role="group" aria-label="Homework outcomes">
+      <span>
+        <i />
+        Completed
+      </span>
+      <span>
+        <i />
+        Not completed
+      </span>
+    </div>
+  );
   const headline = (
     <div className="homework-summary">
       <strong>{total.percent === null ? '\u2014' : Math.round(total.percent) + '%'}</strong>
@@ -168,18 +175,10 @@ export function HomeworkConsistency({
           </button>
         </div>
       )}
-      <div className="homework-legend">
-        <span>
-          <i />
-          Completed
-        </span>
-        <span>
-          <i />
-          Not completed
-        </span>
-      </div>
+      <div className="homework-axis-row">{legend}</div>
       <div
         className="homework-chart"
+        data-grouping={unit}
         role={detail ? 'group' : 'img'}
         aria-label={subject + ' homework completion percentages'}
         onKeyDown={(e) => {
@@ -190,6 +189,7 @@ export function HomeworkConsistency({
           }
         }}
       >
+        <p className="homework-unit progress-y-title">Completion (%)</p>
         <div className="homework-y-labels">
           {[0, 25, 50, 75, 100].map((n) => (
             <span key={n} style={{ bottom: n + '%' }}>
@@ -292,19 +292,26 @@ export function HomeworkConsistency({
             </div>
           ))}
           <div className="homework-x-labels">
-            {buckets.map(
-              (b, i) =>
-                i % Math.max(1, Math.ceil(buckets.length / (detail ? 4 : 3))) === 0 && (
-                  <span key={b.start} style={{ left: ((i + 0.5) / buckets.length) * 100 + '%' }}>
-                    {date(b.start)}
-                  </span>
-                ),
-            )}
+            {progressBarLabels(buckets.length, unit, detail).map((i) => (
+              <span
+                key={buckets[i].start}
+                data-date={buckets[i].start}
+                style={{ left: ((i + 0.5) / buckets.length) * 100 + '%' }}
+              >
+                {progressDateLabel(buckets[i].start, window.start, window.end)}
+              </span>
+            ))}
           </div>
           {detail && chosen && (
             <div
               id={id + '-tooltip'}
               className="homework-tooltip"
+              style={{
+                left:
+                  'clamp(0px, calc(' +
+                  ((selected! + 0.5) / buckets.length) * 100 +
+                  '% - 150px), max(0px, calc(100% - 300px)))',
+              }}
               role="tooltip"
               aria-label="Homework review summary"
               onPointerEnter={cancelClose}

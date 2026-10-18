@@ -1,13 +1,8 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight, List, Pin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, List, Pin, ChevronDown } from 'lucide-react';
 import { dayKey, type Snapshot, type Student } from '@/lib/model';
-import {
-  academicPeriods,
-  academicWindow,
-  academicDateTicks,
-  type AcademicPeriod,
-} from '@/lib/academic-progress';
+import { academicPeriods, academicWindow, type AcademicPeriod } from '@/lib/academic-progress';
 import {
   skillSeries,
   skillScatter,
@@ -15,9 +10,11 @@ import {
   skillColors,
   skillDailyAverages,
 } from '@/lib/skill-progress';
+import { progressDayX, progressTimeAxis, progressDateLabel } from '@/lib/progress-chart';
+import { useProgressPlotWidth } from './v3-progress-chart';
 import { useNow } from './shared-ui';
 
-export type SkillView = { pins?: string[]; shown?: string[]; average?: boolean };
+export type SkillView = { pins?: string[]; skill?: string };
 
 export function SkillProgress({
   db,
@@ -32,7 +29,7 @@ export function SkillProgress({
   view: SkillView;
   updateView: (change: Partial<SkillView>) => void;
 }) {
-  const [period, setPeriod] = useState<AcademicPeriod>('3 months'),
+  const [period, setPeriod] = useState<AcademicPeriod>('8 weeks'),
     [offset, setOffset] = useState(0),
     [history, setHistory] = useState(false),
     [selected, setSelected] = useState<number | null>(null);
@@ -46,35 +43,38 @@ export function SkillProgress({
     .flatMap((s) => s.records)
     .filter((r) => r.day <= today)
     .toSorted((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
-  const window = academicWindow(
-      detail ? period : '3 months',
-      detail ? offset : 0,
-      today,
-      all[0]?.day || today,
-    ),
+  const previewWindow = academicWindow('8 weeks', 0, today, all[0]?.day || today);
+  const window = detail
+      ? academicWindow(period, offset, today, all[0]?.day || today)
+      : previewWindow,
     end = window.end < today ? window.end : today;
   const available = series
     .map((s) => ({
       ...s,
       color: colors.get(s.key)!,
-      points: skillScatter(s.records, window.start, end, db.timezone),
+      points: skillScatter(s.records, window.start, end, db.timezone).map((p) => ({
+        ...p,
+        x: progressDayX(p.day, window.start, window.end),
+      })),
     }))
     .filter((s) => s.points.length);
-  const previewWindow = academicWindow('3 months', 0, today, all[0]?.day || today);
   const defaults = series
     .filter((s) => s.records.some((r) => r.day >= previewWindow.start && r.day <= today))
-    .slice(0, 4)
+    .slice(0, 3)
     .map((s) => s.key);
-  const pins = view.pins ?? defaults;
-  const shown = view.shown ?? pins;
-  const previewKeys = pins.slice(0, 4);
-  const controls = detail
-    ? available
-    : previewKeys.flatMap((key) => available.filter((s) => s.key === key));
-  const averageMode = !detail || view.average !== false;
-  const visible = averageMode
-    ? available
-    : available.filter((s) => shown.includes(s.key) && (detail || previewKeys.includes(s.key)));
+  const pins = (view.pins ?? defaults).slice(0, 3);
+  const previewKeys = pins.slice(0, 3);
+  const controls = previewKeys.flatMap((key) => available.filter((s) => s.key === key));
+  const averageMode = !detail || !view.skill;
+  const visible = averageMode ? available : available.filter((s) => s.key === view.skill);
+  const chosenSeries = series.find((s) => s.key === view.skill);
+  const title = averageMode
+    ? 'All skills average'
+    : chosenSeries
+      ? chosenSeries.label +
+        (chosenSeries.scope !== 'Visit-wide' ? ' (' + chosenSeries.scope + ')' : '')
+      : 'Skill';
+  const mean = skillAverage(visible.flatMap((s) => s.points));
   const chartSeries =
     averageMode && available.length
       ? [
@@ -86,19 +86,8 @@ export function SkillProgress({
           },
         ]
       : visible;
-  const toggleSkill = (key: string) => {
-    updateView({
-      average: false,
-      shown:
-        averageMode || view.shown === undefined
-          ? [key]
-          : shown.includes(key)
-            ? shown.filter((k) => k !== key)
-            : [...shown, key],
-    });
-    setSelected(null);
-  };
   const togglePin = (key: string) => {
+    if (!pins.includes(key) && pins.length >= 3) return;
     updateView({ pins: pins.includes(key) ? pins.filter((k) => k !== key) : [...pins, key] });
     setSelected(null);
   };
@@ -111,7 +100,8 @@ export function SkillProgress({
       .reduce((sum, p, _, a) => sum + p.x / a.length, 0),
   }));
   const chosen = selected === null ? null : days[selected];
-  const ticks = academicDateTicks(window.start, end, detail ? 5 : 3);
+  const plotWidth = useProgressPlotWidth(plot);
+  const { grids, labels: ticks } = progressTimeAxis(window.start, window.end, plotWidth, detail);
   const date = (day: string, full = false) =>
     new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', {
       timeZone: db.timezone,
@@ -137,69 +127,114 @@ export function SkillProgress({
     document.addEventListener('pointerdown', dismiss);
     return () => document.removeEventListener('pointerdown', dismiss);
   }, [selected]);
-  const span = Math.max(1, (Date.parse(end) - Date.parse(window.start)) / 86400000 + 1);
   const histories = days.toReversed();
   return (
     <div className={'skill-scatter' + (detail ? ' detailed' : '')}>
       <div className="skill-scatter-header">
-        <div className="skill-scatter-context">
-          <div>
-            <p className="progress-context">
-              {detail ? 'Visit-wide ratings' : 'Visit-wide observations'}
-            </p>
-            <p className="skill-scatter-caption">
-              {detail
-                ? averageMode
-                  ? 'All skills average'
-                  : 'Period averages'
-                : '3 months \u00b7 All skills average'}
-            </p>
-          </div>
-          {detail && (
-            <div className="skill-scatter-mode">
-              <button
-                type="button"
-                className="text-button"
-                aria-pressed={averageMode}
-                onClick={() => {
-                  updateView({ average: true });
-                  reset();
-                }}
-              >
-                Show average
-              </button>
-              <button
-                type="button"
-                className="text-button"
-                aria-pressed={!averageMode && available.every((s) => shown.includes(s.key))}
-                onClick={() => {
-                  updateView({ average: false, shown: available.map((s) => s.key) });
-                  reset();
-                }}
-              >
-                Show all
-              </button>
+        <div className="skill-scatter-summary-panel">
+          <div className="skill-scatter-context">
+            <div>
+              <p className="skill-scatter-caption">
+                {detail ? 'Average rating' : 'All skills average \u00b7 Last 8 weeks'}
+              </p>
+              {mean !== null && (
+                <strong
+                  className="skill-scatter-headline"
+                  role="meter"
+                  aria-label={title + (averageMode ? '' : ' average')}
+                  aria-valuemin={1}
+                  aria-valuemax={5}
+                  aria-valuenow={mean}
+                >
+                  {mean.toFixed(1)}
+                  <small>/5</small>
+                </strong>
+              )}
+              {!detail && mean !== null && (
+                <span className="skill-scatter-average-label">Average rating</span>
+              )}
             </div>
-          )}
-          {detail && (
-            <label className="progress-period">
-              <span>Period</span>
-              <select
-                aria-label="Skills period"
-                value={period}
-                onChange={(e) => {
-                  setPeriod(e.target.value as AcademicPeriod);
-                  setOffset(0);
+            {detail && (
+              <SkillViewMenu
+                title={title}
+                items={series
+                  .filter((s) => s.records.length)
+                  .map((s) => ({
+                    key: s.key,
+                    label: s.label + (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : ''),
+                    color: colors.get(s.key)!,
+                  }))}
+                value={view.skill || ''}
+                pins={pins}
+                togglePin={togglePin}
+                choose={(skill) => {
+                  updateView({ skill: skill || undefined });
                   reset();
                 }}
-              >
-                {academicPeriods.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
-            </label>
-          )}
+              />
+            )}
+            {detail && (
+              <label className="progress-period">
+                <span>Period</span>
+                <select
+                  aria-label="Skills period"
+                  value={period}
+                  onChange={(e) => {
+                    setPeriod(e.target.value as AcademicPeriod);
+                    setOffset(0);
+                    reset();
+                  }}
+                >
+                  {academicPeriods.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
         </div>
+        {!detail && (
+          <div
+            id={id + '-preview'}
+            className="skill-scatter-averages"
+            aria-label="Average skill ratings"
+          >
+            {controls.map((s) => (
+              <div
+                className="skill-scatter-average"
+                data-skill={s.id}
+                key={s.key}
+                style={{ '--skill-color': s.color } as CSSProperties}
+              >
+                <div className="skill-scatter-summary">
+                  <i aria-hidden="true" />
+                  <span>
+                    {s.label}
+                    {s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : ''}
+                  </span>
+                  <strong
+                    role="meter"
+                    aria-label={
+                      s.label + (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : '') + ' average'
+                    }
+                    aria-valuemin={1}
+                    aria-valuemax={5}
+                    aria-valuenow={skillAverage(s.points)!}
+                  >
+                    {skillAverage(s.points)!.toFixed(1)}
+                    <small>/5</small>
+                  </strong>
+                </div>
+              </div>
+            ))}
+            {!available.length && <p>No skill ratings recorded in this period.</p>}
+            {!!available.length && !controls.length && (
+              <p>No skills pinned. Open the chart to pin skills.</p>
+            )}
+          </div>
+        )}
+
+        {detail && !visible.length && <p>No skill ratings recorded in this period.</p>}
         {detail && (
           <div className="academic-period-nav skill-scatter-period-nav">
             <button
@@ -231,92 +266,8 @@ export function SkillProgress({
             </button>
           </div>
         )}
-        <div className="skill-scatter-averages" aria-label="Average skill ratings">
-          {controls.map((s) => (
-            <div
-              className="skill-scatter-average"
-              data-skill={s.id}
-              key={s.key}
-              style={{ '--skill-color': s.color } as CSSProperties}
-            >
-              {detail ? (
-                <button
-                  type="button"
-                  className="skill-scatter-choice"
-                  aria-label={
-                    'Show ' +
-                    s.label +
-                    (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : '') +
-                    ' skill'
-                  }
-                  aria-pressed={!averageMode && shown.includes(s.key)}
-                  onClick={() => toggleSkill(s.key)}
-                >
-                  <i aria-hidden="true" />
-                  <span>
-                    {s.label}
-                    {s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : ''}
-                  </span>
-                  <strong
-                    role="meter"
-                    aria-label={
-                      s.label + (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : '') + ' average'
-                    }
-                    aria-valuemin={1}
-                    aria-valuemax={5}
-                    aria-valuenow={skillAverage(s.points)!}
-                  >
-                    {skillAverage(s.points)!.toFixed(1)}
-                    <small>/5</small>
-                  </strong>
-                </button>
-              ) : (
-                <div className="skill-scatter-summary">
-                  <i aria-hidden="true" />
-                  <span>
-                    {s.label}
-                    {s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : ''}
-                  </span>
-                  <strong
-                    role="meter"
-                    aria-label={
-                      s.label + (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : '') + ' average'
-                    }
-                    aria-valuemin={1}
-                    aria-valuemax={5}
-                    aria-valuenow={skillAverage(s.points)!}
-                  >
-                    {skillAverage(s.points)!.toFixed(1)}
-                    <small>/5</small>
-                  </strong>
-                </div>
-              )}
-
-              {detail && (
-                <button
-                  type="button"
-                  className="skill-scatter-pin"
-                  aria-label={
-                    'Pin ' +
-                    s.label +
-                    (s.scope !== 'Visit-wide' ? ' (' + s.scope + ')' : '') +
-                    ' to preview'
-                  }
-                  aria-pressed={pins.includes(s.key)}
-                  onClick={() => togglePin(s.key)}
-                >
-                  <Pin size={14} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          ))}
-          {!available.length && <p>No skill ratings recorded in this period.</p>}
-          {!!available.length && !controls.length && (
-            <p>No skills pinned. Open the chart to pin skills.</p>
-          )}
-        </div>
       </div>
-      <p className="skill-scatter-unit">Rating</p>
+      <div className="progress-axis-row" aria-hidden="true" />
       <div
         className="skill-scatter-chart"
         ref={root}
@@ -330,6 +281,7 @@ export function SkillProgress({
           }
         }}
       >
+        <p className="skill-scatter-unit progress-y-title">Rating</p>
         <div className="skill-scatter-y">
           {[1, 2, 3, 4, 5].map((n) => (
             <span key={n} style={{ bottom: ((n - 1) / 4) * 100 + '%' }}>
@@ -354,7 +306,11 @@ export function SkillProgress({
           onPointerLeave={
             detail
               ? (e) => {
-                  if (e.pointerType === 'mouse') reset();
+                  if (
+                    e.pointerType === 'mouse' &&
+                    !e.currentTarget.contains(document.activeElement)
+                  )
+                    reset();
                 }
               : undefined
           }
@@ -363,12 +319,12 @@ export function SkillProgress({
             {[0, 25, 50, 75, 100].map((n) => (
               <line key={n} className="skill-scatter-grid" x1="0" x2="100" y1={n} y2={n} />
             ))}
-            {ticks.map((day) => (
+            {grids.map((day) => (
               <line
                 key={day}
                 className="skill-scatter-grid vertical"
-                x1={(((Date.parse(day) - Date.parse(window.start)) / 86400000 + 0.5) / span) * 100}
-                x2={(((Date.parse(day) - Date.parse(window.start)) / 86400000 + 0.5) / span) * 100}
+                x1={progressDayX(day, window.start, window.end)}
+                x2={progressDayX(day, window.start, window.end)}
                 y1="0"
                 y2="100"
               />
@@ -457,26 +413,27 @@ export function SkillProgress({
             {ticks.map((day) => (
               <span
                 key={day}
+                data-date={day}
                 style={{
-                  left:
-                    (((Date.parse(day) - Date.parse(window.start)) / 86400000 + 0.5) / span) * 100 +
-                    '%',
+                  left: progressDayX(day, window.start, window.end) + '%',
                 }}
               >
-                {date(day)}
+                {progressDateLabel(day, window.start, window.end)}
               </span>
             ))}
           </div>
-          {!visible.length && (
-            <p className="skill-scatter-empty">
-              {available.length ? 'Choose a skill above' : 'No ratings in this period'}
-            </p>
-          )}
+          {!visible.length && <p className="skill-scatter-empty">No ratings in this period</p>}
           {detail && chosen && (
             <div
               id={id + '-tooltip'}
               role="tooltip"
               className="skill-scatter-tooltip"
+              style={{
+                left:
+                  'clamp(0px, calc(' +
+                  dayPoints[selected!].x +
+                  '% - 150px), max(0px, calc(100% - 300px)))',
+              }}
               aria-label="Skill rating snapshot"
             >
               <strong>{date(chosen, true)}</strong>
@@ -563,6 +520,120 @@ export function SkillProgress({
             )}
           </section>
         </>
+      )}
+    </div>
+  );
+}
+
+function SkillViewMenu({
+  title,
+  items,
+  value,
+  pins,
+  togglePin,
+  choose,
+}: {
+  title: string;
+  items: { key: string; label: string; color: string }[];
+  value: string;
+  pins: string[];
+  togglePin: (key: string) => void;
+  choose: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [open]);
+  const select = (key: string) => {
+    choose(key);
+    setOpen(false);
+    trigger.current?.focus();
+  };
+  return (
+    <div
+      className="skill-view-menu"
+      ref={root}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && open) {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(false);
+          trigger.current?.focus();
+        }
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <span className="skill-view-label">View</span>
+      <button
+        ref={trigger}
+        type="button"
+        className="skill-view-trigger"
+        aria-label="Skills view"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{title}</span>
+        <ChevronDown size={14} aria-hidden="true" />
+      </button>
+      {open && (
+        <div
+          id={id}
+          className="skill-view-options"
+          role="group"
+          aria-label="Skill views and preview pins"
+        >
+          <p role="status">
+            {pins.length} of 3 pinned to preview
+            {pins.length === 3 ? ' \u00b7 Unpin one to replace it' : ''}
+          </p>
+          <button
+            type="button"
+            className="skill-view-option"
+            aria-pressed={!value}
+            onClick={() => select('')}
+          >
+            All skills average
+          </button>
+          {items.map((s) => (
+            <div
+              className="skill-view-row"
+              key={s.key}
+              data-skill-key={s.key}
+              style={{ '--skill-color': s.color } as CSSProperties}
+            >
+              <button
+                type="button"
+                className="skill-view-option"
+                aria-pressed={value === s.key}
+                onClick={() => select(s.key)}
+              >
+                <i aria-hidden="true" />
+                {s.label}
+              </button>
+              <button
+                type="button"
+                className="skill-scatter-pin"
+                aria-label={'Pin ' + s.label + ' to preview'}
+                aria-pressed={pins.includes(s.key)}
+                disabled={!pins.includes(s.key) && pins.length >= 3}
+                onClick={() => togglePin(s.key)}
+              >
+                <Pin size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -60,7 +60,7 @@ for (const viewport of [
       const dialog = page.getByRole('dialog', { name: 'Homework consistency', exact: true });
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('combobox', { name: 'Homework period' })).toHaveValue(
-        '3 months',
+        '8 weeks',
       );
       await expect(dialog.locator('.homework-y-labels span')).toHaveText([
         '0%',
@@ -80,6 +80,15 @@ for (const viewport of [
       await page.keyboard.press('Enter');
       const popup = dialog.getByRole('tooltip', { name: 'Homework review summary' });
       await expect(popup).toBeVisible();
+      await expect(dialog.locator('.progress-period > span')).not.toBeVisible();
+      const firstTip = (await popup.boundingBox())!;
+      await dialog.locator('.homework-bar-target').last().focus();
+      const lastTip = (await popup.boundingBox())!;
+      if (viewport.width > 760) expect(lastTip.x).toBeGreaterThan(firstTip.x);
+      const plotFrame = (await dialog.locator('.homework-plot').boundingBox())!;
+      expect(lastTip.x).toBeGreaterThanOrEqual(plotFrame.x - 1);
+      expect(lastTip.x + lastTip.width).toBeLessThanOrEqual(plotFrame.x + plotFrame.width + 1);
+      await bar.focus();
       await expect(popup).toContainText('packets');
       expect(await popup.evaluate((el) => el.getBoundingClientRect().right <= innerWidth)).toBe(
         true,
@@ -105,6 +114,16 @@ for (const viewport of [
       await dialog.getByRole('button', { name: 'Previous homework period' }).click();
       await expect(dialog.locator('.homework-column')).toHaveCount(7);
       expect(await dialog.locator('.homework-no-review').count()).toBeGreaterThan(0);
+      await period.selectOption('1 month');
+      await dialog.getByRole('button', { name: 'Previous homework period' }).click();
+      await expect(dialog.locator('.homework-chart')).toHaveAttribute('data-grouping', 'day');
+      await expect(dialog.locator('.homework-column')).toHaveCount(30);
+      await period.selectOption('6 months');
+      await expect(dialog.locator('.homework-chart')).toHaveAttribute('data-grouping', 'week');
+      expect(await dialog.locator('.homework-column').count()).toBeGreaterThan(20);
+      await period.selectOption('1 year');
+      await expect(dialog.locator('.homework-chart')).toHaveAttribute('data-grouping', 'month');
+      await expect(dialog.locator('.homework-column')).toHaveCount(10);
       await period.selectOption('All time');
       await dialog.getByRole('button', { name: 'Homework history', exact: true }).click();
       const history = dialog.getByRole('list', { name: 'Recorded homework history' });

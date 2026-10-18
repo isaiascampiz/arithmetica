@@ -247,3 +247,38 @@ test('Y domains remain finite for flat records and stay within the recorded leve
     assert.ok(domain.ticks.length >= 3 && domain.ticks.length <= 13);
   }
 });
+
+test('eight-week preview and navigation use contiguous center-local calendar dates', async () => {
+  const { academicWindow } = await import('../src/lib/academic-progress');
+  assert.deepEqual(academicWindow('8 weeks', 0, '2026-10-12', '2024-01-01'), {
+    start: '2026-08-24',
+    end: '2026-10-12',
+  });
+  assert.deepEqual(academicWindow('8 weeks', -1, '2026-10-12', '2024-01-01'), {
+    start: '2026-06-29',
+    end: '2026-08-23',
+  });
+  assert.deepEqual(academicWindow('8 weeks', 0, '2026-03-09', '2024-01-01'), {
+    start: '2026-01-19',
+    end: '2026-03-09',
+  });
+});
+
+test('academic axis always has five linear ticks, fits all records and expands for broader progress', async () => {
+  const { academicYDomain } = await import('../src/lib/academic-progress');
+  const cases = [[], [10.9], [10.1, 10.2], [10, 11], [2.025, 10.975]];
+  for (const values of cases) {
+    const low = values.length ? Math.floor(Math.min(...values)) : 0;
+    const high = values.length ? Math.floor(Math.max(...values)) + 1 : 1;
+    const d = academicYDomain(values, low, high);
+    assert.equal(d.ticks.length, 5);
+    assert.ok(d.top > d.bottom);
+    if (values.length) assert.ok(d.bottom <= Math.min(...values) && d.top >= Math.max(...values));
+    for (let i = 1; i < 5; i++)
+      assert.ok(Math.abs(d.ticks[i] - d.ticks[i - 1] - (d.top - d.bottom) / 4) < 1e-9);
+    assert.ok(d.ticks.every((tick) => Math.abs(tick * 200 - Math.round(tick * 200)) < 1e-9));
+  }
+  const small = academicYDomain([10.775, 10.8], 10, 11),
+    wide = academicYDomain([10.1, 10.95], 10, 11);
+  assert.ok(wide.top - wide.bottom > small.top - small.bottom);
+});

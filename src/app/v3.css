@@ -4421,7 +4421,7 @@
   text-align: left;
 }
 .skill-scatter-choice[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--skill-color) 9%, var(--surface));
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
   color: var(--ink);
 }
 .skill-scatter-choice > span {
@@ -4460,11 +4460,11 @@
   color: var(--muted);
 }
 .skill-scatter-pin[aria-pressed='true'] {
-  color: var(--skill-color);
+  color: var(--muted);
   background: transparent;
 }
 .skill-scatter-pin[aria-pressed='true'] svg {
-  fill: color-mix(in srgb, var(--skill-color) 25%, transparent);
+  fill: color-mix(in srgb, currentColor 22%, transparent);
 }
 .skill-scatter-area {
   fill-opacity: 0.09;
@@ -4824,4 +4824,1033 @@
     gap: 4px;
     font-size: 10px;
   }
+}
+
+/* Skills share the other progress panels' quiet gray summary and square legend keys. */
+.skill-trend-detail .skill-scatter-summary-panel {
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 10px;
+}
+.skill-trend-detail .skill-scatter-context {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.skill-scatter .skill-scatter-averages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+}
+.skill-scatter-average {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+.skill-scatter-choice {
+  flex: 0 1 auto;
+  gap: 6px;
+}
+.skill-scatter-choice strong,
+.skill-scatter-summary strong {
+  margin-left: 2px;
+}
+.skill-scatter-pin {
+  color: var(--muted);
+  opacity: 0.6;
+}
+.skill-scatter-pin[aria-pressed='true'] {
+  color: var(--muted);
+  opacity: 1;
+}
+.skill-scatter-pin:focus-visible {
+  outline-color: var(--muted);
+}
+.skill-scatter i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+.skill-scatter-mode button {
+  color: var(--muted);
+}
+.skill-scatter-mode button[aria-pressed='true'] {
+  color: var(--ink);
+  text-decoration: none;
+}
+.progress-card-preview .skill-scatter-averages {
+  gap: 6px 14px;
+}
+@media (max-width: 760px) {
+  .skill-scatter-choice {
+    display: flex;
+    padding: 4px 2px;
+  }
+  .skill-scatter-choice strong {
+    margin-left: 2px;
+  }
+  .skill-trend-detail .skill-scatter-summary-panel {
+    padding: 8px;
+  }
+  .skill-trend-detail .skill-scatter-context {
+    padding: 0;
+  }
+}
+
+/* A single chart view keeps Skills consistent with the other progress panels. */
+.skill-scatter-summary small {
+  font-size: inherit;
+  font-weight: 400;
+}
+.progress-card-preview .skill-scatter-caption {
+  font-size: 12px;
+  line-height: 18px;
+}
+.skill-trend-detail .skill-scatter-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 190px) 120px;
+  align-items: center;
+  gap: 12px;
+}
+.skill-scatter-view,
+.skill-trend-detail .progress-period {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.skill-scatter-view select,
+.skill-trend-detail .progress-period select {
+  width: 100%;
+  min-height: 44px;
+  font-size: 12px;
+}
+.skill-scatter-headline {
+  display: block;
+  font-size: 21px;
+  font-weight: 600;
+}
+.skill-scatter-headline small {
+  font-size: inherit;
+  font-weight: 400;
+}
+.skill-scatter-count {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.skill-scatter-edit {
+  min-height: 44px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.skill-trend-detail .skill-scatter-average {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 190px;
+}
+@media (max-width: 600px) {
+  .skill-trend-detail .skill-scatter-context {
+    grid-template-columns: minmax(0, 1fr) 110px;
+    gap: 8px;
+  }
+  .skill-trend-detail .progress-period {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .skill-trend-detail .progress-period > span {
+    display: block;
+  }
+}
+
+/* Align the three operational summaries without changing Academic progress. */
+.progress-summary-card > header h2 {
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 600;
+}
+.progress-summary-card
+  .progress-card-preview
+  > :is(.homework-consistency, .center-duration, .skill-scatter) {
+  display: grid;
+  grid-template-rows: 100px 16px 190px auto;
+}
+.progress-summary-card .progress-card-preview :is(.progress-context, .skill-scatter-caption) {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.progress-summary-card .progress-card-preview :is(.homework-context, .center-time-context) {
+  align-self: start;
+}
+.progress-summary-card .progress-card-preview :is(.homework-summary, .center-time-summary) {
+  gap: 4px 8px;
+}
+.progress-summary-card
+  .progress-card-preview
+  :is(.homework-summary strong, .center-time-summary strong, .skill-scatter-headline) {
+  font-size: 25px;
+  line-height: 34px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.progress-summary-card
+  .progress-card-preview
+  :is(.homework-summary > span, .center-time-summary > span, .skill-scatter-average-label) {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.progress-summary-card .progress-card-preview :is(.homework-legend, .homework-chart) {
+  margin: 0;
+}
+.progress-card-preview .skill-scatter-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: start;
+}
+.progress-card-preview .skill-scatter-context {
+  display: block;
+}
+.progress-card-preview .skill-scatter-headline {
+  display: inline;
+  margin-right: 8px;
+}
+.progress-card-preview .skill-scatter-caption {
+  white-space: nowrap;
+}
+.progress-card-preview .skill-scatter .skill-scatter-averages {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  gap: 4px;
+}
+.progress-card-preview .skill-scatter-summary {
+  line-height: 18px;
+}
+.progress-card-preview .skill-scatter-summary strong {
+  margin-left: auto;
+}
+.skill-trend-detail .skill-scatter-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 8px auto;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.skill-trend-detail .skill-scatter-edit[aria-expanded='true'] {
+  background: var(--bg);
+  border-color: var(--muted);
+}
+.skill-trend-detail .skill-scatter-averages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 20px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.skill-trend-detail .skill-scatter-average {
+  min-width: 0;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .progress-card-preview .skill-scatter-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+  }
+  .progress-card-preview .skill-scatter-caption {
+    white-space: normal;
+  }
+  .skill-trend-detail .skill-scatter-averages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.skill-trend-detail .skill-scatter-averages > .skill-scatter-average {
+  min-height: 44px;
+}
+
+/* Skills selection and preview pins share one overlay; opening it never resizes the panel. */
+
+.skill-trend-detail .skill-scatter-chart {
+  height: clamp(140px, calc(100dvh - 390px), 300px);
+}
+.skill-trend-detail .skill-scatter-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skill-trend-detail .skill-scatter-context > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.skill-trend-detail .skill-scatter-caption {
+  margin: 0 0 3px;
+}
+.skill-trend-detail .progress-period {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skill-trend-detail .progress-period > span,
+.skill-view-label {
+  display: none;
+}
+.skill-trend-detail .progress-period select {
+  width: 120px;
+  padding: 8px;
+  font-size: 13px;
+}
+.skill-view-menu {
+  position: relative;
+  flex: 0 1 190px;
+  min-width: 0;
+}
+.skill-view-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+}
+.skill-view-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.skill-view-trigger svg {
+  flex-shrink: 0;
+}
+.skill-view-options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 64px);
+  max-height: min(340px, calc(100dvh - 230px));
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #0002;
+}
+.skill-view-options > p {
+  margin: 4px 6px 8px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.skill-view-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.skill-view-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  text-align: left;
+}
+.skill-view-option[aria-pressed='true'] {
+  background: var(--bg);
+  font-weight: 600;
+}
+.skill-view-options .skill-scatter-pin {
+  flex: 0 0 44px;
+  width: 44px;
+}
+.skill-view-options .skill-scatter-pin:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.progress-card:has(.skill-scatter) > header {
+  padding-right: 42%;
+}
+.progress-card-preview .skill-scatter-header {
+  display: block;
+  padding-right: 42%;
+}
+.progress-card-preview .skill-scatter .skill-scatter-averages {
+  position: absolute;
+  top: 30px;
+  right: 20px;
+  width: min(38%, 180px);
+  box-sizing: border-box;
+  padding: 6px 8px;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.progress-card-preview .skill-scatter-average {
+  width: 100%;
+}
+.progress-card-preview .skill-scatter-summary {
+  min-height: 22px;
+  gap: 5px;
+}
+@media (max-width: 600px) {
+  .skill-trend-detail .skill-scatter-context {
+    flex-wrap: wrap;
+  }
+  .skill-trend-detail .skill-scatter-context > div:first-child {
+    flex-basis: 100%;
+  }
+  .skill-view-menu {
+    flex: 1;
+  }
+  .skill-view-options {
+    left: 0;
+    right: auto;
+  }
+}
+
+/* Skills follows the existing duration panel; the two reference panels stay untouched. */
+.skill-trend-detail .skill-scatter-summary-panel {
+  height: 84px;
+  box-sizing: border-box;
+}
+.skill-trend-detail .skill-scatter-context {
+  height: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  padding: 0;
+  gap: 10px;
+}
+.skill-trend-detail .skill-scatter-context > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.skill-trend-detail .skill-scatter-caption {
+  position: relative;
+  height: 16.5px;
+  margin: 0 0 3px;
+  font-size: 11px;
+  line-height: 16.5px;
+}
+.skill-trend-detail .skill-scatter-headline {
+  display: inline;
+  margin-right: 8px;
+  font-size: 21px;
+}
+.skill-trend-detail .skill-scatter-average-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+.skill-trend-detail .skill-view-menu {
+  height: 16.5px;
+  position: relative;
+}
+.skill-trend-detail .skill-view-trigger {
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16.5px;
+}
+.skill-trend-detail .skill-view-options {
+  top: 52px;
+  left: 0;
+  right: auto;
+}
+.skill-trend-detail .skill-scatter-unit {
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+.skill-trend-detail .v3-modal-body {
+  padding: 12px 16px;
+}
+@media (max-width: 760px) {
+  .skill-trend-detail .skill-scatter-summary-panel {
+    height: 63.5px;
+    padding: 8px;
+  }
+  .skill-trend-detail .progress-period select {
+    width: 106px;
+  }
+  .skill-trend-detail .skill-scatter-average-label {
+    font-size: 10px;
+  }
+}
+@media (max-width: 350px) {
+  .skill-trend-detail .skill-scatter-summary-panel {
+    height: 94px;
+  }
+}
+
+@media (max-width: 350px) {
+  .skill-trend-detail .skill-scatter-footnote {
+    min-height: 33px;
+  }
+}
+
+/* Ordinary adjacent controls, with no invisible hit area over the summary. */
+.skill-trend-detail .skill-scatter-summary-panel {
+  height: 63.5px;
+}
+.skill-trend-detail .skill-scatter-caption {
+  height: auto;
+  margin: 0 0 3px;
+}
+.skill-trend-detail .skill-view-menu {
+  height: auto;
+  flex: 0 1 190px;
+  min-width: 0;
+}
+.skill-trend-detail .skill-view-trigger {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.skill-trend-detail .skill-view-options {
+  top: calc(100% + 6px);
+  left: auto;
+  right: 0;
+}
+:is(.homework-detail, .center-time-detail, .skill-trend-detail) .progress-period > span {
+  display: none;
+}
+@media (max-width: 760px) {
+  .skill-trend-detail .skill-scatter-context {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 106px;
+    gap: 8px;
+  }
+  .skill-trend-detail .skill-scatter-context > div:first-child {
+    grid-column: 1;
+  }
+  .skill-trend-detail .skill-scatter-caption {
+    font-size: 10px;
+  }
+  .skill-trend-detail .skill-scatter-context > .skill-view-menu {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .skill-trend-detail .progress-period {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .skill-trend-detail .skill-view-options {
+    position: absolute;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+@media (max-width: 350px) {
+  .skill-trend-detail .skill-scatter-summary-panel {
+    height: 94px;
+  }
+  .skill-trend-detail .skill-scatter-context {
+    grid-template-columns: minmax(0, 1fr) 106px;
+    grid-template-rows: 25px 44px;
+    gap: 8px;
+  }
+  .skill-trend-detail .skill-scatter-context > div:first-child {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    grid-column: 1 / -1;
+  }
+  .skill-trend-detail .skill-scatter-headline {
+    margin: 0;
+  }
+  .skill-trend-detail .skill-scatter-context > .skill-view-menu {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .skill-trend-detail .progress-period {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .skill-trend-detail .skill-view-options {
+    left: 0;
+    transform: none;
+  }
+}
+
+/* Academic progress adopts the existing operational chart proportions. */
+.progress-card-preview .academic-progress {
+  display: grid;
+  grid-template-rows: 100px 16px 190px auto;
+}
+.academic-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.academic-summary strong {
+  color: var(--ink);
+  font-size: 25px;
+  line-height: 34px;
+  font-weight: 600;
+}
+.academic-summary > span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.progress-card-preview .academic-context {
+  align-self: start;
+  display: block;
+  padding: 0;
+  margin: 0;
+}
+.progress-card-preview .academic-context .progress-context {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.academic-unit {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.academic-footnote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.progress-card-preview .academic-chart,
+.progress-card-preview .academic-empty-chart {
+  height: 190px;
+  margin: 0;
+}
+.academic-progress .academic-chart {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.academic-progress .academic-plot {
+  top: 8px;
+  bottom: 34px;
+  left: 44px;
+  right: 12px;
+  border-left: 0;
+  border-bottom: 1px solid var(--line);
+}
+.academic-progress .academic-level-labels {
+  top: 8px;
+  bottom: 34px;
+  width: 34px;
+}
+.academic-progress .academic-level-labels > span,
+.academic-progress .academic-time-labels > span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+}
+.academic-progress .academic-grid-horizontal,
+.academic-progress .academic-grid-vertical {
+  background: var(--line);
+  opacity: 1;
+}
+.academic-detail .academic-context {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  height: 63.5px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  gap: 10px;
+}
+.academic-detail .academic-context > div {
+  flex: 1;
+  min-width: 0;
+}
+.academic-detail .academic-context .progress-context {
+  margin: 0 0 3px;
+  font-size: 11px;
+  line-height: 16.5px;
+  color: var(--muted);
+}
+.academic-detail .academic-summary strong {
+  font-size: 21px;
+  line-height: 31.5px;
+}
+.academic-detail .academic-context .progress-period {
+  margin: 0;
+}
+.academic-detail .academic-period-label {
+  display: none;
+}
+.academic-detail .academic-context .progress-period select {
+  width: 120px;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 8px;
+}
+.academic-detail .academic-period-nav {
+  margin-top: 6px;
+  gap: 12px;
+}
+.academic-detail .academic-period-nav span {
+  font-size: 12px;
+  line-height: 18px;
+}
+.academic-detail .academic-unit {
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+.academic-detail .academic-chart.detailed,
+.academic-detail .academic-empty-chart.detailed {
+  height: clamp(140px, calc(100dvh - 390px), 300px);
+  margin-top: 8px;
+}
+.academic-detail .academic-history-actions {
+  gap: 10px;
+  margin: 10px 0 0;
+}
+.academic-detail .academic-history-actions button {
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.academic-detail .academic-history-actions button:hover {
+  background: var(--bg);
+}
+.academic-point-popup {
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #15202b1a;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.academic-point-popup > header strong,
+.academic-point-popup .academic-completed-packet {
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .academic-detail .academic-context {
+    padding: 8px;
+  }
+  .academic-detail .academic-context .progress-period select {
+    width: 106px;
+  }
+  .academic-detail .academic-summary > span {
+    font-size: 10px;
+  }
+}
+@media (max-width: 350px) {
+  .academic-detail .academic-context {
+    height: 94px;
+  }
+  .academic-detail .academic-footnote {
+    min-height: 33px;
+  }
+}
+
+.academic-detail .academic-history-actions button {
+  height: 44px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.academic-detail .academic-history-actions button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 600px) {
+  .academic-detail .academic-history-actions button {
+    padding-inline: 6px;
+  }
+  .academic-detail .academic-history-actions button svg {
+    display: none;
+  }
+}
+
+.academic-detail .academic-history-actions button svg {
+  color: inherit;
+}
+
+/* Shared chart gutters and compact summaries leave the space to the data. */
+.progress-summary-card
+  .progress-card-preview
+  > :is(.academic-progress, .homework-consistency, .center-duration, .skill-scatter) {
+  grid-template-rows: 80px 16px 210px auto;
+}
+.progress-summary-card {
+  position: relative;
+}
+.progress-card-preview
+  :is(
+    .academic-chart,
+    .academic-empty-chart,
+    .homework-chart,
+    .center-time-chart,
+    .skill-scatter-chart
+  ) {
+  height: 210px;
+  margin: 0;
+}
+.progress-card-preview
+  :is(.academic-unit, .homework-axis-row, .center-time-unit, .skill-scatter-unit) {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+:is(.academic-plot, .homework-plot, .center-time-plot, .skill-scatter-plot) {
+  left: 60px;
+  right: 12px;
+}
+.academic-progress .academic-plot {
+  left: 60px;
+}
+:is(.academic-level-labels, .homework-y-labels, .center-time-y-labels, .skill-scatter-y) {
+  width: 48px;
+  text-align: right;
+}
+.academic-progress .academic-level-labels {
+  width: 48px;
+}
+:is(.academic-level-labels, .homework-y-labels, .center-time-y-labels, .skill-scatter-y) > span {
+  right: 0;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 10px;
+}
+.homework-unit {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.homework-axis-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.homework-axis-row .homework-legend {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+.progress-card:has(.homework-consistency) > header {
+  padding-right: 42%;
+}
+.progress-card-preview .homework-context > div:first-child {
+  max-width: 58%;
+}
+.progress-card-preview .homework-legend {
+  position: absolute;
+  top: 30px;
+  right: 20px;
+  width: min(38%, 180px);
+  height: 88px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.progress-card-preview .homework-legend > span {
+  min-height: 22px;
+  white-space: nowrap;
+}
+:is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
+  :is(.academic-context, .homework-context, .center-time-context, .skill-scatter-summary-panel) {
+  height: 63.5px;
+  box-sizing: border-box;
+}
+:is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
+  :is(.academic-unit, .homework-axis-row, .center-time-unit, .skill-scatter-unit) {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+:is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
+  :is(
+    .academic-chart.detailed,
+    .academic-empty-chart.detailed,
+    .homework-chart,
+    .center-time-chart,
+    .skill-scatter-chart
+  ) {
+  height: clamp(150px, calc(100dvh - 380px), 310px);
+  margin-top: 4px;
+}
+@media (max-width: 1100px) {
+  .progress-card-preview .skill-scatter-average-label {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .homework-axis-row .homework-legend {
+    gap: 8px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 350px) {
+  :is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
+    :is(.academic-context, .homework-context, .center-time-context, .skill-scatter-summary-panel) {
+    height: 94px;
+  }
+}
+
+@media (max-width: 350px) {
+  :is(.academic-footnote, .homework-footnote, .center-time-footnote, .skill-scatter-footnote) {
+    min-height: 33px;
+  }
+}
+
+.academic-progress .academic-level-labels {
+  left: 0;
+}
+
+/* Axis titles share a side gutter; the horizontal legend keeps its own top row. */
+.progress-card-preview .progress-axis-row {
+  grid-row: 2;
+  height: 16px;
+}
+:is(.academic-detail, .center-time-detail, .skill-trend-detail) .progress-axis-row {
+  height: 17.6px;
+  margin-top: 6px;
+}
+.progress-card-preview
+  :is(
+    .academic-chart,
+    .academic-empty-chart,
+    .homework-chart,
+    .center-time-chart,
+    .skill-scatter-chart
+  ) {
+  grid-row: 3;
+}
+.progress-card-preview .progress-y-title,
+:is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
+  .progress-y-title {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 34px;
+  width: 14px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--muted);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+}
+:is(.academic-level-labels, .homework-y-labels, .center-time-y-labels, .skill-scatter-y),
+.academic-progress .academic-level-labels {
+  left: 16px;
+  width: 32px;
+}
+.progress-card:has(.homework-consistency) > header {
+  padding-right: 0;
+}
+.progress-card-preview .homework-context > div:first-child {
+  max-width: none;
+}
+.progress-card-preview .homework-axis-row {
+  grid-row: 2;
+}
+.homework-axis-row {
+  justify-content: flex-end;
+  min-height: 17.6px;
+}
+.progress-card-preview .homework-axis-row {
+  min-height: 16px;
+}
+.progress-card-preview .homework-axis-row .homework-legend {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.progress-card-preview .homework-axis-row .homework-legend > span {
+  min-height: 0;
+}
+.progress-card-preview .skill-scatter .skill-scatter-averages {
+  height: 88px;
+  justify-content: center;
+}
+.academic-area {
+  fill-opacity: 0.09;
+  pointer-events: none;
+}
+.homework-unfinished,
+.homework-legend > span:last-child i {
+  background: #b87938;
+}
+@media (max-width: 760px) {
+  .progress-card-preview .homework-axis-row .homework-legend {
+    font-size: 10px;
+    gap: 8px;
+  }
+}
+
+.academic-empty-chart {
+  position: relative;
 }
