@@ -179,7 +179,7 @@ export function StudentProfileV3({
           />
         </div>
       )}
-      {tab === 'Progress' && <ProgressCharts db={db} student={s} />}
+      {tab === 'Progress' && <ProgressCharts key={s.id} db={db} student={s} />}
       {tab === 'Visit History' && (
         <div className="visit-timeline">
           <div className="visit-history-toolbar">

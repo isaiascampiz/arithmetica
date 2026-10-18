@@ -187,7 +187,7 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
   expect((await state(page)).students.find((x) => x.id === s.id)!.token).not.toBe(s.token);
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
   await expect(
-    page.getByRole('heading', { name: 'No recorded academic milestones' }),
+    page.getByRole('heading', { name: 'No packet completions recorded' }),
   ).toBeVisible();
   await page.screenshot({ path: 'test-results/v3-profile.png' });
 });
