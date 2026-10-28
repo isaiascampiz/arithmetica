@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight, List, Pin, ChevronDown } from 'lucide-react';
-import { dayKey, type Snapshot, type Student } from '@/lib/model';
+import type { Snapshot, Student } from '@/lib/model';
 import { academicPeriods, academicWindow, type AcademicPeriod } from '@/lib/academic-progress';
 import {
   skillSeries,
@@ -12,7 +12,7 @@ import {
 } from '@/lib/skill-progress';
 import { progressDayX, progressTimeAxis, progressDateLabel } from '@/lib/progress-chart';
 import { useProgressPlotWidth } from './v3-progress-chart';
-import { useNow } from './shared-ui';
+import { useCenterDay } from './shared-ui';
 
 export type SkillView = { pins?: string[]; skill?: string };
 
@@ -36,7 +36,7 @@ export function SkillProgress({
   const id = useId(),
     plot = useRef<HTMLDivElement>(null),
     root = useRef<HTMLDivElement>(null);
-  const today = dayKey(useNow(), db.timezone);
+  const today = useCenterDay(db.timezone);
   const series = useMemo(() => skillSeries(db, student.id), [db, student.id]);
   const colors = useMemo(() => skillColors(series), [series]);
   const all = series

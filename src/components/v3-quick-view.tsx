@@ -1,4 +1,6 @@
 'use client';
+import { clientId } from '@/lib/client';
+import { centerFeatures } from '@/lib/center-features';
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { isOpenVisit, type Snapshot, type Visit } from '@/lib/model';
@@ -57,10 +59,11 @@ export function QuickView({
   close: () => void;
   openProfile: () => void;
 }) {
+  const features = centerFeatures(db);
   const now = useNow(),
     student = db.students.find((s) => s.id === visit.studentId)!,
     cfg = db.operations!.students[student.id],
-    sets = currentSets(db, visit),
+    sets = features.homework ? currentSets(db, visit) : [],
     subjects = (['Math', 'Reading'] as Subject[]).filter((s) => cfg.subjects[s].enrolled);
   const [subject, setSubject] = useState<Subject>(subjects[0] || 'Math'),
     [text, setText] = useState(''),
@@ -95,14 +98,17 @@ export function QuickView({
     [next[index], next[index + direction]] = [next[index + direction], next[index]];
     changeSkills(next);
   }
-  const savedFor = (s: Subject) =>
-    visit.subjectCheckIns?.[s] ||
-    (visit.handoff &&
-    (visit.handoff.activities[s] ||
-      sets.some((a) => a.subject === s && visit.handoff!.assignmentIds.includes(a.id)) ||
-      cfg.subjects[s].format === 'CONNECT')
-      ? visit.handoff
-      : undefined);
+  const savedFor = (s: Subject) => {
+    const record =
+      visit.subjectCheckIns?.[s] ||
+      (visit.handoff &&
+      (visit.handoff.activities[s] ||
+        sets.some((a) => a.subject === s && visit.handoff!.assignmentIds.includes(a.id)) ||
+        cfg.subjects[s].format === 'CONNECT')
+        ? visit.handoff
+        : undefined);
+    return features.homework && record?.mode === 'activity-only' ? undefined : record;
+  };
   const defaultDraft = (s: Subject): Draft => ({
     activity: savedFor(s)?.activities[s] || 'Worksheets',
     unfinished: incomingPackets(db, student.id, s, sets.find((a) => a.subject === s)?.id)
@@ -227,7 +233,7 @@ export function QuickView({
     const change = (key: 'level' | 'start' | 'end', value: string) => {
       const next = {
         ...p,
-        id: crypto.randomUUID(),
+        id: clientId(),
         prepared: false,
         range: { ...p.range, [key]: key === 'level' ? value : Number(value) },
       };
@@ -235,7 +241,7 @@ export function QuickView({
         const size = d.repeat?.sheetsPerPacket || cfg.subjects[shown].sheetsPerPacket;
         const out = adjustment.out.map((q, i) => ({
           ...q,
-          id: crypto.randomUUID(),
+          id: clientId(),
           sourceAssignmentId: a!.id,
           prepared: false,
           range: {
@@ -314,35 +320,48 @@ export function QuickView({
       setLocalError('Enter a correction reason.');
       return;
     }
-    const ok = await act({
-      action: 'handoff',
-      ...observationData,
-      subject: shown,
-      activity: d.activity,
-      visitId: visit.id,
-      expectedAt: saved?.at || null,
-      subjects: a
-        ? [
-            {
-              subject: shown,
-              assignmentId: a.id,
-              version: d.version,
-              activity: d.activity,
-              exception: d.unfinished.length > 0,
-              incoming: d.unfinished.map((id) => ({ id, state: 'unfinished' as const })),
-              actual: d.repeat ? null : d.actual ? outgoing : null,
-              ...(d.center !== undefined ? { center: center || null } : {}),
-              repeat: d.repeat ? { ...d.repeat, restart: false } : null,
-              physicalConfirmed: true,
-              reason: d.reason,
-            },
-          ]
-        : [],
-      choices: [],
-      text,
-      followUp: false,
-      correctionReason: d.correcting ? d.reason : '',
-    });
+    const ok = !features.homework
+      ? await act({
+          action: 'activity-check-in',
+          visitId: visit.id,
+          subject: shown,
+          activity: d.activity,
+          expectedAt: saved?.at || null,
+          expectedFeaturesVersion: features.version,
+          text,
+          correctionReason: d.correcting ? d.reason : '',
+          ...observationData,
+        })
+      : await act({
+          action: 'handoff',
+          expectedFeaturesVersion: features.version,
+          ...observationData,
+          subject: shown,
+          activity: d.activity,
+          visitId: visit.id,
+          expectedAt: saved?.at || null,
+          subjects: a
+            ? [
+                {
+                  subject: shown,
+                  assignmentId: a.id,
+                  version: d.version,
+                  activity: d.activity,
+                  exception: d.unfinished.length > 0,
+                  incoming: d.unfinished.map((id) => ({ id, state: 'unfinished' as const })),
+                  actual: d.repeat ? null : d.actual ? outgoing : null,
+                  ...(d.center !== undefined ? { center: center || null } : {}),
+                  repeat: d.repeat ? { ...d.repeat, restart: false } : null,
+                  physicalConfirmed: true,
+                  reason: d.reason,
+                },
+              ]
+            : [],
+          choices: [],
+          text,
+          followUp: false,
+          correctionReason: d.correcting ? d.reason : '',
+        });
     if (ok) {
       setText('');
       setScores({});
@@ -410,14 +429,10 @@ export function QuickView({
         </button>
       }
       className="quick-view"
+      footerInBody
       close={close}
       footer={
         <>
-          <span className="small muted">
-            {editable
-              ? 'Checking in confirms the displayed physical materials are ready and issued for this subject.'
-              : 'Optional notes remain available.'}
-          </span>
           {teaching && (
             <button
               className="primary"
@@ -481,7 +496,29 @@ export function QuickView({
         aria-labelledby={'quick-tab-' + shown}
         className="quick-section quick-subject-card"
       >
-        {a ? (
+        {!features.homework ? (
+          <>
+            <h4>In-center activity</h4>
+            <div className="activity-choices">
+              {(['Worksheets', 'Corrections only', 'Both'] as Activity[]).map((activity) => (
+                <button
+                  type="button"
+                  key={activity}
+                  disabled={!editable}
+                  className={d.activity === activity ? 'selected' : ''}
+                  aria-pressed={d.activity === activity}
+                  onClick={() => update({ activity })}
+                >
+                  {activity === 'Worksheets'
+                    ? 'Packet'
+                    : activity === 'Corrections only'
+                      ? 'Corrections'
+                      : 'Both'}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : a ? (
           <>
             <h4>Incoming homework</h4>
             <p className="muted quick-directions">
@@ -520,7 +557,10 @@ export function QuickView({
               </p>
               {center && (
                 <div className="packet-chips" aria-label="Today's packet">
-                  <span className="packet-chip center-packet">{packetLabel(center)}</span>
+                  <span className="packet-chip center-packet">
+                    <span>{packetLabel(center)}</span>
+                    <small>In center</small>
+                  </span>
                 </div>
               )}
             </div>
@@ -664,7 +704,7 @@ export function QuickView({
                             out: [
                               ...adjustment.out,
                               {
-                                id: crypto.randomUUID(),
+                                id: clientId(),
                                 sourceAssignmentId: a.id,
                                 range: {
                                   level: last.level,
@@ -918,26 +958,25 @@ export function QuickView({
                     }
                   />
                 ) : (
-                  <label htmlFor={'skill-' + s.id}>{s.label}</label>
+                  <span>{s.label}</span>
                 )}
-                <output htmlFor={'skill-' + s.id}>
-                  {scores[s.id] ? scores[s.id] + '/5' : 'Not rated'}
-                </output>
+                <output>{scores[s.id] ? scores[s.id] + '/5' : 'Not rated'}</output>
               </div>
-              <input
-                id={'skill-' + s.id}
-                aria-label={s.label + ' rating'}
-                type="range"
-                min={0}
-                max={5}
-                step={1}
-                value={scores[s.id] || 0}
-                style={{
-                  backgroundImage: `linear-gradient(to right, var(--brand) ${((scores[s.id] || 0) / 5) * 100}%, var(--line) ${((scores[s.id] || 0) / 5) * 100}%)`,
-                }}
-                aria-valuetext={scores[s.id] ? scores[s.id] + ' out of 5' : 'Not rated'}
-                onChange={(e) => setScores({ ...scores, [s.id]: Number(e.target.value) })}
-              />
+              <div className="skill-rating-buttons" role="group" aria-label={s.label + ' rating'}>
+                {[1, 2, 3, 4, 5].map((score) => (
+                  <button
+                    key={score}
+                    type="button"
+                    aria-label={s.label + ': ' + score + ' out of 5'}
+                    aria-pressed={scores[s.id] === score}
+                    onClick={() =>
+                      setScores({ ...scores, [s.id]: scores[s.id] === score ? 0 : score })
+                    }
+                  >
+                    {score}
+                  </button>
+                ))}
+              </div>
               {customizing && (
                 <div className="quick-skill-actions">
                   <button
@@ -969,29 +1008,44 @@ export function QuickView({
             </div>
           ))}
           {addingSkill ? (
-            <div className="quick-add-skill">
-              <input
-                aria-label="Custom observation skill"
-                placeholder="Skill name"
-                maxLength={48}
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-              />
-              <button
-                type="button"
-                disabled={!newSkill.trim() || skills.length >= 12}
-                onClick={() => {
-                  changeSkills([...skills, { id: crypto.randomUUID(), label: newSkill.trim() }]);
-                  setNewSkill('');
-                  setAddingSkill(false);
-                }}
-              >
-                Add
-              </button>
-              <button type="button" className="text-button" onClick={() => setAddingSkill(false)}>
-                Cancel
-              </button>
-            </div>
+            <Modal
+              title="Add skill"
+              className="settings-edit-dialog"
+              close={() => setAddingSkill(false)}
+              footer={
+                <>
+                  <button className="secondary" onClick={() => setAddingSkill(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={
+                      !newSkill.trim() ||
+                      skills.length >= 12 ||
+                      skills.some((s) => s.label.toLowerCase() === newSkill.trim().toLowerCase())
+                    }
+                    onClick={() => {
+                      changeSkills([...skills, { id: clientId(), label: newSkill.trim() }]);
+                      setNewSkill('');
+                      setAddingSkill(false);
+                    }}
+                  >
+                    Add skill
+                  </button>
+                </>
+              }
+            >
+              <label>
+                Skill name
+                <input
+                  aria-label="Custom observation skill"
+                  placeholder="Skill name"
+                  maxLength={48}
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                />
+              </label>
+            </Modal>
           ) : (
             <button
               type="button"
@@ -1006,8 +1060,8 @@ export function QuickView({
       )}
       {teaching && (
         <section className="quick-section quick-note quick-observation-note">
-          <h3>Optional instructional note</h3>
-          <DictatedNote text={text} setText={setText} hideLabel />
+          <h3>Instructional note</h3>
+          <DictatedNote text={text} setText={setText} label="Instructional note" hideLabel />
         </section>
       )}
       {(error || localError) && (

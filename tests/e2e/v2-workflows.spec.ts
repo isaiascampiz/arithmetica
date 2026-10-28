@@ -13,6 +13,7 @@ import {
 } from './helpers';
 import { dayKey, isOpenVisit } from '../../src/lib/model';
 import { currentSets, packetLabel } from '../../src/lib/v3-planning';
+import { addDays } from '../../src/lib/schedule';
 import type { Visit } from '../../src/lib/model';
 test('Home has four metrics, direct waiting Quick View and only the V3 navigation', async ({
   page,
@@ -34,8 +35,8 @@ test('Home has four metrics, direct waiting Quick View and only the V3 navigatio
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Student Roster', exact: true }).click();
-  await page.getByRole('link', { name: 'Centerflow home' }).click();
-  await expect(page.getByRole('heading', { name: 'Your center, right now.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
   await page.getByRole('button', { name: 'Expand sidebar' }).click();
   await page.screenshot({ path: 'test-results/v3-home.png' });
@@ -126,7 +127,10 @@ test('Home tiles toggle exclusive filters, preserve repeated visits and open exp
   }
   await page.setViewportSize({ width: 1024, height: 768 });
   await expected.click();
-  await page.locator('[data-expected-student-id="' + db.students[4].id + '"]').click();
+  await page
+    .locator('[data-expected-student-id="' + db.students[4].id + '"]')
+    .getByRole('button', { name: 'Open profile for ' + db.students[4].name, exact: true })
+    .click();
   await expect(page.getByRole('heading', { name: new RegExp(db.students[4].name) })).toBeVisible();
   expect(writes).toBe(0);
   await page.getByRole('button', { name: 'Home', exact: true }).click();
@@ -149,46 +153,51 @@ test('roster creates, consolidated edit sets defaults, withdrawal/reactivation a
   await page.getByRole('button', { name: 'Create student' }).click();
   await page.locator('.roster-v3-person').filter({ hasText: name }).click();
   await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
+  await page.getByRole('switch', { name: 'Early learner', exact: true }).check();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Enrollment', exact: true }).click();
   await page.getByLabel('Enrollment date', { exact: true }).fill('2026-01-01');
-
-  await page.getByLabel('Early learner', { exact: true }).check();
-  await page.getByRole('button', { name: 'Save student information', exact: true }).click();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit Math', exact: true }).click();
-  await page.getByLabel('Math worksheets per packet').fill('3');
-  await page.getByRole('button', { name: 'Save Math', exact: true }).click();
+  await page.getByLabel('Worksheets per day').fill('3');
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(
     page
       .locator('.overview-subject-panel:visible dl > div')
-      .filter({ hasText: 'Worksheets per packet' })
+      .filter({ hasText: 'Worksheets per day' })
       .locator('dd'),
   ).toHaveText('3');
   await expect(page.getByRole('button', { name: 'Withdraw student' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
-  await page.getByLabel('Enrollment status').selectOption('unenrolled');
+  await page.getByRole('dialog').getByRole('tab', { name: 'Enrollment', exact: true }).click();
+  await page.getByLabel('Enrollment status').selectOption('inactive');
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page.locator('.profile-enrollment dd').first()).toHaveText('Enrolled');
+  await page
+    .getByRole('region', { name: 'Student information', exact: true })
+    .getByRole('tab', { name: 'Enrollment', exact: true })
+    .click();
+  await expect(page.locator('.overview-student dd').first()).toHaveText('Active');
   for (const [value, label] of [
-    ['unenrolled', 'Unenrolled'],
-    ['enrolled', 'Enrolled'],
+    ['inactive', 'Inactive'],
+    ['active', 'Active'],
   ]) {
     await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
     await page.getByLabel('Enrollment status').selectOption(value);
-    await page.getByRole('button', { name: 'Save student information', exact: true }).click();
+    await page.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(
-      page.getByRole('form', { name: 'Edit student information', exact: true }),
+      page.getByRole('dialog', { name: 'Edit student information', exact: true }),
     ).toHaveCount(0);
-    await expect(page.locator('.profile-enrollment dd').first()).toHaveText(label);
+    await expect(page.locator('.overview-student dd').first()).toHaveText(label);
   }
   const db = await state(page),
     s = db.students.find((s) => s.name === name)!;
   await page.getByRole('button', { name: 'Show pouch identifier' }).click();
-  await page.getByRole('button', { name: 'Reissue QR identifier' }).click();
-  expect((await state(page)).students.find((x) => x.id === s.id)!.token).not.toBe(s.token);
+  const pouch = page.getByRole('dialog', { name: 'Pouch identifier', exact: true });
+  await expect(pouch.getByRole('link', { name: 'Print 2 × 2 label', exact: true })).toBeVisible();
+  expect((await state(page)).students.find((x) => x.id === s.id)!.token).toBe(s.token);
+  await pouch.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'No packet completions recorded' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No packet completions recorded' })).toBeVisible();
   await page.screenshot({ path: 'test-results/v3-profile.png' });
 });
 test('roster filters are requested, applied explicitly and cleared without losing search', async ({
@@ -212,7 +221,7 @@ test('roster filters are requested, applied explicitly and cleared without losin
     arrivalWindow: '',
   });
   await page.getByRole('button', { name: 'Student Roster', exact: true }).click();
-  const search = page.getByRole('textbox', { name: 'Search Student Roster' }),
+  const search = page.getByRole('searchbox', { name: 'Search Student Roster' }),
     filters = page.getByRole('button', { name: /^Filters/ }),
     panel = page.getByRole('form', { name: 'Roster filters' }),
     rows = page.locator('.roster-v3-row');
@@ -235,31 +244,18 @@ test('roster filters are requested, applied explicitly and cleared without losin
         return { x, y, width, height };
       }),
     );
-    expect(selects).toHaveLength(3);
+    expect(selects).toHaveLength(2);
     for (const select of selects) expect(select.height).toBeGreaterThanOrEqual(44);
-    for (let i = 1; i < selects.length; i++) {
-      expect(selects[i].width).toBeCloseTo(selects[0].width, 0);
-      if (width > 700) {
-        expect(selects[i].y).toBeCloseTo(selects[0].y, 0);
-        expect(selects[i].x).toBeGreaterThan(selects[i - 1].x);
-      } else {
-        expect(selects[i].x).toBeCloseTo(selects[0].x, 0);
-        expect(selects[i].y).toBeGreaterThan(selects[i - 1].y + selects[i - 1].height);
-      }
+    const dialogBox = (await page
+      .getByRole('dialog', { name: 'Filter students', exact: true })
+      .boundingBox())!;
+    for (const select of selects) {
+      expect(select.width).toBeGreaterThan(140);
+      expect(select.x).toBeGreaterThanOrEqual(dialogBox.x);
+      expect(select.x + select.width).toBeLessThanOrEqual(dialogBox.x + dialogBox.width);
     }
-    const clear = (await panel.getByRole('button', { name: 'Clear', exact: true }).boundingBox())!,
-      apply = (await panel.getByRole('button', { name: 'Apply', exact: true }).boundingBox())!,
-      searchBox = (await search.boundingBox())!,
-      panelBox = (await panel.boundingBox())!,
-      weekdays = (await panel.getByRole('group', { name: 'Visit weekdays' }).boundingBox())!;
-    expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(panelBox.y);
-    expect(clear.x + clear.width).toBeLessThan(apply.x);
-    expect(clear.y).toBeCloseTo(apply.y, 0);
-    if (width > 700) expect(clear.y + clear.height).toBeCloseTo(weekdays.y + weekdays.height, 0);
-    else expect(clear.y).toBeGreaterThanOrEqual(weekdays.y + weekdays.height);
-    await expect(panel.getByRole('group', { name: 'Student group', exact: true })).toBeVisible();
-    expect(clear.height).toBeGreaterThanOrEqual(44);
-    expect(apply.height).toBeGreaterThanOrEqual(44);
+    await expect(panel.getByRole('switch', { name: 'Early learner', exact: true })).toBeVisible();
+    await expect(panel.getByRole('group', { name: 'Visit weekdays', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -274,7 +270,7 @@ test('roster filters are requested, applied explicitly and cleared without losin
   await panel.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(rows).toHaveCount(0);
   await expect(filters).toBeFocused();
-  await expect(filters).toContainText('(active)');
+  await expect(filters).toHaveAttribute('aria-label', 'Filters (active)');
   await expect(panel).toHaveCount(0);
 
   await filters.click();
@@ -283,19 +279,19 @@ test('roster filters are requested, applied explicitly and cleared without losin
   await expect(rows).toHaveCount(1);
   await filters.click();
   await panel.getByLabel('Subject', { exact: true }).selectOption('Math');
-  await filters.click();
+  await page.keyboard.press('Escape');
   await filters.click();
   await expect(panel.getByLabel('Subject', { exact: true })).toHaveValue('Reading');
   await panel.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(search).toHaveValue(s.id);
-  await expect(filters).not.toContainText('(active)');
+  await expect(filters).toHaveAttribute('aria-label', 'Filters');
   await expect(rows).toHaveCount(1);
-  await expect(panel.getByLabel('Enrollment status')).toHaveValue('Active');
+  await expect(panel.getByLabel('Enrollment status')).toHaveCount(0);
 
-  for (const control of ['Early learner', 'Tue', 'Enrollment status']) {
-    if (control === 'Enrollment status')
-      await panel.getByLabel(control, { exact: true }).selectOption('Inactive');
-    else await panel.getByLabel(control, { exact: true }).check();
+  for (const control of ['Early learner', 'Tue']) {
+    await panel
+      .getByRole(control === 'Early learner' ? 'switch' : 'button', { name: control, exact: true })
+      .click();
     await expect(rows).toHaveCount(1);
     await panel.getByRole('button', { name: 'Apply', exact: true }).click();
     await expect(rows).toHaveCount(0);
@@ -306,7 +302,7 @@ test('roster filters are requested, applied explicitly and cleared without losin
 
   await panel.getByLabel('Subject', { exact: true }).selectOption('Math');
   await panel.getByLabel('Format', { exact: true }).selectOption('Paper');
-  await panel.getByLabel('Mon', { exact: true }).check();
+  await panel.getByRole('button', { name: 'Mon', exact: true }).click();
   await panel.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(rows).toHaveCount(1);
   await search.fill(s.name);
@@ -350,14 +346,14 @@ test('compact preparation shows every packet, supports partial subject readiness
   await page.getByRole('button', { name: /^Homework Preparation/ }).click();
   await page.getByLabel('Search preparation').fill(s.name);
   const card = page.locator('[data-preparation-student="' + s.id + '"]');
-  await expect(card).toContainText('IN CENTER');
-  await expect(card).toContainText('TAKE HOME');
+  await expect(card).toContainText('In-center packet');
+  await expect(card).toContainText('Homework');
   expect(await card.locator('.packet-chip').count()).toBeGreaterThan(2);
   expect(await card.locator('details').count()).toBe(0);
   await card.getByRole('button', { name: 'Mark Math prepared' }).click();
   await expect(card).toContainText('Prepared');
   await expect(card).toBeVisible();
-  await card.getByRole('button', { name: 'Mark Prepared', exact: true }).click();
+  await card.getByRole('button', { name: 'Mark Reading prepared', exact: true }).click();
   await expect(card).toHaveCount(0);
   await page.getByRole('button', { name: /^Prepared/ }).click();
   await expect(page.locator('.prep-entry').filter({ hasText: s.name })).toBeVisible();
@@ -412,13 +408,16 @@ test('Quick View saves subjects independently and preserves context and attendan
     'true',
   );
   await expect(dialog.locator('.v3-modal-body > section').last()).toHaveClass(/quick-note/);
-  await dialog.getByRole('slider', { name: 'Focus rating' }).fill('4');
+  await dialog.getByRole('button', { name: 'Focus: 4 out of 5', exact: true }).click();
   await dialog.getByRole('button', { name: '+ Add custom', exact: true }).click();
   await dialog
     .getByRole('textbox', { name: 'Custom observation skill' })
     .fill('Following instructions');
-  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
-  await dialog.getByLabel('Optional instructor note').fill('Fictional independent Math review.');
+  await page
+    .getByRole('dialog', { name: 'Add skill', exact: true })
+    .getByRole('button', { name: 'Add skill', exact: true })
+    .click();
+  await dialog.getByLabel('Instructional note').fill('Fictional independent Math review.');
   await dialog.getByRole('button', { name: 'Check in Math', exact: true }).click();
   await expect(dialog.getByRole('tab', { name: 'Math confirmed', exact: true })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Check in Reading', exact: true })).toBeVisible();
@@ -430,7 +429,9 @@ test('Quick View saves subjects independently and preserves context and attendan
   expect(partial.operations!.students[s.id].observationSkills!.at(-1)!.label).toBe(
     'Following instructions',
   );
-  await expect(dialog.getByRole('slider', { name: 'Focus rating' })).toHaveValue('0');
+  await expect(
+    dialog.getByRole('group', { name: 'Focus rating' }).getByRole('button', { pressed: true }),
+  ).toHaveCount(0);
   expect(pending.subjectCheckIns!.Math!.activities.Math).toBe('Corrections only');
   expect(pending.subjectCheckIns!.Reading).toBeUndefined();
   expect(pending.handoff).toBeUndefined();
@@ -501,7 +502,7 @@ test('Quick View corrections-only, one-time repeat and manual overrides record a
     const latest = await state(page),
       a = latest.operations!.assignments.find((a) => a.v3?.visitId === v.id)!;
     expect(a.v3!.issued.length).toBe(a.targetPackets);
-    expect(latest.operations!.completions.length).toBe(0);
+    expect(latest.operations!.completions.filter((c) => c.studentId === s.id)).toHaveLength(0);
     if (mode === 'shift') {
       expect(a.v3!.held.length).toBe(1);
       expect(a.v3!.inCenter).toBeNull();
@@ -524,42 +525,43 @@ test('Center Activity separates arrivals and occupancy, and removed appointment 
   const s = await learner(page, 'CONNECT');
   await arrive(page, s.id);
   await physical(page, s.id, 'out');
-  await page.getByRole('button', { name: 'Center Activity', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Student check-ins by hour' })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'Average simultaneous occupancy by hour' }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: 'Traffic', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Traffic', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Attendance for selected period')).toBeVisible();
   await page.getByRole('button', { name: 'Weekly', exact: true }).click();
-  await page.getByLabel('Weekday comparison').selectOption('3');
-  await expect(page.locator('.chart-card')).toHaveCount(2);
+  await expect(page.locator('.activity-comparison .attendance-column')).toHaveCount(7);
   expect(Array.isArray((await state(page)).operations!.appointments)).toBe(true);
   await page.screenshot({ path: 'test-results/v3-activity.png' });
 });
-test('daily weekly monthly report exports and immutable revisions remain functional', async ({
+test('automatic report navigation hides revisions while legacy archive APIs remain immutable', async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole('button', { name: 'Reports', exact: true }).click();
-  await page.getByLabel('Period date').fill('2026-10-14');
-  for (const type of ['Daily', 'Weekly', 'Monthly']) {
-    await page.getByRole('button', { name: type, exact: true }).click();
-    await page.getByRole('button', { name: 'Generate / open snapshot' }).click();
-    await expect(page.locator('.report-detail')).toContainText(type + ' report');
+  await page.goto('/?view=reports');
+  await expect(page.getByText('Saved snapshots', { exact: true })).toHaveCount(0);
+  const origin = new URL(page.url()).origin;
+  for (const kind of ['daily', 'weekly', 'monthly']) {
+    const data = {
+      kind,
+      period: '2026-10-14',
+      reason: 'Fictional retained archive API',
+      newVersion: true,
+      requestId: crypto.randomUUID(),
+    };
+    const response = await page.request.post('/api/reports', { headers: { Origin: origin }, data });
+    expect(response.ok()).toBe(true);
+    const { id } = await response.json();
+    const first = await (await page.request.get('/api/reports?id=' + id)).json();
+    expect(first.kind).toBe(kind);
+    expect((await page.request.get('/api/reports?id=' + id + '&format=xlsx')).status()).toBe(
+      kind === 'monthly' ? 200 : 400,
+    );
+    const again = await page.request.post('/api/reports', { headers: { Origin: origin }, data });
+    expect((await again.json()).id).toBe(id);
+    expect(await (await page.request.get('/api/reports?id=' + id)).json()).toEqual(first);
   }
-  const href = await page.getByRole('link', { name: 'CSV', exact: true }).getAttribute('href');
-  const csv = await page.request.get(href!);
-  expect(csv.status()).toBe(200);
-  expect(await csv.text()).toContain('Official completed count');
-  await page.getByText('Historical snapshot revisions', { exact: true }).click();
-  await page.getByLabel('Create a new version; preserve the earlier snapshot').check();
-  const previous = Math.max(
-    ...(await state(page))
-      .operations!.reports.filter((r) => r.kind === 'monthly' && r.period === '2026-10')
-      .map((r) => r.version),
-  );
-  await page.getByRole('button', { name: 'Generate / open snapshot' }).click();
-  await expect(page.locator('.report-detail')).toContainText('ARCHIVED · V' + (previous + 1));
-  await page.screenshot({ path: 'test-results/v3-reports.png' });
+  await page.getByRole('button', { name: 'Monthly', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Export Excel', exact: true })).toBeVisible();
 });
 test('competing profile updates reject stale versions and command retries are idempotent', async ({
   page,
@@ -585,11 +587,11 @@ test('competing profile updates reject stale versions and command retries are id
     };
   const results = await Promise.all([
     page.request.post('/api/commands', {
-      headers: { Origin: 'http://127.0.0.1:3100' },
+      headers: { Origin: new URL(page.url()).origin },
       data: { kind: 'v3', command: body },
     }),
     second.request.post('/api/commands', {
-      headers: { Origin: 'http://127.0.0.1:3100' },
+      headers: { Origin: new URL(page.url()).origin },
       data: { kind: 'v3', command: { ...body, goals: 'Competing edit' } },
     }),
   ]);
@@ -601,11 +603,11 @@ test('competing profile updates reject stale versions and command retries are id
       command: { action: 'away', studentId: s.id, until: '2026-11-02' },
     };
   await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: retry,
   });
   const r = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: retry,
   });
   expect((await r.json()).duplicate).toBe(true);
@@ -633,6 +635,8 @@ for (const size of [
       const d = page.getByRole('dialog'),
         primary = d.getByRole('button', { name: /Check in (Math|Reading)/ });
       await expect(primary).toBeVisible();
+      await primary.scrollIntoViewIfNeeded();
+      await expect(primary).toBeInViewport();
       const box = await primary.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
       expect(box!.y + box!.height).toBeLessThanOrEqual(size.height);
@@ -647,7 +651,9 @@ for (const size of [
       await expect(d).toHaveCount(0);
       await page.getByRole('button', { name: /^Homework Preparation/ }).click();
       await page.getByLabel('Search preparation').fill(s.name);
-      await expect(page.locator('.prep-entry')).toContainText('TAKE HOME');
+      await expect(
+        page.locator('.prep-entry').getByRole('heading', { name: 'Homework', exact: true }),
+      ).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
@@ -661,7 +667,7 @@ for (const size of [
       await page.screenshot({ path: 'test-results/v3-viewport-' + size.width + '.png' });
     },
   );
-test('fictional center day: 50 expected, six early learners, mixed modes and exceptions across two staff clients', async ({
+test('fictional center day: weekday/weekend expectations, six early learners and mixed modes across two staff clients', async ({
   page,
   browser,
 }) => {
@@ -669,25 +675,44 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   await login(page);
   async function confirmSubjects(client: typeof page) {
     const dialog = client.getByRole('dialog');
+    await expect(dialog).toBeVisible();
     for (let count = 0; count < 2 && (await dialog.isVisible()); count++) {
       const pending = dialog.getByRole('tab').filter({ hasNotText: 'confirmed' }).first();
+      if (!(await pending.count())) {
+        // A subject recorded through the API is already confirmed and read-only.
+        await client.keyboard.press('Escape');
+        break;
+      }
+      const subject = (await pending.textContent())!.trim();
       await pending.click();
       await dialog.getByRole('button', { name: /^Check in (Math|Reading)$/ }).click();
+      // A click returns before the save completes. Wait for this subject's
+      // confirmation or dialog closure before attempting the next subject.
+      await expect
+        .poll(() =>
+          client
+            .locator('#quick-tab-' + subject)
+            .evaluateAll((tabs) => !tabs.length || tabs[0].textContent!.includes('confirmed')),
+        )
+        .toBe(true);
     }
     await expect(dialog).toHaveCount(0);
   }
   let db = await state(page);
+  const completionsBeforeBusyDay = structuredClone(db.operations!.completions);
+  const today = dayKey(new Date(), db.timezone),
+    day = new Date(today + 'T12:00:00Z').getUTCDay(),
+    operatingDay = day >= 1 && day <= 4,
+    scheduleDay = operatingDay ? day : day === 0 ? 2 : 1,
+    tomorrow = (day + 1) % 7,
+    awayDate = addDays(today, 14 + ((8 - day) % 7));
   const ids = db.students.filter((s) => /^demo-student-/.test(s.id)).map((s) => s.id);
   for (const s of db.students.filter((s) => !ids.includes(s.id))) {
     if (db.visits.some((v) => v.studentId === s.id && !v.departedAt && !v.closedAt))
       await physical(page, s.id, 'out');
-    await command(page, 'v3', { action: 'away', studentId: s.id, until: '2026-11-02' });
+    await command(page, 'v3', { action: 'away', studentId: s.id, until: awayDate });
   }
   expect(ids.length).toBe(96);
-  const today = dayKey(new Date(), db.timezone),
-    day = new Date(today + 'T12:00:00Z').getUTCDay();
-  expect(day).toBeGreaterThan(0);
-  expect(day).toBeLessThan(5);
   for (let i = 0; i < 96; i++) {
     const s = db.students.find((s) => s.id === ids[i])!,
       cfg = structuredClone(db.operations!.students[s.id]);
@@ -720,7 +745,9 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
       settings: cfg,
       enrollmentDate: null,
       awayUntil: null,
-      visitDays: i < 50 ? [...new Set([day, (i % 4) + 1])] : [day === 1 ? 2 : 1],
+      visitDays: (i < 50 ? [...new Set([scheduleDay, (i % 4) + 1])] : [scheduleDay === 1 ? 3 : 1])
+        .filter((d) => d !== tomorrow)
+        .concat(!operatingDay ? [scheduleDay] : []),
       tiles: [],
       goals: '',
       arrivalWindow: '',
@@ -732,7 +759,7 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
     page.locator('.home-v3-metrics>button').filter({ hasText: 'Still expected' }).locator('b'),
   ).toHaveText(
     String(
-      ids
+      (operatingDay ? ids : [])
         .slice(0, 50)
         .filter(
           (id) =>
@@ -769,7 +796,7 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   // Reconcile prior packets on a separate session without touching real data.
   for (const [index, status] of [
     [6, 'unfinished'],
-    [5, 'missing'],
+    [3, 'missing'],
   ] as const) {
     const first = attended[index];
     await prepare(page, first.studentId);
@@ -852,25 +879,24 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   const unresolved = await arrive(page, ids[10]);
   await simulatedClosure(unresolved.id, today);
   await page.reload();
-  await expect(
-    page
-      .locator('[data-visit-id="' + unresolved.id + '"]')
-      .getByText('Departure unverified', { exact: true }),
-  ).toBeVisible();
+  const automaticallyClosed = (await state(page)).visits.find((v) => v.id === unresolved.id)!;
+  expect(automaticallyClosed.closedAt).toBeTruthy();
+  expect(automaticallyClosed.departedAt).toBeNull();
+  expect(automaticallyClosed.departureVerified).toBe(false);
   await physical(page, attended[7].studentId, 'out');
   await page.reload();
   await expect(page.locator('[data-visit-id="' + attended[7].id + '"]')).toHaveClass(/departed/);
   await expect(page.locator('[data-visit-id="' + attended[7].id + '"]')).toContainText(
     'No handoff recorded',
   );
-  await command(page, 'v3', { action: 'away', studentId: ids[49], until: '2026-11-02' });
+  await command(page, 'v3', { action: 'away', studentId: ids[49], until: awayDate });
   await page.reload();
   db = await state(page);
   await expect(
     page.locator('.home-v3-metrics>button').filter({ hasText: 'Still expected' }).locator('b'),
   ).toHaveText(
     String(
-      ids
+      (operatingDay ? ids : [])
         .slice(0, 49)
         .filter(
           (id) =>
@@ -884,7 +910,7 @@ test('fictional center day: 50 expected, six early learners, mixed modes and exc
   );
   db = await state(page);
   expect(ids.every((id) => db.students.some((s) => s.id === id))).toBe(true);
-  expect(db.operations!.completions.length).toBe(0);
+  expect(db.operations!.completions).toEqual(completionsBeforeBusyDay);
   await page.screenshot({ path: 'test-results/v3-busy-day.png' });
   await other.close();
 });

@@ -2,15 +2,31 @@ import { staffSession } from '@/lib/auth';
 import { repository } from '@/lib/repository';
 import { failure, json } from '@/lib/http';
 import { synchronizePreparation } from '@/lib/v3-planning';
+import { runDueJobs } from '@/lib/reports';
+import { staffProfile } from '@/lib/staff-profile';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const staff = await staffSession();
-    await repository.transaction((db) => synchronizePreparation(db));
-    const db = await repository.read();
+    const db = await repository.transaction((db) => {
+      if (db.schemaVersion === 3) runDueJobs(db);
+      synchronizePreparation(db);
+      return db;
+    });
+    const ownProfile = staffProfile(db, staff);
+    // Only the signed-in person's display profile may accompany a staff snapshot.
+    if (db.operations?.v3) {
+      delete db.operations.v3.staffProfiles;
+      delete db.operations.v3.accountRequests;
+      delete db.operations.v3.receptionReceipts;
+    }
     return json({
       ...db,
-      staff,
+      staff: {
+        ...staff,
+        displayName: [ownProfile.firstName, ownProfile.lastName].filter(Boolean).join(' '),
+        picture: ownProfile.picture,
+      },
       runtime: {
         demo: process.env.DEMO_MODE !== 'false',
         adapter: process.env.DATA_ADAPTER || 'local',

@@ -1,6 +1,6 @@
 import { CheckCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { Student } from '@/lib/model';
+import { dayKey, type Student } from '@/lib/model';
 export function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -11,6 +11,34 @@ export function useNow() {
 }
 export function Avatar({ student }: { student: Student }) {
   return <span className={`avatar ${student.color}`}>{student.initials}</span>;
+}
+/** Check each second, but only render date-based views when the day changes. */
+export function useCenterDay(timezone: string) {
+  const [day, setDay] = useState(() => dayKey(new Date(), timezone));
+  useEffect(() => {
+    const tick = () => setDay(dayKey(new Date(), timezone));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [timezone]);
+  return day;
+}
+export function CenterClock({ timezone }: { timezone: string }) {
+  const now = useNow();
+  return (
+    <span>
+      {new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: timezone,
+      }).format(now)}
+    </span>
+  );
+}
+export function LiveElapsed({ value }: { value: string }) {
+  useNow();
+  return elapsed(value);
 }
 export function Empty({ title, text }: { title: string; text: string }) {
   return (

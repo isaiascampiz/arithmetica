@@ -18,7 +18,7 @@ test('instructor notes and existing follow-up survive checkout/reload and review
   await page.locator('[data-visit-id="' + v.id + '"]').click();
   const dialog = page.getByRole('dialog');
   const note = 'Fictional regression observation ' + Date.now();
-  await dialog.getByLabel('Optional instructor note').fill(note);
+  await dialog.getByLabel('Instructional note').fill(note);
   await expect(dialog.getByLabel('Follow-up needed')).toHaveCount(0);
   await dialog.getByRole('button', { name: /Check in (Math|Reading)/ }).click();
   await expect(dialog).toHaveCount(0);
@@ -47,22 +47,23 @@ test('kiosk manual flow is idempotent and cannot read staff records', async ({ p
     db = await state(page),
     token = db.students.find((x) => x.id === s.id)!.token;
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
-  await page.getByRole('button', { name: 'Enter a pouch code instead' }).click();
-  await page.getByLabel('Student pouch code').fill(token);
+  await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Lock for shared use' }).click();
+  await page.getByRole('button', { name: 'Enter pouch code' }).click();
+  await page.getByLabel('Pouch code', { exact: true }).fill(token);
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();
   await expect(page.getByRole('status')).toContainText('checked in');
   expect((await page.request.get('/api/state')).status()).toBe(401);
   await page.getByRole('button', { name: 'Ready for the next student' }).click();
-  await page.getByLabel('Student pouch code').fill(token);
+  await page.getByLabel('Pouch code', { exact: true }).fill(token);
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();
   await expect(page.getByRole('status')).toContainText('Scan already recorded');
   await page.waitForTimeout(31000); // Real server debounce interval.
-  await page.getByLabel('Student pouch code').fill(token);
+  await page.getByLabel('Pouch code', { exact: true }).fill(token);
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();
   await expect(page.getByRole('status')).toContainText('checked out');
   await page.getByRole('button', { name: 'Ready for the next student' }).click();
-  await page.getByLabel('Student pouch code').fill('invalid-code');
+  await page.getByLabel('Pouch code', { exact: true }).fill('invalid-code');
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();
   await expect(page.locator('.kiosk-error')).toContainText('not recognized');
 });
@@ -74,7 +75,7 @@ test('assistant instruction access denied; legacy packet transitions still persi
   const db = await state(page);
   expect(db.observations).toEqual([]);
   const denied = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: {
       kind: 'observation',
       studentId: db.students[0].id,
@@ -89,7 +90,7 @@ test('assistant instruction access denied; legacy packet transitions still persi
   expect(
     (
       await page.request.post('/api/commands', {
-        headers: { Origin: 'http://127.0.0.1:3100' },
+        headers: { Origin: new URL(page.url()).origin },
         data: { kind: 'homework', studentId: db.students[1].id, description },
       })
     ).ok(),
@@ -99,7 +100,7 @@ test('assistant instruction access denied; legacy packet transitions still persi
     expect(
       (
         await page.request.post('/api/commands', {
-          headers: { Origin: 'http://127.0.0.1:3100' },
+          headers: { Origin: new URL(page.url()).origin },
           data: { kind: 'homework-status', id: packet.id, status },
         })
       ).ok(),
@@ -130,16 +131,17 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await page.screenshot({ path: 'test-results/v3-phone-roster.png', fullPage: true });
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Lock for shared use' }).click();
   await page.evaluate(() =>
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
       value: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')),
       configurable: true,
     }),
   );
-  await page.getByRole('button', { name: 'Start camera' }).click();
+  await page.getByRole('button', { name: 'Use camera' }).click();
   await expect(page.locator('.kiosk-error')).toContainText('Camera could not start');
-  await expect(page.getByLabel('Student pouch code')).toBeEnabled();
+  await expect(page.getByLabel('Pouch code', { exact: true })).toBeEnabled();
   await page.screenshot({ path: 'test-results/v3-phone-kiosk.png', fullPage: true });
 });
 test('anonymous access and foreign-origin writes remain denied', async ({ page }) => {
@@ -168,8 +170,8 @@ for (const width of [1024, 390])
       await page.reload();
       await page.locator('[data-visit-id="' + v.id + '"]').click();
       let dialog = page.getByRole('dialog');
-      await dialog.getByLabel('Optional instructor note').fill('Original fictional session note');
-      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('3');
+      await dialog.getByLabel('Instructional note').fill('Original fictional session note');
+      await dialog.getByRole('button', { name: 'Focus: 3 out of 5', exact: true }).click();
       await dialog.getByRole('button', { name: 'Check in Math', exact: true }).click();
       await expect(dialog).toHaveCount(0);
       await physical(page, s.id, 'out');
@@ -181,9 +183,15 @@ for (const width of [1024, 390])
       await page.getByRole('button', { name: 'View session', exact: true }).click();
       dialog = page.getByRole('dialog');
       await expect(dialog).toContainText('Past visit');
+      await dialog.evaluate(async (element) => {
+        await Promise.all(
+          element.getAnimations().map((animation) => animation.finished.catch(() => {})),
+        );
+      });
       if (width === 390) await expect(dialog).toContainText('Kumon CONNECT');
       else {
-        const packets = dialog.locator('.history-packets .packet-chip');
+        // Packet groups align; individual chips may wrap within each group.
+        const packets = dialog.locator('.history-packets');
         expect((await packets.first().boundingBox())!.x).toBe(
           (await packets.last().boundingBox())!.x,
         );
@@ -194,20 +202,22 @@ for (const width of [1024, 390])
       await expect(dialog.locator('.history-skill-ratings')).toContainText('Focus');
       await expect(dialog.locator('.history-skill-ratings')).toContainText('3/5');
       await dialog.getByRole('button', { name: 'Edit observation', exact: true }).click();
-      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('5');
+      await dialog.getByRole('button', { name: 'Focus: 5 out of 5', exact: true }).click();
       await dialog
         .getByLabel('Instructional note', { exact: true })
         .fill('Amended fictional session note');
       await dialog.getByRole('button', { name: 'Reset', exact: true }).click();
-      await expect(dialog.getByRole('slider')).toHaveCount(0);
+      await expect(dialog.getByRole('group', { name: 'Focus rating' })).toHaveCount(0);
       await expect(dialog).toContainText('Original fictional session note');
       await expect(dialog).not.toContainText('Amended fictional session note');
       await dialog.getByRole('button', { name: 'Edit observation', exact: true }).click();
-      await expect(dialog.getByRole('slider', { name: 'Focus rating' })).toHaveValue('3');
+      await expect(
+        dialog.getByRole('button', { name: 'Focus: 3 out of 5', exact: true }),
+      ).toHaveAttribute('aria-pressed', 'true');
       await expect(dialog.getByLabel('Instructional note', { exact: true })).toHaveValue(
         'Original fictional session note',
       );
-      await dialog.getByRole('slider', { name: 'Focus rating' }).fill('5');
+      await dialog.getByRole('button', { name: 'Focus: 5 out of 5', exact: true }).click();
       await dialog
         .getByLabel('Instructional note', { exact: true })
         .fill('Amended fictional session note');
@@ -221,7 +231,7 @@ for (const width of [1024, 390])
       ).toHaveCount(0);
       await expect(dialog.getByText('Edit history', { exact: true })).toHaveCount(0);
       await expect(dialog).not.toContainText('Edited by');
-      await expect(dialog.getByRole('slider')).toHaveCount(0);
+      await expect(dialog.getByRole('group', { name: 'Focus rating' })).toHaveCount(0);
       await expect(dialog.getByRole('meter', { name: 'Focus', exact: true })).toHaveAttribute(
         'aria-valuenow',
         '5',
@@ -304,8 +314,13 @@ test('visit history date lookup and duration sorting use recorded center-local v
   await expect(cards.first()).toHaveAttribute('data-history-visit', 'history-long');
   await page.getByRole('button', { name: 'Filter & sort' }).click();
   const normalCard = (await cards.first().boundingBox())!;
-  const sessionButton = (await cards.first().getByRole('button', { name: 'View session' }).boundingBox())!;
-  expect(Math.abs((sessionButton.y + sessionButton.height / 2) - (normalCard.y + normalCard.height / 2))).toBeLessThan(2);
+  const sessionButton = (await cards
+    .first()
+    .getByRole('button', { name: 'View session' })
+    .boundingBox())!;
+  expect(
+    Math.abs(sessionButton.y + sessionButton.height / 2 - (normalCard.y + normalCard.height / 2)),
+  ).toBeLessThan(2);
   await expect(page.getByLabel('Visit date', { exact: true })).not.toBeVisible();
   await expect(cards.first().locator('.visit-summary')).toContainText('ObservationsNo');
   await expect(cards.first().locator('.visit-summary')).toContainText('NoteNo');

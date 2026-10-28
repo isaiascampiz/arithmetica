@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "agentation": {
+      "source": "23jmo/jmo-skills",
+      "sourceType": "github",
+      "skillPath": "skills/agentation/SKILL.md",
+      "computedHash": "484a21ba6dc16a31e303b08c5cc934c27ac02f099d0723d3fe6f76cf4f943d27"
+    },
+    "animate": {
+      "source": "23jmo/jmo-skills",
+      "sourceType": "github",
+      "skillPath": "skills/animate/SKILL.md",
+      "computedHash": "f47091fb3789a0b75f554e4b6740067f2e22668a0418e4f9d8f6a0f2ed35c4e9"
+    },
+    "better-ui": {
+      "source": "23jmo/jmo-skills",
+      "sourceType": "github",
+      "skillPath": "skills/better-ui/SKILL.md",
+      "computedHash": "aa334c7da6ab6a226959e24f607b6ef94f599b8ee3a1bfec7885fc5f5c257742"
+    },
+    "interview": {
+      "source": "23jmo/jmo-skills",
+      "sourceType": "github",
+      "skillPath": "skills/interview/SKILL.md",
+      "computedHash": "987502fde2d5dea402b14ce1159045fd76e246a9fa7bf1dec8331aa3e77c68bf"
+    },
+    "ste": {
+      "source": "23jmo/jmo-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ste/SKILL.md",
+      "computedHash": "1c5d97f6b816161059aa68ef9f84f5ec94ef1c1a0e530fa7d50c988c9de46659"
+    }
+  }
+}

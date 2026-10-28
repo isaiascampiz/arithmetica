@@ -5,7 +5,7 @@ V3 uses entirely fictional students in the original V1/V2 project. Local and ser
 - Read README.md and docs/architecture.md before changing persistence or authentication.
 - Never run a database reset, destructive migration, automatic reseed, or remove the demo data file. Missing files alone may initialize fictional data. Corrupt/unsupported data must fail closed.
 - Preserve IDs, timestamps, observation content, reviewer attribution, and schema migration history. Future upgrades are additive, with explicit tested version steps and backups.
-- Enforce permissions on the server. The kiosk must never receive roster, observation, or staff data. Role selection in the UI is never authorization.
+- Enforce permissions on the server. The kiosk must never receive roster, observation, or staff data. User-directed exception (28 October 2026): inline completion may return one uniquely matching active student's name after at least three letters, and a confirmed attendance receipt may contain that student's name. Return no list, IDs, tokens, grades, observations or staff data. Ambiguous prefixes wait for more of the name. Role selection in the UI is never authorization.
 - Do not cache authenticated records in service workers or browser storage. Never record audio. Dictation requires clearly documented provider privacy approval before real use.
 - Favor system fonts, generous whitespace, at least 44px controls, keyboard access, responsive layout, and reduced-motion support.
 - Before delivering changes run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and relevant `pnpm test:e2e`. Use isolated test data. Do not test against real data.

@@ -3,156 +3,80 @@ import { login, state, learner, openProfile, command } from './helpers';
 import { quickViewDemo } from '../fixtures/quick-view-demo';
 import type { Snapshot } from '../../src/lib/model';
 
-for (const width of [1440, 390, 320])
-  test('profile Overview presents balanced recorded information at ' + width, async ({ page }) => {
+for (const width of [1440, 768, 390, 320])
+  test('profile Overview has aligned rails and compact dialogs at ' + width, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await login(page);
     const session = await state(page),
       fixture = quickViewDemo(new Date('2026-10-12T21:00:00Z'));
     fixture.students[0].name = 'Fictional Alexandra Verylongfamilyname Demo Student';
-    fixture.operations!.students[fixture.students[1].id].enrollmentDate = null;
-    delete fixture.operations!.students[fixture.students[1].id].grade;
-    fixture.operations!.students[fixture.students[1].id].active = false;
     const snapshot: Snapshot = {
       ...fixture,
       staff: session.staff,
       timezone: fixture.operations!.center.timezone,
-      runtime: { demo: true, adapter: 'local', scheduler: false },
     };
     await page.route('**/api/state', (route) => route.fulfill({ json: snapshot }));
     let writes = 0;
     page.on('request', (r) => {
       if (r.url().endsWith('/api/commands') && r.method() === 'POST') writes++;
     });
-    for (const [index, s] of fixture.students.entries()) {
-      await page.goto('/?view=students&student=' + s.id);
-      await expect(page.getByRole('heading', { name: s.name, exact: true })).toBeVisible();
-      const student = page.getByRole('region', { name: 'Student information', exact: true });
-      const subjects = page.getByRole('region', { name: 'Subjects', exact: true });
-      await expect(student).toContainText('Regular visits');
-      await expect(student.locator('dt')).toHaveText([
+    for (const [index, student] of fixture.students.entries()) {
+      await page.goto('/?view=students&student=' + student.id);
+      await expect(page.getByRole('heading', { name: student.name, exact: true })).toBeVisible();
+      const left = page.getByRole('region', { name: 'Student information', exact: true }),
+        right = page.getByRole('region', { name: 'Subjects', exact: true });
+      await expect(left.locator('dt')).toHaveText([
         'Student name',
         'Grade',
-        'Early learner',
         'Regular visits',
-        'Expected visit duration',
+        'Early learner',
+      ]);
+      await expect(right.getByRole('tab')).toHaveCount(2);
+      const leftRail = (await left.getByRole('tablist').boundingBox())!,
+        rightRail = (await right.getByRole('tablist').boundingBox())!;
+      if (width > 900) expect(Math.abs(leftRail.y - rightRail.y)).toBeLessThan(1);
+      await left.getByRole('tab', { name: 'Enrollment', exact: true }).click();
+      await expect(left.locator('dt')).toContainText([
         'Enrollment status',
         'Enrollment date',
         'Time enrolled',
       ]);
-      await expect(
-        student
-          .locator('dl > div')
-          .filter({ has: page.locator('dt', { hasText: /^Grade$/ }) })
-          .locator('dd'),
-      ).toHaveText(index === 1 ? 'Not recorded' : fixture.operations!.students[s.id].grade!);
-      await expect(page.getByRole('button', { name: 'Other student settings' })).toHaveCount(0);
-      await expect(
-        subjects.getByRole('heading', { name: 'Achievement medal history', exact: true }),
-      ).toBeVisible();
-      await expect(page.locator('.profile-name-medals [role="img"]')).toHaveCount(
-        index === 2 ? 1 : 2,
-      );
-      const avatar = (await page.locator('.profile-v3-heading > .avatar').boundingBox())!;
-      const headerMedals = (await page
-        .locator('.profile-heading-identity > .profile-name-medals')
-        .boundingBox())!;
-      expect(
-        Math.abs(avatar.y + avatar.height / 2 - headerMedals.y - headerMedals.height / 2),
-      ).toBeLessThan(1);
+      await left.getByRole('tab', { name: 'Details', exact: true }).click();
       if (index === 0) {
-        const history = subjects.getByRole('list', { name: 'Math achievement medal history' });
-        const medals = history.getByRole('listitem');
-        await expect(medals).toHaveCount(2);
-        await expect(medals.nth(0)).toContainText('Gold');
-        await expect(medals.nth(0)).toContainText('Current');
-        await expect(medals.nth(1)).toContainText('Bronze');
-        await expect(medals.nth(1)).toBeVisible();
-        const first = (await medals.nth(0).boundingBox())!,
-          previous = (await medals.nth(1).boundingBox())!;
-        expect(first.y).toBe(previous.y);
-        expect(previous.x).toBeGreaterThan(first.x);
-        await expect(page.locator('.profile-name-medals .bronze')).toHaveCount(0);
+        await left.getByRole('button', { name: 'Edit student information', exact: true }).click();
+        const editor = page.getByRole('dialog', { name: 'Edit student information', exact: true });
+        await expect(editor.getByLabel('Student name')).toHaveValue(student.name);
+        await expect(editor.getByText('Select weekdays', { exact: true })).toHaveCount(0);
+        await editor.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await right.getByRole('button', { name: 'Edit Math', exact: true }).click();
+        const math = page.getByRole('dialog', { name: 'Edit Math', exact: true });
+        await expect(math.getByLabel('Worksheets per day')).toBeVisible();
+        expect(await math.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+        await math.getByRole('button', { name: 'Cancel', exact: true }).click();
       }
-      await expect(page.locator('.profile-v3-heading .avatar')).toBeVisible();
-      await expect(subjects.locator('.overview-subject-panel')).toHaveCount(index === 2 ? 1 : 2);
-      await expect(subjects.getByRole('tab')).toHaveCount(index === 2 ? 0 : 2);
-      if (index === 1) {
-        await expect(student).toContainText('Not recorded');
-        await expect(student).toContainText('Unenrolled');
-        await subjects.getByRole('tab', { name: 'Reading', exact: true }).click();
-        await expect(subjects.getByRole('region', { name: 'Reading', exact: true })).toBeVisible();
-        await expect(subjects).toContainText('Kumon CONNECT');
-        await subjects.getByRole('tab', { name: 'Math', exact: true }).click();
-        const workload = subjects
-          .getByRole('region', { name: 'Math', exact: true })
-          .locator('dl > div')
-          .filter({ hasText: 'Planned worksheets per homework day' })
-          .locator('dd');
-        const settings = fixture.operations!.students[s.id].subjects.Math;
-        await expect(workload).toHaveText(
-          String(settings.packetsPerDay * settings.sheetsPerPacket),
-        );
-      }
-      const left = (await student.boundingBox())!,
-        right = (await subjects.boundingBox())!;
-      if (width > 700) {
-        expect(left.y).toBe(right.y);
-        expect(Math.abs(left.height - right.height)).toBeLessThan(1);
-
-        expect(right.x).toBeGreaterThanOrEqual(left.x + left.width);
-      } else {
-        expect(left.x).toBe(right.x);
-        expect(right.y).toBeGreaterThanOrEqual(left.y + left.height);
-      }
-      await expect(page.getByRole('button', { name: 'Show pouch identifier' })).toBeVisible();
-      await expect(student.locator('.profile-enrollment')).toContainText('Enrollment status');
-      await expect(subjects).toContainText('Starting level');
-      await expect(subjects).not.toContainText('Current range');
-      await expect(
-        page.getByRole('button', { name: 'Edit student information', exact: true }),
-      ).toBeVisible();
-      if (index === 0) {
-        const labelColumn = (await student.locator('dt').first().boundingBox())!.x;
-        const rowPositions = await student
-          .locator('dt')
-          .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y));
-        await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
-        const form = page.getByRole('form', { name: 'Edit student information', exact: true });
-        expect((await form.locator('dt').first().boundingBox())!.x).toBe(labelColumn);
-        const editedPositions = await form
-          .locator('dt')
-          .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y));
-        editedPositions.forEach((y, i) => expect(Math.abs(y - rowPositions[i])).toBeLessThan(1));
-        if (width > 700) {
-          const editingLeft = (await student.boundingBox())!;
-          const editingRight = (await subjects.boundingBox())!;
-          expect(Math.abs(editingLeft.height - editingRight.height)).toBeLessThan(1);
-        }
-        await expect(page.getByRole('dialog')).toHaveCount(0);
-        expect(await form.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-        await page.screenshot({
-          path: 'test-results/profile-inline-student-' + width + '.png',
-          fullPage: true,
-        });
-        await form.getByRole('button', { name: 'Cancel', exact: true }).click();
-        await page.getByRole('button', { name: 'Edit Math', exact: true }).click();
-        const subjectForm = page.getByRole('form', { name: 'Edit Math', exact: true });
-        expect(await subjectForm.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-        await page.screenshot({
-          path: 'test-results/profile-inline-subject-' + width + '.png',
-          fullPage: true,
-        });
-        await subjectForm.getByRole('button', { name: 'Cancel', exact: true }).click();
+      if (!fixture.operations!.students[student.id].subjects.Reading.enrolled) {
+        await right.getByRole('tab', { name: 'Reading', exact: true }).click();
+        await right.getByRole('button', { name: 'Add Reading', exact: true }).click();
+        await expect(
+          page
+            .getByRole('dialog', { name: 'Add Reading', exact: true })
+            .getByRole('switch', { name: 'Enrolled' }),
+        ).toBeChecked();
+        await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      if (index === 1)
+      if (index === 0)
         await page.screenshot({
-          path: 'test-results/profile-overview-' + width + '.png',
+          path: 'test-results/arithmetica-profile-' + width + '.png',
           fullPage: true,
+          animations: 'disabled',
         });
+      await page.getByRole('button', { name: 'Visit History', exact: true }).click();
+      await expect(
+        page.getByText('Preserved V1/V2 worksheet and decision history', { exact: true }),
+      ).toHaveCount(0);
     }
     expect(writes).toBe(0);
   });
@@ -180,8 +104,8 @@ test('profile section editors save independently, cancel drafts and reject stale
   await openProfile(page, s.name);
   await expect(page.getByRole('button', { name: 'Edit Student', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  const identity = page.getByRole('form', { name: 'Edit student information', exact: true });
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  const identity = page.getByRole('dialog', { name: 'Edit student information', exact: true });
   await identity.getByLabel('Student name').fill(s.name + ' Cancelled');
   await identity.getByLabel('Grade', { exact: true }).fill('Cancelled grade');
   await identity.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -189,24 +113,24 @@ test('profile section editors save independently, cancel drafts and reject stale
   expect((await state(page)).operations!.students[s.id].grade).toBeUndefined();
   const before = await state(page);
   await page.getByRole('button', { name: 'Edit student information', exact: true }).click();
-  await identity.getByLabel('Enrollment date', { exact: true }).fill('2026-02-01');
   await identity.getByLabel('Grade', { exact: true }).fill('Grade 3');
-  await identity.getByLabel('Expected visit minutes').fill('35');
-  await identity.getByRole('button', { name: 'Save student information' }).click();
+  await identity.getByRole('tab', { name: 'Enrollment', exact: true }).click();
+  await identity.getByLabel('Enrollment date', { exact: true }).fill('2026-02-01');
+  await identity.getByRole('button', { name: 'Save changes' }).click();
   await expect(identity).toHaveCount(0);
   const saved = await state(page),
     updated = saved.operations!.students[s.id];
   expect(updated.enrollmentDate).toBe('2026-02-01');
   expect(updated.grade).toBe('Grade 3');
-  expect(updated.expectedMinutes).toBe(35);
+  expect(updated.expectedMinutes).toBe(before.operations!.students[s.id].expectedMinutes);
   expect(updated.subjects).toEqual(before.operations!.students[s.id].subjects);
   expect(updated.observationTiles).toEqual(['Focus, carefully']);
   expect(updated.goals).toBe('Preserve this goal');
   expect(updated.arrivalWindow).toBe('Recorded window');
   await page.getByRole('button', { name: 'Edit Math', exact: true }).click();
-  const math = page.getByRole('form', { name: 'Edit Math', exact: true });
-  await math.getByLabel('Math packets per homework day').fill('2');
-  await math.getByRole('button', { name: 'Save Math' }).click();
+  const math = page.getByRole('dialog', { name: 'Edit Math', exact: true });
+  await math.getByLabel('Worksheets per day').fill('20');
+  await math.getByRole('button', { name: 'Save changes' }).click();
   await expect(math).toHaveCount(0);
   const after = await state(page);
   expect(after.operations!.students[s.id].subjects.Math.packetsPerDay).toBe(2);
@@ -235,7 +159,7 @@ test('profile section editors save independently, cancel drafts and reject stale
     goals: 'Newer goal',
     arrivalWindow: current.arrivalWindow || '',
   });
-  await identity.getByRole('button', { name: 'Save student information' }).click();
+  await identity.getByRole('button', { name: 'Save changes' }).click();
   await expect(identity.getByRole('alert')).toContainText('profile changed');
   expect((await state(page)).students.find((x) => x.id === s.id)!.name).toBe(s.name);
   expect((await state(page)).operations!.students[s.id].goals).toBe('Newer goal');

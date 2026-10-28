@@ -558,21 +558,122 @@ export function ReportsWorkspace({ db, refresh }: { db: Snapshot; refresh: () =>
     </div>
   );
 }
+function ReportAutomation({ db, act, busy }: { db: Snapshot; act: Act; busy: boolean }) {
+  const center = db.operations!.center;
+  const [saved, setSaved] = useState({ version: center.version || 0, time: center.reportTime });
+  const [clock, setClock] = useState(center.reportTime);
+  const [status, setStatus] = useState('');
+  const owner = db.staff.role === 'owner';
+  return (
+    <section className="panel settings-card" id="settings-reports">
+      <h2>Report automation</h2>
+      <p>
+        {db.runtime?.scheduler ? 'Scheduled worker enabled.' : 'Scheduled worker disabled.'} Daily
+        reports are scheduled at the selected time, weekly reports on the last operating day, and
+        monthly reports at month-end.
+      </p>
+      {(center.version || 0) !== saved.version && (
+        <p role="status">
+          Center settings changed elsewhere. Your draft is kept.{' '}
+          <button
+            className="text-button"
+            onClick={() => {
+              setSaved({ version: center.version || 0, time: center.reportTime });
+              setClock(center.reportTime);
+            }}
+          >
+            Load latest saved values
+          </button>
+        </p>
+      )}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (
+            await act({
+              ...center,
+              action: 'center-save',
+              expectedVersion: saved.version,
+              reportTime: clock,
+            })
+          ) {
+            setSaved({ version: saved.version + 1, time: clock });
+            setStatus('Report time saved.');
+          }
+        }}
+      >
+        <label>
+          Report time
+          <input
+            required
+            type="time"
+            value={clock}
+            disabled={!owner || busy}
+            onChange={(e) => setClock(e.target.value)}
+          />
+        </label>
+        {owner && (
+          <div className="settings-actions">
+            <button className="secondary" disabled={busy || clock === saved.time}>
+              Save report settings
+            </button>
+            {clock !== saved.time && (
+              <button type="button" className="text-button" onClick={() => setClock(saved.time)}>
+                Discard changes
+              </button>
+            )}
+          </div>
+        )}
+      </form>
+      <p className="small muted">
+        Times use {db.timezone}. Automatic reports require a configured, running scheduler. Changing
+        this time does not start one.
+      </p>
+      {owner && (
+        <button
+          type="button"
+          className="text-button"
+          disabled={busy}
+          onClick={async () => {
+            try {
+              const r = await request<{ changes: number }>('/api/jobs', 'POST');
+              setStatus(
+                `Due jobs processed: ${r.changes} closures/reports. Open Reports to inspect the archive.`,
+              );
+            } catch (e) {
+              setStatus((e as Error).message);
+            }
+          }}
+        >
+          Run due jobs now
+        </button>
+      )}
+      {status && <p role="status">{status}</p>}
+    </section>
+  );
+}
+
 export function CenterSettings({ db, act, busy }: { db: Snapshot; act: Act; busy: boolean }) {
   const op = db.operations!,
     owner = db.staff.role === 'owner';
   const [c, setC] = useState({ ...op.center });
   const [closures, setClosures] = useState(op.center.closedDates.join(', '));
+  const [savedCenter, setSavedCenter] = useState({
+    center: { ...op.center },
+    closures: op.center.closedDates.join(', '),
+  });
+  const [centerMessage, setCenterMessage] = useState('');
+  const centerChanged =
+    JSON.stringify(c) !== JSON.stringify(savedCenter.center) || closures !== savedCenter.closures;
   const [name, setName] = useState('');
   const [role, setRole] = useState<'instructor' | 'grader'>('grader');
   const [days, setDays] = useState([2, 4]);
   const [start, setStart] = useState('14:00');
   const [end, setEnd] = useState('18:00');
   const [coverageId, setCoverage] = useState<string | undefined>();
-  const [jobResult, setJob] = useState('');
   return (
-    <div className="settings-grid">
-      <section className="panel settings-card">
+    <div className="settings-grid settings-center-grid">
+      <section className="panel settings-card" id="settings-access">
         <ShieldCheck className="settings-icon" />
         <h2>Access & persistence</h2>
         <p>
@@ -592,23 +693,46 @@ export function CenterSettings({ db, act, busy }: { db: Snapshot; act: Act; busy
           Schema v{db.schemaVersion} · revision {db.revision}. Existing V1 packets and all 96
           original student identities are retained.
         </p>
-        <a className="secondary" href="/api/export" download>
-          <Download size={16} />
-          Owner backup export
-        </a>
+        {owner && (
+          <a className="secondary" href="/api/export" download>
+            <Download size={16} />
+            Owner backup export
+          </a>
+        )}
         <p className="small muted">
           Fictional local testing until cloud configuration and organizational permission are
           verified. No corporate portal integration.
         </p>
       </section>
-      <section className="panel settings-card">
-        <h2>Closing & reports</h2>
-        <p>Auto-closure records departure as unverified. Reconcile it in Student Visit History.</p>
+      <section className="panel settings-card" id="settings-center">
+        <h2 className="center-policy">Center setup</h2>
+        {(op.center.version || 0) !== (savedCenter.center.version || 0) && (
+          <p role="status">
+            Center settings changed elsewhere. Your draft is kept.{' '}
+            <button
+              className="text-button"
+              onClick={() => {
+                const center = { ...op.center };
+                setC(center);
+                setClosures(center.closedDates.join(', '));
+                setSavedCenter({ center, closures: center.closedDates.join(', ') });
+              }}
+            >
+              Load latest saved values
+            </button>
+          </p>
+        )}
+        <p className="center-policy">
+          Administrative closure leaves departure unverified. Student visit days currently follow
+          the Monday–Thursday teaching schedule.
+        </p>
+        {!owner && <p className="small muted">Only the center owner can change these settings.</p>}
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await act({
+            const ok = await act({
               action: 'center-save',
+              expectedVersion: savedCenter.center.version || 0,
               name: c.name,
               operatingDays: c.operatingDays,
               closedDates: closures
@@ -616,98 +740,103 @@ export function CenterSettings({ db, act, busy }: { db: Snapshot; act: Act; busy
                 .map((x) => x.trim())
                 .filter(Boolean),
               closingTime: c.closingTime,
-              reportTime: c.reportTime,
+              reportTime: op.center.reportTime,
               autoClose: c.autoClose,
               expectedMinutes: c.expectedMinutes,
               earlyPerInstructor: c.earlyPerInstructor,
             });
+            if (ok) {
+              const center = { ...c, version: (savedCenter.center.version || 0) + 1 };
+              setC(center);
+              setSavedCenter({ center, closures });
+              setCenterMessage('Center settings saved.');
+            }
           }}
         >
-          <label>
-            Center name
-            <input required value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} />
-          </label>
-          <div className="form-grid">
-            <label>
-              Closing time
-              <input
-                type="time"
-                value={c.closingTime}
-                required
-                onChange={(e) => setC({ ...c, closingTime: e.target.value })}
-              />
-            </label>
-            <label>
-              Report time
-              <input
-                type="time"
-                value={c.reportTime}
-                required
-                onChange={(e) => setC({ ...c, reportTime: e.target.value })}
-              />
-            </label>
-            <NumberField
-              label="Default expected minutes"
-              value={c.expectedMinutes}
-              min={5}
-              max={240}
-              onChange={(n) => setC({ ...c, expectedMinutes: n })}
-            />
-            <NumberField
-              label="Early learners per free instructor"
-              value={c.earlyPerInstructor}
-              min={1}
-              max={10}
-              onChange={(n) => setC({ ...c, earlyPerInstructor: n })}
-            />
-          </div>
-          <DayPicker
-            value={c.operatingDays}
-            onChange={(n) => setC({ ...c, operatingDays: n })}
-            label="Center operating days"
-          />
-          <label>
-            Closure dates (YYYY-MM-DD, comma-separated)
-            <input value={closures} onChange={(e) => setClosures(e.target.value)} />
-          </label>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={c.autoClose}
-              onChange={(e) => setC({ ...c, autoClose: e.target.checked })}
-            />
-            Administrative auto-closure enabled
-          </label>
-          {owner && (
-            <button className="primary" disabled={busy}>
-              Save center settings
-            </button>
-          )}
-        </form>
-        <p className="small muted">
-          Timezone: {db.timezone}. Scheduled worker requires ENABLE_SCHEDULER=true on an
-          always-running server, or a configured external job caller.
-        </p>
-        {owner && (
-          <button
-            className="text-button"
-            onClick={async () => {
-              try {
-                const r = await request<{ changes: number }>('/api/jobs', 'POST');
-                setJob(
-                  `Due jobs processed: ${r.changes} new closures/reports. Refresh to inspect the archive.`,
-                );
-              } catch (e) {
-                setJob((e as Error).message);
-              }
-            }}
+          <fieldset
+            disabled={!owner || busy}
+            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
           >
-            Run due jobs now
-          </button>
-        )}
-        {jobResult && <p role="status">{jobResult}</p>}
+            <label className="center-policy">
+              Center name
+              <input
+                required
+                value={c.name}
+                onChange={(e) => setC({ ...c, name: e.target.value })}
+              />
+            </label>
+            <div className="form-grid">
+              <label className="center-policy">
+                Closing time
+                <input
+                  type="time"
+                  value={c.closingTime}
+                  required
+                  onChange={(e) => setC({ ...c, closingTime: e.target.value })}
+                />
+              </label>
+              <div className="center-policy">
+                <NumberField
+                  label="Default expected minutes"
+                  value={c.expectedMinutes}
+                  min={5}
+                  max={240}
+                  onChange={(n) => setC({ ...c, expectedMinutes: n })}
+                />
+              </div>
+              <div className="center-policy">
+                <NumberField
+                  label="Early learners per free instructor"
+                  value={c.earlyPerInstructor}
+                  min={1}
+                  max={10}
+                  onChange={(n) => setC({ ...c, earlyPerInstructor: n })}
+                />
+              </div>
+            </div>
+            <div className="center-policy">
+              <DayPicker
+                value={c.operatingDays}
+                onChange={(n) => setC({ ...c, operatingDays: n })}
+                label="Center operating days"
+              />
+              <label>
+                Closure dates (YYYY-MM-DD, comma-separated)
+                <input value={closures} onChange={(e) => setClosures(e.target.value)} />
+              </label>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={c.autoClose}
+                  onChange={(e) => setC({ ...c, autoClose: e.target.checked })}
+                />
+                Administrative auto-closure enabled
+              </label>
+            </div>
+            {owner && (
+              <button className="primary" disabled={busy || !centerChanged}>
+                Save center settings
+              </button>
+            )}
+            {centerChanged && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setC({ ...savedCenter.center });
+                  setClosures(savedCenter.closures);
+                  setCenterMessage('');
+                }}
+              >
+                Discard changes
+              </button>
+            )}
+          </fieldset>
+        </form>
+        {centerMessage && <p role="status">{centerMessage}</p>}
       </section>
-      <section className="panel settings-card full">
+      <ReportAutomation db={db} act={act} busy={busy} />
+      <section className="panel settings-card full" id="settings-staff">
         <h2>Staff coverage & additional graders</h2>
         <p>
           Orientations occupy their assigned instructor. Coverage is a configurable planning
@@ -717,6 +846,7 @@ export function CenterSettings({ db, act, busy }: { db: Snapshot; act: Act; busy
           {op.coverage.map((s) => (
             <button
               className="preference-row"
+              disabled={!owner || busy}
               key={s.id}
               onClick={() => {
                 setCoverage(s.id);

@@ -1,5 +1,12 @@
 export type Role = 'owner' | 'instructor' | 'assistant';
-export type Staff = { name: string; role: Role };
+export type Staff = {
+  name: string;
+  role: Role;
+  id?: string;
+  email?: string;
+  displayName?: string;
+  picture?: string;
+};
 export type Student = {
   id: string;
   name: string;
@@ -79,16 +86,26 @@ export const choices = [
   'Parent conversation',
   'Celebrated progress',
 ] as const;
+// Cache formatters, never records or formatted dates. Bound the cache because
+// the timezone can be supplied by center configuration or a caller.
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
 export function dayKey(value: string | Date, timezone = 'America/Los_Angeles') {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(value));
+  let formatter = dayFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    if (dayFormatters.size >= 16) dayFormatters.delete(dayFormatters.keys().next().value!);
+    dayFormatters.set(timezone, formatter);
+  }
+  return formatter.format(new Date(value));
 }
 export function metrics(db: Database, now = new Date(), timezone = 'America/Los_Angeles') {
-  const today = db.visits.filter((v) => dayKey(v.arrivedAt, timezone) === dayKey(now, timezone));
+  const date = dayKey(now, timezone);
+  const today = db.visits.filter((v) => dayKey(v.arrivedAt, timezone) === date);
   const active = db.visits.filter(isOpenVisit);
   return {
     active: active.length,

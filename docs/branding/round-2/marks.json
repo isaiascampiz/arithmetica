@@ -1,0 +1,26 @@
+[
+  {
+    "name": "zavri",
+    "rank": 1,
+    "idea": "A compact Z with a returning diagonal channel; motion held in a precise joint.",
+    "svg": "<path d=\"M20 2H62V11L20 47H29L44 34Q46 32 49 32H62V45Q62 48 59 51L53 57Q50 60 46 60H2V47L31 23H3V18Q3 15 5 13L14 4Q17 2 20 2Z\"/>"
+  },
+  {
+    "name": "rivren",
+    "rank": 2,
+    "idea": "An architectural split R with a generous open counter and an assembled vertical pillar.",
+    "svg": "<path d=\"M4 2H19V62H4Z\"/><path d=\"M23 2H38C53 2 62 11 62 24C62 34 56 41 47 44L63 62H43L23 38V32H36C43 32 47 29 47 24S43 16 36 16H23Z\"/>"
+  },
+  {
+    "name": "kilter",
+    "rank": 3,
+    "idea": "A poised offset K, using a vertical post and an open angular bracket.",
+    "svg": "<path d=\"M8 4H22V60H8Q6 60 6 58V6Q6 4 8 4Z\"/><path d=\"M44 13H60L44 35L63 59H44L28 36Q26 34 28 31L42 14Q43 13 44 13Z\"/>"
+  },
+  {
+    "name": "rivet",
+    "rank": 4,
+    "idea": "Two stepped plates meeting around a single circular space: an abstract assembled connection.",
+    "svg": "<path d=\"M2 16H42L50 24H62V33H42A10 10 0 0 0 22 33H2Z\"/><path d=\"M13 36H22.46A10 10 0 0 0 41.54 36H59V49H24L13 40Z\"/>"
+  }
+]

@@ -1,3 +1,9 @@
+import { centerFeatures } from './center-features';
+import { activitySettings } from './activity-settings';
+import { kioskSettings } from './kiosk-settings';
+import { validateStaffProfiles } from './staff-profile';
+import { validateReceptionReceipts } from './kiosk-attendance';
+import { validateDailyWork } from './worksheet-allocation';
 import { mkdir, readFile, rename, writeFile, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { seed } from './seed';
@@ -46,6 +52,17 @@ async function locked<T>(fn: () => Promise<T>) {
   }
 }
 export function validateDatabase(db: Database) {
+  centerFeatures(db);
+  activitySettings(db);
+  kioskSettings(db);
+  validateStaffProfiles(db);
+  validateReceptionReceipts(db);
+  validateDailyWork(db);
+  const centerVersion = db.operations?.center.version;
+  if (centerVersion !== undefined && (!Number.isInteger(centerVersion) || centerVersion < 0))
+    throw Error(
+      'Invalid center settings version. Restore a validated backup; records will not be reset.',
+    );
   if (
     ![1, 2, 3].includes(db.schemaVersion) ||
     !Number.isInteger(db.revision) ||
@@ -60,36 +77,41 @@ export function validateDatabase(db: Database) {
     throw new Error('Unsupported or damaged data. Restore a backup; records will not be reset.');
   if (new Set(db.students.map((s) => s.id)).size !== db.students.length)
     throw new Error('Duplicate student identities in backup.');
+  if (new Set(db.students.map((s) => s.token)).size !== db.students.length)
+    throw new Error(
+      'Duplicate pouch identifiers in backup. Restore a validated backup; identifiers will not be regenerated.',
+    );
 }
 async function localLoad() {
-  let db: Database;
+  let raw: string;
   try {
-    const raw = await readFile(/* turbopackIgnore: true */ dataFilename(), 'utf8');
-    db = JSON.parse(raw);
-    validateDatabase(db);
-    if (db.schemaVersion === 1) {
-      try {
-        await writeFile(dataFilename() + '.v1-backup.json', raw, { flag: 'wx', mode: 0o600 });
-      } catch (e) {
-        if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-      }
-      migrateV2(db);
-      await save(db);
-    }
-    if (db.schemaVersion === 2) {
-      const before = JSON.stringify(db, null, 2);
-      try {
-        await writeFile(dataFilename() + '.v2-backup.json', before, { flag: 'wx', mode: 0o600 });
-      } catch (e) {
-        if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-      }
-      migrateV3(db);
-      await save(db);
-    }
+    raw = await readFile(/* turbopackIgnore: true */ dataFilename(), 'utf8');
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
-    db = seed();
+    const db = seed();
     migrateV2(db);
+    migrateV3(db);
+    await save(db);
+    return db;
+  }
+  const db: Database = JSON.parse(raw);
+  validateDatabase(db);
+  if (db.schemaVersion === 1) {
+    try {
+      await writeFile(dataFilename() + '.v1-backup.json', raw, { flag: 'wx', mode: 0o600 });
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+    }
+    migrateV2(db);
+    await save(db);
+  }
+  if (db.schemaVersion === 2) {
+    const before = JSON.stringify(db, null, 2);
+    try {
+      await writeFile(dataFilename() + '.v2-backup.json', before, { flag: 'wx', mode: 0o600 });
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+    }
     migrateV3(db);
     await save(db);
   }

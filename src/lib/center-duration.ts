@@ -1,6 +1,6 @@
 import { dayKey, type Database } from './model';
 import { measuredMinutes } from './v3-analytics';
-import { addDays, weekday } from './schedule';
+import { calendarBuckets } from './calendar-buckets';
 
 export type DurationVisit = {
   id: string;
@@ -46,31 +46,10 @@ export function durationBuckets(
   end: string,
   unit: 'day' | 'week' | 'month',
 ) {
-  const result: ({ start: string; end: string; records: DurationVisit[] } & ReturnType<
-    typeof durationTotals
-  >)[] = [];
-  let cursor =
-    unit === 'week'
-      ? addDays(start, -((weekday(start) + 6) % 7))
-      : unit === 'month'
-        ? start.slice(0, 7) + '-01'
-        : start;
-  for (let guard = 0; cursor <= end && guard < 3700; guard++) {
-    const next =
-      unit === 'day'
-        ? addDays(cursor, 1)
-        : unit === 'week'
-          ? addDays(cursor, 7)
-          : new Date(Date.UTC(Number(cursor.slice(0, 4)), Number(cursor.slice(5, 7)), 1, 12))
-              .toISOString()
-              .slice(0, 10);
-    const from = cursor < start ? start : cursor,
-      to = addDays(next, -1) > end ? end : addDays(next, -1);
-    const records = visits.filter((v) => v.day >= from && v.day <= to);
-    result.push({ start: from, end: to, records, ...durationTotals(records) });
-    cursor = next;
-  }
-  return result;
+  return calendarBuckets(visits, start, end, unit).map((bucket) => ({
+    ...bucket,
+    ...durationTotals(bucket.records),
+  }));
 }
 
 /** Four legible intervals, a zero baseline, and no clipping of long visits. */

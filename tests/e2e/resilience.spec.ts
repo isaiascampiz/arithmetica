@@ -19,7 +19,7 @@ test('failed observation save keeps the draft and displays its error inside Quic
   await page.reload();
   await page.locator('[data-visit-id="' + v.id + '"]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Optional instructor note').fill('Keep this fictional unsaved draft.');
+  await dialog.getByLabel('Instructional note').fill('Keep this fictional unsaved draft.');
   await page.route('**/api/commands', (route) =>
     route.fulfill({
       status: 503,
@@ -29,7 +29,7 @@ test('failed observation save keeps the draft and displays its error inside Quic
   );
   await dialog.getByRole('button', { name: 'Save observations', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('server unavailable');
-  await expect(dialog.getByLabel('Optional instructor note')).toHaveValue(
+  await expect(dialog.getByLabel('Instructional note')).toHaveValue(
     'Keep this fictional unsaved draft.',
   );
 });
@@ -40,7 +40,7 @@ test('installed service worker gives a generic offline page without cached stude
   await login(page);
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Your center, right now.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Let’s reconnect.' })).toBeVisible();

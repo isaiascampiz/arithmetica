@@ -1,13 +1,23 @@
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { kioskSession, sameOrigin, setSession, staffSession, throttle } from '@/lib/auth';
-import { kioskScan } from '@/lib/kiosk-attendance';
+import { receptionEntry } from '@/lib/kiosk-attendance';
 import { repository } from '@/lib/repository';
 import { failure, json } from '@/lib/http';
+const receptionInput = z.union([
+  z
+    .object({ token: z.string().trim().min(1).max(100), requestId: z.string().uuid().optional() })
+    .strict(),
+  z.object({ name: z.string().trim().min(2).max(120), requestId: z.string().uuid() }).strict(),
+]);
 export async function GET() {
   try {
     await kioskSession();
-    return json({ ready: true, demo: process.env.DEMO_MODE !== 'false' });
+    return json({
+      ready: true,
+      demo: process.env.DEMO_MODE !== 'false',
+      confirmationSeconds: 4,
+    });
   } catch (e) {
     return failure(e);
   }
@@ -30,11 +40,9 @@ export async function POST(req: Request) {
     sameOrigin(req);
     await kioskSession();
     throttle('kiosk', 60);
-    const { token } = z
-      .object({ token: z.string().trim().min(1).max(100) })
-      .parse(await req.json());
+    const entry = receptionInput.parse(await req.json());
     const result = await repository.transaction((db) => {
-      return kioskScan(db, token);
+      return receptionEntry(db, entry);
     });
     return json(result);
   } catch (e) {

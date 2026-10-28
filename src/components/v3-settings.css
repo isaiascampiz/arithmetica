@@ -1,0 +1,273 @@
+.v3-settings-workspace {
+  display: grid;
+  grid-template-columns: 215px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+.v3-settings-workspace .settings-content .settings-card {
+  display: none;
+}
+.v3-settings-workspace[data-settings-category='center'] #settings-center,
+.v3-settings-workspace[data-settings-category='center'] #settings-staff,
+.v3-settings-workspace[data-settings-category='kiosk'] #settings-kiosk,
+.v3-settings-workspace[data-settings-category='activity'] #settings-activity,
+.v3-settings-workspace[data-settings-category='activity'] #settings-reports,
+.v3-settings-workspace[data-settings-category='teaching'] #settings-features,
+.v3-settings-workspace[data-settings-category='teaching'] #settings-curriculum,
+.v3-settings-workspace[data-settings-category='personal'] #settings-shortcuts,
+.v3-settings-workspace[data-settings-category='personal'] #settings-appearance,
+.v3-settings-workspace[data-settings-category='access'] #settings-access {
+  display: block;
+}
+.v3-settings-workspace[data-settings-category='activity'] .center-policy,
+.v3-settings-workspace[data-settings-category='center'] .report-policy {
+  display: none;
+}
+.settings-card input[type='checkbox'] {
+  width: 19px;
+  height: 19px;
+  min-height: 19px;
+  padding: 0;
+  margin: 0;
+  flex: 0 0 19px;
+  accent-color: var(--brand);
+  border-radius: 4px;
+}
+.settings-card .center-feature-option,
+.settings-card .check-label {
+  min-height: 44px;
+  cursor: pointer;
+}
+.v3-settings-workspace .kiosk-preview {
+  margin: 22px 0;
+  padding: 30px 20px;
+  text-align: center;
+  background: var(--side);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.v3-settings-workspace .kiosk-preview h3 {
+  margin: 14px 0;
+  font-size: 24px;
+}
+.v3-settings-workspace .kiosk-preview small,
+.v3-settings-workspace .kiosk-preview span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.v3-settings-workspace .settings-camera {
+  max-width: 100%;
+  width: 360px;
+  border-radius: 6px;
+  margin-top: 18px;
+}
+.v3-settings-workspace .settings-camera[hidden] {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .v3-settings-workspace .settings-navigation button {
+    width: auto;
+    flex: 1 1 140px;
+  }
+}
+.v3-settings-workspace .settings-navigation {
+  position: sticky;
+  top: 24px;
+}
+.v3-settings-workspace .settings-nav-label {
+  margin: 18px 12px 8px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.v3-settings-workspace .settings-navigation button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px;
+  min-height: 54px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  text-align: left;
+}
+.v3-settings-workspace .settings-navigation button:hover,
+.v3-settings-workspace .settings-navigation button[aria-current='page'] {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.v3-settings-workspace .settings-navigation button span,
+.v3-settings-workspace .settings-nav-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.v3-settings-workspace .settings-nav-note {
+  margin: 24px 12px;
+  max-width: 170px;
+}
+.v3-settings-workspace .settings-content {
+  min-width: 0;
+}
+.v3-settings-workspace .settings-introduction {
+  padding: 8px 0 24px;
+}
+.v3-settings-workspace .settings-introduction h2 {
+  font-size: 21px;
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+.v3-settings-workspace .settings-introduction p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+.v3-shell .v3-settings-workspace .settings-grid,
+.v3-shell .settings-center-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+.v3-settings-workspace .settings-center-grid {
+  margin-top: 22px;
+}
+.v3-settings-workspace .settings-card,
+.settings-center-grid .settings-card {
+  min-width: 0;
+  padding: 26px;
+  scroll-margin-top: 24px;
+}
+.v3-settings-workspace .settings-card:target,
+.settings-center-grid .settings-card:target {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+}
+.v3-settings-workspace .settings-card h2 {
+  margin: 7px 0 10px;
+  font-size: 17px;
+}
+.v3-settings-workspace .settings-card > p {
+  max-width: 66ch;
+  line-height: 1.65;
+}
+.v3-settings-workspace .settings-scope {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.v3-settings-workspace .settings-card button,
+.v3-settings-workspace .settings-card select,
+.v3-settings-workspace .settings-card input:not([type='checkbox']) {
+  min-height: 44px;
+}
+.v3-settings-workspace .settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.v3-settings-workspace .settings-shortcut-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 15px;
+}
+.v3-settings-workspace .settings-shortcut-preview span {
+  background: var(--side);
+  border: 1px solid var(--line);
+  padding: 8px 11px;
+  border-radius: 5px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.v3-settings-workspace .settings-hours-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.v3-settings-workspace .settings-hours-toolbar button {
+  text-align: left;
+  font-size: 11px;
+}
+.v3-settings-workspace .activity-hour-list {
+  max-width: none;
+  margin-top: 10px;
+}
+.v3-settings-workspace .activity-hour-row > label:first-child {
+  min-height: 44px;
+}
+.v3-settings-workspace .center-feature-option {
+  padding: 20px 0;
+}
+.settings-center-grid fieldset {
+  border: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+}
+@media (max-width: 1050px) {
+  .v3-settings-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .v3-settings-workspace .settings-navigation {
+    position: static;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .v3-settings-workspace .settings-navigation nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .v3-settings-workspace .settings-navigation button {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  .v3-settings-workspace .settings-navigation button span,
+  .v3-settings-workspace .settings-nav-label,
+  .v3-settings-workspace .settings-nav-note {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .v3-settings-workspace .settings-card,
+  .settings-center-grid .settings-card {
+    padding: 20px 16px;
+  }
+  .v3-settings-workspace .settings-introduction h2 {
+    font-size: 19px;
+  }
+  .v3-settings-workspace .activity-hour-row {
+    grid-template-columns: minmax(84px, 1fr) 86px 8px 86px;
+    gap: 5px;
+  }
+  .v3-settings-workspace .activity-hour-row > label {
+    font-size: 11px;
+    gap: 5px;
+  }
+  .v3-settings-workspace .activity-hour-row select {
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+}

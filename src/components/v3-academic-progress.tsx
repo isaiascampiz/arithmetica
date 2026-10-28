@@ -14,7 +14,7 @@ import {
 } from '@/lib/academic-progress';
 import { progressDayX, progressTimeAxis, progressDateLabel } from '@/lib/progress-chart';
 import { useProgressPlotWidth } from './v3-progress-chart';
-import { Empty, useNow } from './shared-ui';
+import { Empty, useCenterDay } from './shared-ui';
 import type { AcademicEvent } from '@/lib/academic-progress';
 
 export function AcademicProgress({
@@ -63,7 +63,7 @@ export function AcademicProgress({
     document.addEventListener('pointerdown', dismiss);
     return () => document.removeEventListener('pointerdown', dismiss);
   }, [selected]);
-  const today = dayKey(useNow(), db.timezone);
+  const today = useCenterDay(db.timezone);
   const all = useMemo(() => academicHistory(db, student.id, subject), [db, student.id, subject]);
   const firstDay = all.length ? dayKey(all[0].at, db.timezone) : today;
   const window = academicWindow(detail ? period : '8 weeks', detail ? offset : 0, today, firstDay);

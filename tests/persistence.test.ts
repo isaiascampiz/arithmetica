@@ -26,6 +26,20 @@ test('serialized concurrent writes persist without dropping records; corrupt dat
   assert.equal(persisted.audit.length, initial.audit.length + 30);
   assert.equal(persisted.revision, original + 30);
   assert.equal((await repository.read()).students[0].token, initial.students[0].token);
+  const committed = await repository.transaction((db) => {
+    db.audit.push({
+      id: 'returned-snapshot',
+      action: 'test',
+      actor: 'test',
+      at: new Date().toISOString(),
+      entityId: 'test',
+    });
+    return db;
+  });
+  assert.equal(committed.revision, original + 31);
+  assert.deepEqual(committed, JSON.parse(await readFile(process.env.DEMO_DATA_PATH, 'utf8')));
+  const unchanged = await repository.transaction((db) => db);
+  assert.equal(unchanged.revision, committed.revision);
   await writeFile(process.env.DEMO_DATA_PATH, 'damaged test data');
   await assert.rejects(repository.read());
   assert.equal(await readFile(process.env.DEMO_DATA_PATH, 'utf8'), 'damaged test data');

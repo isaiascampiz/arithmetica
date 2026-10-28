@@ -1,4 +1,6 @@
+import { dailyWorkInput, preserveDailyWork } from './worksheet-allocation';
 import { randomUUID } from 'node:crypto';
+import { centerFeatures } from './center-features';
 import { z } from 'zod';
 import { DomainError } from './domain';
 import { dayKey, isOpenVisit, type Database, type Staff } from './model';
@@ -38,6 +40,7 @@ const range = z
 export const subjectSettingsInput = z
   .object({
     enrolled: z.boolean(),
+    dailyWork: dailyWorkInput.optional(),
     format: z.enum(['Paper', 'CONNECT']),
     level: z.string().trim().min(1).max(20),
     currentStart: z.number().int().min(1).max(10000),
@@ -208,6 +211,7 @@ export const v2CommandInput = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('center-save'),
+    expectedVersion: z.number().int().min(0).optional(),
     name: z.string().trim().min(1).max(100),
     operatingDays: days,
     closedDates: z.array(dateInput).max(100),
@@ -237,6 +241,26 @@ const workflow: Partial<Record<AssignmentStatus, AssignmentStatus[]>> = {
   deferred: ['proposed'],
 };
 export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date()) {
+  const features = centerFeatures(db);
+  if (!features.medals && c.action === 'achievement')
+    throw new DomainError('Achievement medals are turned off.', 409);
+  if (
+    !features.homework &&
+    [
+      'plan',
+      'plan-batch',
+      'assignment-status',
+      'assignment-refresh',
+      'completion',
+      'classwork',
+      'classwork-update',
+      'decision',
+      'decision-approve',
+      'correction-add',
+      'correction-update',
+    ].includes(c.action)
+  )
+    throw new DomainError('Homework workflows are turned off.', 409);
   const op = operations(db),
     at = now.toISOString();
   let entityId = '';
@@ -292,22 +316,49 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     const old = op.students[s.id];
     if (op.v3 && c.settings.recurringDays.some((d) => d < 1 || d > 4))
       throw new DomainError('Regular visits are Monday–Thursday only.');
-    if (old.version !== c.settings.version)
+    const settings = {
+      ...c.settings,
+      subjects: {
+        Math: preserveDailyWork(old.subjects.Math, c.settings.subjects.Math),
+        Reading: preserveDailyWork(old.subjects.Reading, c.settings.subjects.Reading),
+      },
+    };
+    if (!features.homework)
+      for (const sub of ['Math', 'Reading'] as Subject[]) {
+        const keys = [
+          'level',
+          'currentStart',
+          'currentEnd',
+          'nextStart',
+          'packetsPerDay',
+          'sheetsPerPacket',
+          'classworkSheets',
+        ] as const;
+        if (
+          keys.some((key) => settings.subjects[sub][key] !== old.subjects[sub][key]) ||
+          JSON.stringify(settings.subjects[sub].dailyWork) !==
+            JSON.stringify(old.subjects[sub].dailyWork)
+        )
+          throw new DomainError(
+            'Homework workflows are turned off. Reopen the student profile.',
+            409,
+          );
+      }
+    if (old.version !== settings.version)
       throw new DomainError(
         'This profile changed on another device. Reload the profile before saving.',
         409,
       );
-    if (c.settings.familyId && !op.families.some((f) => f.id === c.settings.familyId))
+    if (settings.familyId && !op.families.some((f) => f.id === settings.familyId))
       throw new DomainError('Family no longer exists.');
-    if (!c.settings.subjects.Math.enrolled && !c.settings.subjects.Reading.enrolled)
+    if (!settings.subjects.Math.enrolled && !settings.subjects.Reading.enrolled)
       throw new DomainError('Enroll at least one subject.');
     op.students[s.id] = {
       ...old,
-      ...c.settings,
+      ...settings,
       expectedMinutesOverride:
-        c.settings.expectedMinutesOverride ??
-        (c.settings.expectedMinutes !== old.expectedMinutes ||
-          Boolean(old.expectedMinutesOverride)),
+        settings.expectedMinutesOverride ??
+        (settings.expectedMinutes !== old.expectedMinutes || Boolean(old.expectedMinutesOverride)),
       version: old.version + 1,
       updatedAt: at,
     };
@@ -319,12 +370,12 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
       .join('')
       .toUpperCase();
     s.earlyLearner = c.earlyLearner;
-    s.subjects = (['Math', 'Reading'] as Subject[]).filter((x) => c.settings.subjects[x].enrolled);
-    s.level = c.settings.subjects[s.subjects[0] as Subject].level;
+    s.subjects = (['Math', 'Reading'] as Subject[]).filter((x) => settings.subjects[x].enrolled);
+    s.level = settings.subjects[s.subjects[0] as Subject].level;
     op.configHistory.push({
       studentId: s.id,
       at,
-      subjects: structuredClone(c.settings.subjects),
+      subjects: structuredClone(settings.subjects),
       name: s.name,
       settings: structuredClone(op.students[s.id]),
     });
@@ -377,7 +428,7 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
       throw new DomainError('The requested visit is on a center closure day.');
     entityId = randomUUID();
     op.scheduleEvents.push({ ...c, id: entityId, createdAt: at, author: staff.name });
-    if (c.kind === 'vacation')
+    if (features.homework && c.kind === 'vacation')
       for (const s of db.students.filter(
         (s) => s.id === c.studentId || (c.familyId && op.students[s.id].familyId === c.familyId),
       )) {
@@ -913,10 +964,22 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
   } else if (c.action === 'center-save') {
     if (staff.role !== 'owner')
       throw new DomainError('Only the owner can configure center settings.', 403);
-    Object.assign(op.center, c);
+    if (c.expectedVersion !== undefined && c.expectedVersion !== (op.center.version || 0))
+      throw new DomainError('Center settings changed. Reload saved settings before saving.', 409);
+    Object.assign(op.center, {
+      name: c.name,
+      operatingDays: c.operatingDays,
+      closedDates: c.closedDates,
+      closingTime: c.closingTime,
+      reportTime: c.reportTime,
+      autoClose: c.autoClose,
+      expectedMinutes: c.expectedMinutes,
+      earlyPerInstructor: c.earlyPerInstructor,
+      version: (op.center.version || 0) + 1,
+    });
     entityId = 'center';
   }
-  refreshProposals(db, now);
+  if (features.homework) refreshProposals(db, now);
   db.audit.push({ id: randomUUID(), action: c.action, actor: staff.name, at, entityId });
   return entityId;
 }

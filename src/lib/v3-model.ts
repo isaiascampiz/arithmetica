@@ -1,6 +1,7 @@
 import type { Range, Subject } from './v2-model';
 export type Activity = 'Worksheets' | 'Corrections only' | 'Both';
 export type SessionRecord = {
+  mode?: 'activity-only';
   subject: Subject;
   at: string;
   actor: string;
@@ -48,6 +49,7 @@ export type PaperSet = {
   temporaryPaper?: boolean;
 };
 export type Handoff = {
+  mode?: 'activity-only';
   at: string;
   actor: string;
   activities: Partial<Record<Subject, Activity>>;
@@ -65,7 +67,23 @@ export type CatalogLevel = {
   source: string;
 };
 export type V3Settings = {
+  staffProfiles?: Record<string, StaffProfile>;
+  accountRequests?: Record<string, { fingerprint: string; owner: string }>;
+  receptionReceipts?: Record<
+    string,
+    { fingerprint: string; result: { message: string; changed: boolean; direction?: 'in' | 'out'; studentName?: string } }
+  >;
+  kiosk?: { version: number; confirmationSeconds: number };
+  activityHours?: { version: number; days: import('./activity-settings').ActivityHours };
+  features?: { homework: boolean; medals: boolean; version: number };
   catalog: CatalogLevel[];
   instructorTiles: Record<string, string[]>;
   migratedAt: string;
+};
+export type StaffProfile = {
+  version: number;
+  firstName: string;
+  lastName: string;
+  picture: string;
+  disabledAt?: string;
 };

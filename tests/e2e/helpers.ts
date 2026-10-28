@@ -4,9 +4,10 @@ import type { V2Command } from '../../src/lib/v2-domain';
 import type { V3Command } from '../../src/lib/v3-domain';
 import { repository } from '../../src/lib/repository';
 import { runDueJobs } from '../../src/lib/reports';
-import { zonedTimestamp } from '../../src/lib/schedule';
+import { zonedTimestamp, addDays, localClock } from '../../src/lib/schedule';
 import path from 'node:path';
 import { currentSets, incomingPackets } from '../../src/lib/v3-planning';
+import { dayKey } from '../../src/lib/model';
 export async function login(page: Page, role = 'owner') {
   await page.goto('/login');
   await page.getByLabel('Email address').fill(role + '@demo.center');
@@ -20,14 +21,14 @@ export async function login(page: Page, role = 'owner') {
           : 'CenterDemo!2026',
     );
   await page.getByRole('button', { name: 'Sign in to your center' }).click();
-  await expect(page.getByRole('heading', { name: 'Your center, right now.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
 }
 export async function state(page: Page): Promise<Snapshot> {
   return await (await page.request.get('/api/state')).json();
 }
 export async function command(page: Page, kind: 'v2' | 'v3', command: V2Command | V3Command) {
   const r = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: { kind, command, requestId: crypto.randomUUID() },
   });
   expect(r.ok(), await r.text()).toBe(true);
@@ -35,7 +36,7 @@ export async function command(page: Page, kind: 'v2' | 'v3', command: V2Command 
 }
 export async function physical(page: Page, studentId: string, direction: 'in' | 'out') {
   const r = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: { kind: 'attendance', studentId, direction, requestId: crypto.randomUUID() },
   });
   expect(r.ok(), await r.text()).toBe(true);
@@ -62,7 +63,12 @@ export async function learner(page: Page, format: 'Paper' | 'CONNECT' = 'Paper')
     earlyLearner: true,
     settings: cfg,
     enrollmentDate: '2026-01-01',
-    visitDays: [1, 3],
+    // Tests exercising outgoing packets need at least one day before the next
+    // visit, including when this suite runs on Tuesday or Sunday.
+    visitDays: [1, 3].filter(
+      (day) =>
+        day !== (new Date(dayKey(new Date(), db.timezone) + 'T12:00:00Z').getUTCDay() + 1) % 7,
+    ),
     tiles: [],
     goals: 'Fictional independent work goal',
     arrivalWindow: '',
@@ -141,7 +147,9 @@ export async function handoff(page: Page, visit: Visit) {
 }
 export async function simulatedClosure(visitId: string, date: string) {
   const env = { ...process.env };
-  process.env.DEMO_DATA_PATH = path.resolve('data/e2e-v3.json');
+  process.env.DEMO_DATA_PATH = path.resolve(
+    process.env.CENTERFLOW_E2E_DATA_PATH || 'data/e2e-v3.json',
+  );
   process.env.DATA_ADAPTER = 'local';
   process.env.DEMO_MODE = 'true';
   try {
@@ -150,7 +158,14 @@ export async function simulatedClosure(visitId: string, date: string) {
       if (!v) throw Error('Fictional visit missing');
       const simulated = structuredClone(db);
       simulated.visits = simulated.visits.filter((v) => v.id === visitId);
-      const stamp = zonedTimestamp(date, '19:16', db.operations!.center.timezone);
+      const afterHours =
+        localClock(new Date(v.arrivedAt), db.operations!.center.timezone) >=
+        db.operations!.center.closingTime;
+      const stamp = zonedTimestamp(
+        afterHours ? addDays(date, 1) : date,
+        afterHours ? '00:01' : '19:16',
+        db.operations!.center.timezone,
+      );
       runDueJobs(simulated, new Date(stamp));
       Object.assign(v, simulated.visits[0]);
       db.audit.push(

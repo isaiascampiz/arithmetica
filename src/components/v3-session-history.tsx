@@ -1,11 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { centerFeatures } from '@/lib/center-features';
 import type { Snapshot, Visit, Observation } from '@/lib/model';
 import type { Subject } from '@/lib/v2-model';
 import { packetLabel } from '@/lib/v3-planning';
 import { matchVisit } from '@/lib/v3-analytics';
 import { Modal, DictatedNote, type V3Act } from './v3-shared';
 import { Avatar, date, time } from './shared-ui';
+import { VerifyCompletion } from './verify-completion';
 
 export function SessionHistory({
   db,
@@ -15,6 +17,7 @@ export function SessionHistory({
   review,
   error,
   close,
+  readOnly = false,
 }: {
   db: Snapshot;
   visit: Visit;
@@ -23,6 +26,7 @@ export function SessionHistory({
   review: (id: string) => Promise<boolean>;
   error: string;
   close: () => void;
+  readOnly?: boolean;
 }) {
   const student = db.students.find((s) => s.id === visit.studentId)!;
   const recorded = visit.sessionRecords || [];
@@ -38,6 +42,7 @@ export function SessionHistory({
   const record = recorded.filter((r) => r.subject === subject).at(-1);
   const assignment = assignments.find((a) => a.subject === subject);
   const confirmation = visit.subjectCheckIns?.[subject] || visit.handoff;
+  const showPackets = centerFeatures(db).homework && record?.mode !== 'activity-only';
   const activity = record?.activity || confirmation?.activities[subject];
   const notes = db.observations.filter(
     (o) =>
@@ -67,7 +72,9 @@ export function SessionHistory({
       className="quick-view past-session"
       close={close}
     >
-      <p className="small muted">Recorded session · Homework and in-center work are read-only.</p>
+      <p className="small muted">
+        Recorded session · Original packet and activity records are preserved.
+      </p>
       <div className="quick-subject-tabs" role="tablist" aria-label="Recorded subjects">
         {subjects.map((s, index) => (
           <button
@@ -111,32 +118,36 @@ export function SessionHistory({
           <p>Subject details were not recorded for this visit.</p>
         ) : (
           <>
-            <h4>Homework received</h4>
-            {record ? (
-              record.format === 'CONNECT' ? (
-                <p>Assignments managed in Kumon CONNECT.</p>
-              ) : record.incoming.length ? (
-                <div className="history-packets">
-                  {record.incoming.map((i) => (
-                    <div className="packet-chip" key={i.packet.id}>
-                      {packetLabel(i.packet)}
-                      <small>
-                        {i.outcome === 'assumed completed'
-                          ? 'Completed'
-                          : i.outcome === 'finished'
-                            ? 'Reported completed'
-                            : i.outcome}
-                      </small>
+            {showPackets && (
+              <>
+                <h4>Homework received</h4>
+                {record ? (
+                  record.format === 'CONNECT' ? (
+                    <p>Assignments managed in Kumon CONNECT.</p>
+                  ) : record.incoming.length ? (
+                    <div className="history-packets">
+                      {record.incoming.map((i) => (
+                        <div className="packet-chip" key={i.packet.id}>
+                          {packetLabel(i.packet)}
+                          <small>
+                            {i.outcome === 'assumed completed'
+                              ? 'Completed'
+                              : i.outcome === 'finished'
+                                ? 'Reported completed'
+                                : i.outcome}
+                          </small>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No incoming packets recorded.</p>
-              )
-            ) : (
-              <p className="muted">Incoming packet details were not recorded for this visit.</p>
+                  ) : (
+                    <p>No incoming packets recorded.</p>
+                  )
+                ) : (
+                  <p className="muted">Incoming packet details were not recorded for this visit.</p>
+                )}
+              </>
             )}
-            <h4>In-center work</h4>
+            <h4>{showPackets ? 'In-center work' : 'In-center activity'}</h4>
             <p>
               {activity === 'Worksheets'
                 ? 'Packet'
@@ -144,32 +155,48 @@ export function SessionHistory({
                   ? 'Corrections'
                   : activity || 'Activity not recorded'}
             </p>
-            <div className="history-packets">
-              {record
-                ? record.center && <span className="packet-chip">{packetLabel(record.center)}</span>
-                : assignment?.v3?.inCenter && (
-                    <span className="packet-chip">{packetLabel(assignment.v3.inCenter)}</span>
-                  )}
-            </div>
-            <h4>Homework sent home</h4>
-            {record?.format === 'CONNECT' ? (
-              <p>Assignments managed in Kumon CONNECT.</p>
-            ) : (
-              <div className="history-packets">
-                {(record?.outgoing || assignment?.v3?.issued || []).map((p) => (
-                  <span className="packet-chip" key={p.id}>
-                    {packetLabel(p)}
-                  </span>
-                ))}
-              </div>
+            {showPackets && (
+              <>
+                <div className="history-packets">
+                  {record
+                    ? record.center && (
+                        <span className="packet-chip">{packetLabel(record.center)}</span>
+                      )
+                    : assignment?.v3?.inCenter && (
+                        <span className="packet-chip">{packetLabel(assignment.v3.inCenter)}</span>
+                      )}
+                </div>
+                <h4>Homework sent home</h4>
+                {record?.format === 'CONNECT' ? (
+                  <p>Assignments managed in Kumon CONNECT.</p>
+                ) : (
+                  <div className="history-packets">
+                    {(record?.outgoing || assignment?.v3?.issued || []).map((p) => (
+                      <span className="packet-chip" key={p.id}>
+                        {packetLabel(p)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!record && !assignment?.v3?.issuedAt && (
+                  <p className="muted">Issuance details were not recorded.</p>
+                )}
+                {record?.reason && (
+                  <p>
+                    <b>Adjustment / repeat reason:</b> {record.reason}
+                  </p>
+                )}
+              </>
             )}
-            {!record && !assignment?.v3?.issuedAt && (
-              <p className="muted">Issuance details were not recorded.</p>
-            )}
-            {record?.reason && (
-              <p>
-                <b>Adjustment / repeat reason:</b> {record.reason}
-              </p>
+            {!readOnly && (
+              <VerifyCompletion
+                key={visit.id + ':' + subject}
+                db={db}
+                visitId={visit.id}
+                subject={subject}
+                act={act}
+                busy={busy}
+              />
             )}
             {record && (
               <p className="small muted">
@@ -187,10 +214,20 @@ export function SessionHistory({
                       <p>
                         {r.actor} · {time(r.at, db.timezone)} · {r.reason || 'Original check-in'}
                       </p>
-                      <p>
-                        In center: {r.center ? packetLabel(r.center) : 'No packet'} · Homework:{' '}
-                        {r.outgoing.map(packetLabel).join(', ') || 'None'}
-                      </p>
+                      {centerFeatures(db).homework && r.mode !== 'activity-only' ? (
+                        <p>
+                          In center: {r.center ? packetLabel(r.center) : 'No packet'} · Homework:{' '}
+                          {r.outgoing.map(packetLabel).join(', ') || 'None'}
+                        </p>
+                      ) : (
+                        <p>
+                          {r.activity === 'Worksheets'
+                            ? 'Packet'
+                            : r.activity === 'Corrections only'
+                              ? 'Corrections'
+                              : r.activity}
+                        </p>
+                      )}
                     </div>
                   ))}
               </details>
@@ -209,6 +246,7 @@ export function SessionHistory({
             act={act}
             busy={busy}
             review={review}
+            readOnly={readOnly}
           />
         ))}
         {evaluations.map((e) => (
@@ -224,12 +262,13 @@ export function SessionHistory({
             <small>{e.author}</small>
           </article>
         ))}
-        {decisions.map((d) => (
-          <p key={d.id}>
-            {d.subject} / {d.kind} / {d.range.level}
-            {d.range.start}-{d.range.end} / {d.note}
-          </p>
-        ))}
+        {centerFeatures(db).homework &&
+          decisions.map((d) => (
+            <p key={d.id}>
+              {d.subject} / {d.kind} / {d.range.level}
+              {d.range.start}-{d.range.end} / {d.note}
+            </p>
+          ))}
         {error && (
           <p className="error" role="alert">
             {error}
@@ -244,11 +283,13 @@ function HistoricalObservation({
   db,
   act,
   busy,
+  readOnly = false,
 }: {
   entry: Observation;
   db: Snapshot;
   act: V3Act;
   busy: boolean;
+  readOnly?: boolean;
   review: (id: string) => Promise<boolean>;
 }) {
   const current = entry.revisions?.at(-1) || entry;
@@ -263,27 +304,27 @@ function HistoricalObservation({
           {!!ratings.length && <h4>Skill ratings</h4>}
           <div className="history-rating-editor">
             {ratings.map((r) => (
-              <label key={r.id}>
+              <div key={r.id}>
                 <span>{r.label}</span>
                 <output>{r.score}/5</output>
-                <input
-                  aria-label={r.label + ' rating'}
-                  type="range"
-                  min={1}
-                  max={5}
-                  value={r.score}
-                  style={{
-                    backgroundImage: `linear-gradient(to right, var(--brand) ${(r.score / 5) * 100}%, var(--line) ${(r.score / 5) * 100}%)`,
-                  }}
-                  onChange={(e) =>
-                    setRatings(
-                      ratings.map((item) =>
-                        item.id === r.id ? { ...item, score: Number(e.target.value) } : item,
-                      ),
-                    )
-                  }
-                />
-              </label>
+                <div className="skill-rating-buttons" role="group" aria-label={r.label + ' rating'}>
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      type="button"
+                      key={score}
+                      aria-label={r.label + ': ' + score + ' out of 5'}
+                      aria-pressed={r.score === score}
+                      onClick={() =>
+                        setRatings(
+                          ratings.map((item) => (item.id === r.id ? { ...item, score } : item)),
+                        )
+                      }
+                    >
+                      {score}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
           <DictatedNote
@@ -361,7 +402,7 @@ function HistoricalObservation({
             </>
           )}
           {entry.followUp && <p className="small muted">Follow-up</p>}
-          {db.staff.role !== 'assistant' && (
+          {!readOnly && db.staff.role !== 'assistant' && (
             <button
               className="text-button"
               onClick={() => {

@@ -59,7 +59,7 @@ export async function cloudStaff(token?: string): Promise<Staff> {
   const member = memberships[0];
   if (!member || !['owner', 'instructor', 'assistant'].includes(member.role))
     throw new DomainError('No active center membership.', 403);
-  return { name: member.display_name, role: member.role as Role };
+  return { name: member.display_name, role: member.role as Role, id: user.id, email: user.email };
 }
 export async function refreshCloudSession() {
   const { url, key } = config();

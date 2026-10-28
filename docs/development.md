@@ -57,3 +57,22 @@ Official source checked October 15, 2026: [OpenAI cloud environment documentatio
 | Empty-project provisioning gate  | `ALLOW_CLOUD_PROVISION` (normally false)                                                                          |
 
 See `operations.md` for the existing cloud adapter and recovery procedure. Never paste production credentials into source files or task descriptions.
+
+## Performance and repeatable browser checks
+
+`pnpm benchmark` runs an in-memory fictional workload with 2,110 visits and 216 assignments. It measures date conversion, Home, occupancy, preparation synchronization, chart grouping and repeat planning, using a warmup and five samples per case. It never reads or writes the records repository. Compare medians on the same machine and avoid running CPU-heavy tasks alongside it. Heap samples are not proof of a memory leak or a memory improvement. See [the October audit](audit-2026-10-18.md) for findings and measurements.
+
+`package.json` pins pnpm 11.25.0 for Corepack. If `pnpm` is absent from PATH but Corepack is available, `corepack pnpm lint` (or `typecheck`, `test`, `build`, `test:e2e`, `benchmark`) uses that pinned version without upgrading dependencies.
+
+Normal `pnpm test:e2e` runs initialize a new fictional file in `data/e2e-runs/<unique ID>/state.json`. Existing test and demo data are retained. The browser-test server invokes the installed Next executable directly and uses local fictional mode with the scheduler disabled. `CENTERFLOW_E2E_DATA_PATH` is a test-harness override shared by the server and attendance-closure helper; only use isolated fictional data. With `E2E_EXTERNAL_SERVER=true`, explicitly select the matching test file or the historical default `data/e2e-v3.json` is used. Application `.env.example` settings are unchanged.
+
+TypeScript and editor watchers exclude runtime records, test artifacts and package caches. Source files and generated Next route types remain checked. Store source backup copies with a non-source suffix or outside compiler input paths.
+
+If another isolated browser run owns port 3100, choose a separate test port without stopping it:
+
+```powershell
+$env:CENTERFLOW_E2E_PORT = '3110'
+corepack pnpm test:e2e
+```
+
+The Playwright server and test write origins follow this port. Each run still uses its own fictional data path. If pnpm is absent from PATH, corepack pnpm invokes the pinned project package manager.

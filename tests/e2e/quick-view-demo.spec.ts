@@ -33,7 +33,7 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
     if (request.method() === 'POST' && request.url().endsWith('/api/commands')) writes++;
   });
   await page.reload();
-  await expect(page.locator('.center-switch')).toContainText('FICTIONAL Quick View demo');
+  await expect(page.locator('.live-v3')).toContainText(fixture.students[0].name);
   const dialog = page.getByRole('dialog');
   for (const [index, student] of fixture.students.entries()) {
     const visit = fixture.visits.find((v) => v.studentId === student.id && isOpenVisit(v))!;
@@ -67,24 +67,27 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
       index === 0 ? 'Prepared' : 'Not prepared',
     );
     await expect(dialog.getByRole('heading', { name: 'Skill ratings' })).toBeVisible();
-    await expect(dialog.getByRole('slider')).toHaveCount(3);
+    await expect(dialog.locator('.skill-rating-buttons')).toHaveCount(3);
     await expect(dialog).not.toContainText('Slide to rate');
     await expect(dialog.locator('.quick-note label')).toHaveCount(0);
-    await expect(dialog.getByLabel('Optional instructor note')).toHaveCount(1);
+    await expect(dialog.getByLabel('Instructional note')).toHaveCount(1);
     if (index === 0) {
-      const focus = dialog.getByRole('slider', { name: 'Focus rating' });
-      await focus.fill('4');
+      const focus = dialog.getByRole('button', { name: 'Focus: 4 out of 5', exact: true });
+      await focus.click();
       await dialog.getByRole('button', { name: 'Customize', exact: true }).click();
       await dialog.getByRole('button', { name: 'Move Focus down' }).click();
-      await expect(focus).toHaveValue('4');
+      await expect(focus).toHaveAttribute('aria-pressed', 'true');
       await dialog.getByRole('button', { name: '+ Add custom', exact: true }).click();
       await dialog
         .getByRole('textbox', { name: 'Custom observation skill' })
         .fill('Following instructions');
-      await dialog.getByRole('button', { name: 'Add', exact: true }).click();
-      await expect(dialog.getByRole('slider')).toHaveCount(4);
-      await focus.fill('0');
-      await expect(focus).toHaveAttribute('aria-valuetext', 'Not rated');
+      await page
+        .getByRole('dialog', { name: 'Add skill', exact: true })
+        .getByRole('button', { name: 'Add skill', exact: true })
+        .click();
+      await expect(dialog.locator('.skill-rating-buttons')).toHaveCount(4);
+      await focus.click();
+      await expect(focus).toHaveAttribute('aria-pressed', 'false');
       await dialog.getByRole('button', { name: 'Customize', exact: true }).click();
     }
     await expect(
@@ -101,7 +104,9 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
     await firstIncoming.click();
     const returned = panel.getByRole('button', { name: 'Undo unfinished ' + range, exact: true });
     await expect(returned).toHaveClass(/unfinished/);
-    await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip')).toHaveText(range);
+    await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip > span')).toHaveText(
+      range,
+    );
     await expect(panel.getByRole('button', { name: /^Mark unfinished / })).toHaveCount(
       index === 1 ? 3 : 1,
     );
@@ -110,11 +115,11 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
       const cards = panel.getByRole('button', { name: /^Mark unfinished / });
       const ranges = await cards.allTextContents();
       const originalCenter = await panel
-        .locator('[aria-label="Today\'s packet"] .packet-chip')
+        .locator('[aria-label="Today\'s packet"] .packet-chip > span')
         .innerText();
       await cards.nth(1).click();
       await cards.first().click();
-      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip')).toHaveText(
+      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip > span')).toHaveText(
         ranges[0],
       );
       await expect(panel.locator('.quick-outgoing-cards [role="listitem"] > span')).toHaveText([
@@ -179,7 +184,7 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
       await page.screenshot({ path: 'test-results/quick-view-adjust-phone.png' });
       await panel.getByRole('button', { name: 'Confirm adjustment', exact: true }).click();
       await expect(panel.locator('.quick-plan-editor')).toHaveCount(0);
-      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip')).toHaveText(
+      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip > span')).toHaveText(
         'D11–15',
       );
       await expect(panel.locator('.quick-outgoing-cards [role="listitem"] > span')).toHaveText(
@@ -197,7 +202,7 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
         .getByLabel('Adjustment reason', { exact: true })
         .fill('Fictional homework-only adjustment');
       await panel.getByRole('button', { name: 'Confirm adjustment', exact: true }).click();
-      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip')).toHaveText(
+      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip > span')).toHaveText(
         originalCenter,
       );
       await expect(panel.locator('.quick-outgoing-cards [role="listitem"] > span')).toHaveText([
@@ -253,7 +258,7 @@ test('fictional Quick View demo shows incoming packets, unfinished packet moveme
       expect(reasonBeforeConfirm).toBe(true);
       await page.screenshot({ path: 'test-results/quick-view-repeat-phone.png' });
       await confirmRepeat.click();
-      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip')).toHaveText(
+      await expect(panel.locator('[aria-label="Today\'s packet"] .packet-chip > span')).toHaveText(
         originalCenter,
       );
       await expect(panel.locator('.quick-outgoing-cards [role="listitem"] > span')).toHaveText([

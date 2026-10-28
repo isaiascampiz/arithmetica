@@ -1,10 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import QRCode from 'qrcode';
-import { learner, state } from './helpers';
+import { arrive, learner, state } from './helpers';
 async function login(page: Page) {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Sign in to your center' }).click();
-  await expect(page.getByRole('heading', { name: 'Your center, right now.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
 }
 test('real QR decoder reads a synthetic camera stream and releases it', async ({ page }) => {
   await login(page);
@@ -12,7 +12,10 @@ test('real QR decoder reads a synthetic camera stream and releases it', async ({
   const student = await learner(page, 'CONNECT');
   const token = (await state(page)).students.find((s) => s.id === student.id)!.token;
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).last().click();
-  await expect(page.getByRole('heading', { name: 'SCAN YOUR POUCH' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Lock for shared use' }).click();
+  await expect(page).toHaveURL(/\/kiosk$/);
+  await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
   const image = await QRCode.toDataURL(token, { width: 400, margin: 4 });
   await page.evaluate((src) => {
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
@@ -41,7 +44,7 @@ test('real QR decoder reads a synthetic camera stream and releases it', async ({
       },
     });
   }, image);
-  await page.getByRole('button', { name: 'Start camera' }).click();
+  await page.getByRole('button', { name: 'Use camera' }).click();
   await expect(page.getByRole('status')).toContainText(/checked (in|out)/);
   await expect
     .poll(() =>
@@ -62,13 +65,14 @@ test('separate staff devices see shared persistent notes; themes and larger layo
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await login(otherPage);
-  const state = await (await page.request.get('/api/state')).json();
+  const student = await learner(page, 'CONNECT');
+  const visit = await arrive(page, student.id);
   const note = `Shared fictional note ${Date.now()}`;
   const response = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://127.0.0.1:3100' },
+    headers: { Origin: new URL(page.url()).origin },
     data: {
       kind: 'observation',
-      studentId: state.students[2].id,
+      studentId: student.id,
       choices: ['Strong focus'],
       text: note,
       followUp: true,
@@ -77,13 +81,20 @@ test('separate staff devices see shared persistent notes; themes and larger layo
   expect(response.ok()).toBe(true);
   await otherPage.reload();
   await otherPage.getByRole('button', { name: 'Student Roster', exact: true }).click();
-  await otherPage.getByLabel('Search Student Roster').fill(state.students[2].name);
-  await otherPage.locator('.roster-v3-person').filter({ hasText: state.students[2].name }).click();
+  await otherPage.getByLabel('Search Student Roster').fill(student.name);
+  await otherPage.locator('.roster-v3-person').filter({ hasText: student.name }).click();
   await otherPage.getByRole('button', { name: 'Visit History', exact: true }).click();
-  await expect(otherPage.locator('.history-note').filter({ hasText: note })).toBeVisible();
+  await otherPage
+    .locator('[data-history-visit="' + visit.id + '"]')
+    .getByRole('button', { name: 'View session' })
+    .click();
+  await expect(
+    otherPage.getByRole('dialog').locator('.history-note').filter({ hasText: note }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: 'test-results/v3-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await page.getByRole('button', { name: 'Theme', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.screenshot({ path: 'test-results/v3-dark.png', fullPage: true });
   await page.setViewportSize({ width: 768, height: 1024 });

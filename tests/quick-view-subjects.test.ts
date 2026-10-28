@@ -44,6 +44,38 @@ function visit(db: Database, index = 0) {
   return db.visits.find((v) => v.studentId === db.students[index].id && isOpenVisit(v))!;
 }
 
+test('repeat previews read frozen history without changing permanent settings or physical packets', () => {
+  const db = quickViewDemo(now);
+  const set = currentSets(db, visit(db)).find((a) => a.subject === 'Math')!;
+  const before = JSON.stringify(db);
+  function freeze(value: unknown) {
+    if (value && typeof value === 'object') {
+      Object.freeze(value);
+      for (const nested of Object.values(value)) freeze(nested);
+    }
+  }
+  freeze(db);
+  for (const startWith of ['today', 'homework'] as const) {
+    const proposal = repeatSequence(
+      db,
+      set,
+      {
+        level: 'D',
+        start: 31,
+        packetsPerDay: 1,
+        sheetsPerPacket: 5,
+        startWith,
+      },
+      'Worksheets',
+      set.v3!.inCenter,
+    );
+    assert.ok(proposal);
+    assert.deepEqual(proposal.v3!.review, []);
+    assert.equal(proposal.v3!.planned[0].range.start, startWith === 'today' ? 36 : 31);
+    assert.equal(JSON.stringify(db), before);
+  }
+});
+
 for (const startWith of ['today', 'homework'] as const) {
   test(
     'confirmed repeat beginning with ' +

@@ -1,0 +1,216 @@
+/* Active report workspace. Archive APIs/data retain their compatibility implementation. */
+.reports-v3 {
+  min-width: 0;
+  max-width: 1240px;
+  margin-inline: auto;
+}
+.reports-v3 .report-controls,
+.reports-v3 .report-date-controls,
+.reports-v3 .report-export,
+.reports-v3 .report-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.reports-v3 .report-controls {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.reports-v3 .report-date-controls {
+  display: grid;
+  grid-template-columns: 44px 156px 44px;
+  gap: 4px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.reports-v3 .icon-button {
+  width: 44px;
+  display: grid;
+  place-items: center;
+}
+.reports-v3 button,
+.reports-v3 select {
+  min-height: 44px;
+}
+.reports-v3 .report-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-block: 24px;
+}
+.v3-shell .reports-v3 .report-summary-metrics > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 140px;
+  text-align: left;
+  padding: 20px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+}
+.v3-shell .reports-v3 .report-summary-metrics > button[aria-pressed='true'] {
+  background: var(--surface);
+  border-color: var(--input-edge);
+}
+.v3-shell .reports-v3 .report-summary-metrics span {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--muted);
+}
+.v3-shell .reports-v3 .report-summary-metrics strong {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 550;
+  letter-spacing: -1px;
+}
+.reports-v3 .report-export {
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.reports-v3 .report-export .secondary {
+  font-size: 13px;
+}
+.reports-v3 .report-date-controls input {
+  font-size: 13px;
+  border: 0;
+  background: transparent;
+  min-width: 0;
+  max-width: 156px;
+}
+.reports-v3 .report-drilldown {
+  padding: 0 24px;
+}
+.report-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.report-list-heading h2 {
+  font-size: 16px;
+  font-weight: 500;
+}
+.report-list-heading .list-search {
+  width: 240px;
+}
+.report-student-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-block: 18px;
+}
+.report-person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+.report-person > div {
+  min-width: 0;
+}
+.report-person b {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.report-person small,
+.report-worksheet-count small {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.report-student-row > .secondary {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.report-worksheet-count b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.report-visit-row,
+.report-drilldown > .report-student-row {
+  border-bottom: 1px solid var(--line);
+}
+.reports-v3 .report-visit-row.visit-entry {
+  padding: 0 0 20px;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+.reports-v3 .report-visit-row .visit-summary {
+  margin: 0;
+}
+.report-empty {
+  padding: 28px 0;
+  color: var(--muted);
+}
+.report-completion-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.report-completion-entry b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.report-completion-entry small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.v3-shell .reports-v3 .report-summary-metrics strong {
+  margin-top: auto;
+  font-variant-numeric: tabular-nums;
+}
+.v3-shell .reports-v3 .report-date-controls input {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+}
+.reports-v3 .report-pagination {
+  padding-block: 20px;
+  justify-content: flex-end;
+}
+.reports-v3 .report-pagination > span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .v3-shell .reports-v3 .report-summary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v3-shell .reports-v3 .report-summary-metrics > button {
+    padding: 16px;
+  }
+  .report-list-heading {
+    flex-wrap: wrap;
+  }
+  .report-list-heading .list-search {
+    width: 100%;
+  }
+  .report-student-row {
+    flex-wrap: wrap;
+  }
+  .report-worksheet-count {
+    margin-left: 54px;
+  }
+  .report-student-row > .secondary {
+    margin-left: auto;
+  }
+}

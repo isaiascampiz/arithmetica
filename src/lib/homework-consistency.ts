@@ -1,7 +1,7 @@
 ﻿import { dayKey, type Database } from './model';
 import type { Subject } from './v2-model';
 import type { SessionRecord } from './v3-model';
-import { addDays, weekday } from './schedule';
+import { calendarBuckets } from './calendar-buckets';
 
 export type HomeworkReview = {
   id: string;
@@ -35,6 +35,7 @@ export function homeworkReviews(
     .filter((v) => v.studentId === studentId)
     .flatMap((visit) => {
       const records = (visit.sessionRecords || [])
+        .filter((record) => record.mode !== 'activity-only')
         .filter((r) => r.subject === subject)
         .map((record, index) => ({ record, index }))
         .toSorted((a, b) => a.record.at.localeCompare(b.record.at) || a.index - b.index);
@@ -84,27 +85,8 @@ export function homeworkBuckets(
   end: string,
   unit: 'day' | 'week' | 'month',
 ): HomeworkBucket[] {
-  const result: HomeworkBucket[] = [];
-  let cursor =
-    unit === 'week'
-      ? addDays(start, -((weekday(start) + 6) % 7))
-      : unit === 'month'
-        ? start.slice(0, 7) + '-01'
-        : start;
-  for (let guard = 0; cursor <= end && guard < 3700; guard++) {
-    const next =
-      unit === 'day'
-        ? addDays(cursor, 1)
-        : unit === 'week'
-          ? addDays(cursor, 7)
-          : new Date(Date.UTC(Number(cursor.slice(0, 4)), Number(cursor.slice(5, 7)), 1, 12))
-              .toISOString()
-              .slice(0, 10);
-    const from = cursor < start ? start : cursor,
-      to = addDays(next, -1) > end ? end : addDays(next, -1);
-    const records = reviews.filter((r) => r.day >= from && r.day <= to);
-    result.push({ start: from, end: to, records, ...homeworkTotals(records) });
-    cursor = next;
-  }
-  return result;
+  return calendarBuckets(reviews, start, end, unit).map((bucket) => ({
+    ...bucket,
+    ...homeworkTotals(bucket.records),
+  }));
 }

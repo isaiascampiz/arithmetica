@@ -42,7 +42,17 @@ export async function staffSession(): Promise<Staff> {
   const session = verify((await cookies()).get('cf-staff')?.value);
   if (!session || session.role === 'kiosk')
     throw new DomainError('Please sign in to continue.', 401);
-  return { role: session.role, name: session.name };
+  const staff = {
+    role: session.role,
+    name: session.name,
+    id: 'demo:' + session.role,
+    email: accounts().find((a) => a.role === session.role)?.email,
+  };
+  const { repository } = await import('./repository');
+  const { staffProfile } = await import('./staff-profile');
+  if (staffProfile(await repository.read(), staff).disabledAt)
+    throw new DomainError('This account has been deactivated.', 401);
+  return staff;
 }
 export async function kioskSession() {
   const s = verify((await cookies()).get('cf-kiosk')?.value);

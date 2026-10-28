@@ -1,6 +1,8 @@
+import { allocatedRanges, dailyWorksheets, dailyWork } from './worksheet-allocation';
 import type { Database, Student, Visit } from './model';
+import { centerFeatures } from './center-features';
 import { dayKey, isOpenVisit } from './model';
-import type { Assignment, Range, Subject } from './v2-model';
+import type { Assignment, Range, Subject, SubjectSettings } from './v2-model';
 import type { Activity, Packet } from './v3-model';
 import { addDays, datesBetween, expectedOn, nextExpected, recurring } from './schedule';
 
@@ -46,7 +48,7 @@ export function paperProposal(
   const routine = { ...op, students: { ...op.students, [studentId]: { ...cfg, awayUntil: null } } };
   const next = nextExpected(routine, studentId, visitDate);
   const days = next ? datesBetween(addDays(visitDate, 1), addDays(next, -1)) : [];
-  const count = days.length * s.packetsPerDay;
+  let count = days.length * s.packetsPerDay;
   const review: string[] = [];
   if (!next) review.push('Choose regular Monday–Thursday visit days before planning.');
   if (count > 100)
@@ -89,11 +91,21 @@ export function paperProposal(
       : s.nextStart;
   const start = priorEnd,
     size = s.sheetsPerPacket;
-  const ranges = Array.from({ length: Math.min(count + (includeCenter ? 1 : 0), 101) }, (_, i) => ({
-    level: s.level,
-    start: start + i * size,
-    end: start + (i + 1) * size - 1,
-  }));
+  const ranges = s.dailyWork
+    ? allocatedRanges(
+        s.level,
+        start,
+        days.length * dailyWorksheets(s),
+        s.classworkSheets,
+        includeCenter,
+      )
+    : Array.from({ length: Math.min(count + (includeCenter ? 1 : 0), 101) }, (_, i) => ({
+        level: s.level,
+        start: start + i * size,
+        end: start + (i + 1) * size - 1,
+      }));
+  if (s.dailyWork) count = ranges.length - (includeCenter ? 1 : 0);
+  const homeworkSheets = s.dailyWork ? days.length * dailyWorksheets(s) : count * size;
   for (const r of ranges) {
     const error = validateRange(db, subject, r);
     if (error && !review.includes(error)) review.push(error);
@@ -144,9 +156,9 @@ export function paperProposal(
     carryRanges: [],
     carryIds: [],
     targetPackets: count,
-    targetSheets: count * size,
+    targetSheets: homeworkSheets,
     newPackets: count,
-    newSheets: count * size,
+    newSheets: homeworkSheets,
     status: valid ? 'proposed' : 'decision-needed',
     blocked: review,
     capped: false,
@@ -171,7 +183,7 @@ export function paperProposal(
       review,
       adjustment: [],
       originalCursor: { level: s.level, start },
-      advanceCursor: { level: s.level, start: start + (count + (includeCenter ? 1 : 0)) * size },
+      advanceCursor: { level: s.level, start: ranges.at(-1) ? ranges.at(-1)!.end + 1 : start },
       preparedAt: null,
       preparedBy: null,
       issuedAt: null,
@@ -185,7 +197,7 @@ export function synchronizePreparation(
   today = dayKey(new Date(), db.operations!.center.timezone),
 ) {
   const op = db.operations!;
-  if (!op.v3) return;
+  if (!op.v3 || !centerFeatures(db).homework) return;
   for (const student of db.students) {
     const c = op.students[student.id];
     if (!c.active || (c.awayUntil && today < c.awayUntil)) continue;
@@ -456,6 +468,41 @@ export type RepeatSequence = {
   sheetsPerPacket: number;
   startWith: 'today' | 'homework';
 };
+/** Isolate temporary settings for the read-only planner without copying history. */
+export function withSubjectSettings(
+  db: Database,
+  studentId: string,
+  subject: Subject,
+  change: Partial<SubjectSettings>,
+): Database {
+  const op = db.operations!,
+    student = op.students[studentId];
+  const original = student.subjects[subject],
+    updated = { ...original, ...change };
+  if (
+    original.dailyWork &&
+    change.dailyWork === undefined &&
+    (updated.packetsPerDay !== original.packetsPerDay ||
+      updated.sheetsPerPacket !== original.sheetsPerPacket)
+  )
+    updated.dailyWork = dailyWork(updated.packetsPerDay * updated.sheetsPerPacket);
+  return {
+    ...db,
+    operations: {
+      ...op,
+      students: {
+        ...op.students,
+        [studentId]: {
+          ...student,
+          subjects: {
+            ...student.subjects,
+            [subject]: updated,
+          },
+        },
+      },
+    },
+  };
+}
 export function repeatSequence(
   db: Database,
   set: Assignment,
@@ -464,8 +511,7 @@ export function repeatSequence(
   currentCenter: Packet | null,
   returned: Packet[] = [],
 ) {
-  const copy = structuredClone(db);
-  Object.assign(copy.operations!.students[set.studentId].subjects[set.subject], {
+  const copy = withSubjectSettings(db, set.studentId, set.subject, {
     level: plan.level,
     nextStart: plan.start,
     packetsPerDay: plan.packetsPerDay,
@@ -536,11 +582,7 @@ export function homeRoster(db: Database, today: string, filter: HomeFilter | nul
     students = new Map(db.students.map((s) => [s.id, s])),
     visits = dailyRoster(db, today),
     present = visits.filter(isOpenVisit),
-    arrived = new Set(
-      db.visits
-        .filter((v) => dayKey(v.arrivedAt, tz) === today || isOpenVisit(v))
-        .map((v) => v.studentId),
-    ),
+    arrived = new Set(visits.map((v) => v.studentId)),
     expected: HomeRow[] = db.students
       .filter((s) => expectedOn(db.operations!, s.id, today) && !arrived.has(s.id))
       .sort((a, b) => a.name.localeCompare(b.name))

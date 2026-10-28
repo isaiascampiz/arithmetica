@@ -1,4 +1,5 @@
 'use client';
+import { centerFeatures } from '@/lib/center-features';
 import { useState } from 'react';
 import { dayKey, type Snapshot, type Student } from '@/lib/model';
 import type { Achievement, Subject } from '@/lib/v2-model';
@@ -52,6 +53,7 @@ function MedalIllustration({ award }: { award: Achievement }) {
 }
 
 export function ProfileMedals({ db, student }: { db: Snapshot; student: Student }) {
+  if (!centerFeatures(db).medals) return null;
   return (
     <span className="profile-name-medals">
       {(['Math', 'Reading'] as Subject[]).map((subject) => {

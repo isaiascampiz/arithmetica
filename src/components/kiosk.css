@@ -1,0 +1,109 @@
+.reception-kiosk .reception-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.reception-kiosk .reception-steps span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reception-kiosk .reception-steps b {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.reception-kiosk .scan-card {
+  border-radius: 8px;
+}
+
+.reception-kiosk .scan-card p {
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reception-kiosk .reception-manual-toggle {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+.reception-kiosk .manual-code {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.reception-kiosk .manual-code label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reception-kiosk .reception-code-help {
+  margin: 6px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.reception-kiosk .manual-code input {
+  min-width: 0;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.reception-kiosk .manual-code .primary {
+  width: auto;
+  min-height: 48px;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.reception-kiosk .reception-saving {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 220px;
+  color: var(--brand);
+}
+
+.reception-kiosk .reception-saving h2 {
+  margin-top: 18px;
+  color: var(--ink);
+}
+
+.reception-kiosk .kiosk-test summary {
+  display: list-item;
+  min-height: 44px;
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 420px) {
+  .reception-kiosk .manual-code > div {
+    flex-direction: column;
+  }
+  .reception-kiosk .manual-code .primary {
+    justify-content: center;
+    width: 100%;
+  }
+}

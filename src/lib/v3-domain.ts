@@ -1,4 +1,9 @@
+import { preserveDailyWork } from './worksheet-allocation';
 import { randomUUID } from 'node:crypto';
+import { centerFeatures } from './center-features';
+import { activityHoursInput, activitySettings } from './activity-settings';
+import { kioskSettings } from './kiosk-settings';
+import { verificationPackets } from './completion-evidence';
 import { z } from 'zod';
 import { DomainError } from './domain';
 import { dayKey, isOpenVisit, type Database, type Staff } from './model';
@@ -15,6 +20,7 @@ import {
   repeatSequence,
   synchronizePreparation,
   validateRange,
+  withSubjectSettings,
 } from './v3-planning';
 import type { Packet } from './v3-model';
 import type { Subject } from './v2-model';
@@ -42,6 +48,46 @@ const observations = {
   skillSettings: z.object({ version: z.number().int(), skills: z.array(skill).max(12) }).optional(),
 };
 export const v3CommandInput = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('verify-sheets'),
+    visitId: z.string(),
+    subject,
+    packetId: z.string(),
+    expectedSourceVersion: z.number().int().min(0),
+    expectedVerificationVersion: z.number().int().min(0),
+    worksheets: z.array(z.number().int().min(1).max(10000)).min(1).max(1000),
+    completedDate: dateInput,
+    reason: z.string().trim().min(3).max(500),
+    supersedes: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal('kiosk-settings'),
+    expectedVersion: z.number().int().min(0),
+    confirmationSeconds: z.number().int().min(2).max(10),
+  }),
+  z.object({
+    action: z.literal('activity-hours'),
+    expectedVersion: z.number().int().min(0),
+    days: activityHoursInput,
+  }),
+  z.object({
+    action: z.literal('center-features'),
+    expectedVersion: z.number().int().min(0),
+    homework: z.boolean(),
+    medals: z.boolean(),
+    resumeReviewed: z.boolean().default(false),
+  }),
+  z.object({
+    action: z.literal('activity-check-in'),
+    ...observations,
+    visitId: z.string(),
+    subject,
+    activity: z.enum(['Worksheets', 'Corrections only', 'Both']),
+    expectedAt: z.string().nullable(),
+    expectedFeaturesVersion: z.number().int().min(0),
+    text: z.string().trim().max(1200),
+    correctionReason: z.string().trim().max(400).default(''),
+  }),
   z.object({
     action: z.literal('observation-edit'),
     id: z.string(),
@@ -91,6 +137,7 @@ export const v3CommandInput = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('handoff'),
+    expectedFeaturesVersion: z.number().int().min(0).optional(),
     ...observations,
     subject: subject.optional(),
     activity: z.enum(['Worksheets', 'Corrections only', 'Both']).optional(),
@@ -139,6 +186,15 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
   migrateV3(db, now);
   const op = db.operations!,
     at = now.toISOString();
+  const features = centerFeatures(db);
+  if (
+    c.action === 'handoff' &&
+    c.expectedFeaturesVersion !== undefined &&
+    c.expectedFeaturesVersion !== features.version
+  )
+    throw new DomainError('Center features changed. Reopen Quick View.', 409);
+  if (!features.homework && ['prepare', 'handoff', 'temporary-paper', 'catalog'].includes(c.action))
+    throw new DomainError('Homework workflows are turned off for this center.', 409);
   let id = '';
   const teacher = () => {
     if (staff.role === 'assistant')
@@ -173,7 +229,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       reviewedBy: null,
     });
   };
-  if (c.action === 'observation' || c.action === 'handoff') {
+  if (c.action === 'observation' || c.action === 'handoff' || c.action === 'activity-check-in') {
     teacher();
     const visit = db.visits.find((v) => v.id === c.visitId);
     if (!visit) throw new DomainError('Visit not found.', 404);
@@ -187,7 +243,161 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         throw new DomainError('Duplicate observation skills.');
     }
   }
-  if (c.action === 'observation-edit') {
+  if (c.action === 'verify-sheets') {
+    teacher();
+    const visit = db.visits.find((v) => v.id === c.visitId);
+    const evidence = verificationPackets(db, c.visitId, c.subject).find(
+      (e) => e.packet.id === c.packetId,
+    );
+    if (!visit || !evidence)
+      throw new DomainError('No issued paper packet evidence is available for this session.', 409);
+    const { packet, source } = evidence;
+    if (
+      source.v3!.version !== c.expectedSourceVersion ||
+      evidence.verificationVersion !== c.expectedVerificationVersion
+    )
+      throw new DomainError(
+        'Packet or verification changed. Reopen the session before saving.',
+        409,
+      );
+    if (c.completedDate > dayKey(now, op.center.timezone) || c.completedDate < source.fromDate)
+      throw new DomainError(
+        'Completion date must be on/after the packet planning date and not in the future.',
+      );
+    if (
+      new Set(c.worksheets).size !== c.worksheets.length ||
+      c.worksheets.some((n) => n < packet.range.start || n > packet.range.end)
+    )
+      throw new DomainError('Verify unique worksheet identities within the recorded packet.');
+    const active = op.completions.filter(
+      (e) =>
+        e.active &&
+        e.studentId === visit.studentId &&
+        e.subject === c.subject &&
+        (e.packetId === packet.id ||
+          (!e.packetId && e.assignmentId === source.id && e.level === packet.range.level)),
+    );
+    const prior = c.supersedes
+      ? active.find((e) => e.id === c.supersedes && e.packetId === packet.id)
+      : undefined;
+    if (c.supersedes && !prior)
+      throw new DomainError('The verification to correct is no longer active.', 409);
+    const others = active.filter((e) => e.id !== prior?.id).flatMap((e) => e.worksheets);
+    if (c.worksheets.some((n) => others.includes(n)))
+      throw new DomainError('These physical sheets already have active verification.');
+    if (prior) prior.active = false;
+    id = randomUUID();
+    op.completions.push({
+      id,
+      packetId: packet.id,
+      visitId: visit.id,
+      ...(prior ? { supersedes: prior.id } : {}),
+      assignmentId: source.id,
+      studentId: visit.studentId,
+      subject: c.subject,
+      level: packet.range.level,
+      worksheets: [...c.worksheets].sort((a, b) => a - b),
+      physicalSheets: c.worksheets.length,
+      format: 'Paper',
+      completedDate: c.completedDate,
+      officialCount: null,
+      verifiedBy: staff.name,
+      at,
+      active: true,
+      reason: c.reason,
+    });
+  } else if (c.action === 'kiosk-settings') {
+    if (staff.role !== 'owner')
+      throw new DomainError('Only the owner can change kiosk settings.', 403);
+    if (c.expectedVersion !== kioskSettings(db).version)
+      throw new DomainError('Kiosk settings changed. Reload Settings before saving.', 409);
+    op.v3!.kiosk = { version: c.expectedVersion + 1, confirmationSeconds: c.confirmationSeconds };
+    id = 'kiosk-settings';
+  } else if (c.action === 'activity-hours') {
+    teacher();
+    if (c.expectedVersion !== activitySettings(db).version)
+      throw new DomainError('Activity hours changed. Reopen Settings.', 409);
+    op.v3!.activityHours = {
+      version: c.expectedVersion + 1,
+      days: activityHoursInput.parse(c.days),
+    };
+    id = 'activity-hours';
+  } else if (c.action === 'center-features') {
+    if (staff.role !== 'owner')
+      throw new DomainError('Only the owner can change center features.', 403);
+    if (c.expectedVersion !== features.version)
+      throw new DomainError('Center features changed. Reopen Settings.', 409);
+    if (c.homework && !features.homework && !c.resumeReviewed)
+      throw new DomainError(
+        'Review current levels and saved packet plans before resuming homework.',
+      );
+    op.v3!.features = { homework: c.homework, medals: c.medals, version: features.version + 1 };
+    id = 'center-features';
+  } else if (c.action === 'activity-check-in') {
+    if (features.homework || features.version !== c.expectedFeaturesVersion)
+      throw new DomainError('Center features changed. Reopen Quick View.', 409);
+    const visit = db.visits.find((v) => v.id === c.visitId)!;
+    const cfg = op.students[visit.studentId];
+    if (!cfg.subjects[c.subject].enrolled) throw new DomainError('Subject is not enrolled.', 409);
+    const recorded =
+      visit.subjectCheckIns?.[c.subject] ||
+      (visit.handoff?.activities[c.subject] ? visit.handoff : undefined);
+    if ((recorded?.at || null) !== c.expectedAt)
+      throw new DomainError('Check-in changed. Reopen Quick View.', 409);
+    if (!isOpenVisit(visit))
+      throw new DomainError('Student has departed; save observations instead.');
+    if (recorded && !c.correctionReason.trim())
+      throw new DomainError('Explain the change to this activity.');
+    const confirmation: import('./v3-model').Handoff = {
+      mode: 'activity-only',
+      at: recorded?.at || at,
+      actor: recorded?.actor || staff.name,
+      activities: { [c.subject]: c.activity },
+      assignmentIds: [],
+      incoming: 'unknown',
+      events: [
+        ...(recorded?.events || []),
+        { at, actor: staff.name, reason: c.correctionReason || 'Activity recorded' },
+      ],
+    };
+    (visit.sessionRecords ??= []).push({
+      mode: 'activity-only',
+      subject: c.subject,
+      at,
+      actor: staff.name,
+      activity: c.activity,
+      format: cfg.subjects[c.subject].format,
+      incoming: [],
+      center: null,
+      outgoing: [],
+      reason: c.correctionReason,
+    });
+    visit.subjectCheckIns ??= {};
+    const enrolled = (['Math', 'Reading'] as Subject[]).filter((s) => cfg.subjects[s].enrolled);
+    if (visit.handoff)
+      for (const s of enrolled) {
+        if (!visit.subjectCheckIns[s] && visit.handoff.activities[s])
+          visit.subjectCheckIns[s] = {
+            ...visit.handoff,
+            activities: { [s]: visit.handoff.activities[s] },
+            assignmentIds: visit.handoff.assignmentIds.filter((key) =>
+              op.assignments.some((a) => a.id === key && a.subject === s),
+            ),
+          };
+      }
+    visit.subjectCheckIns[c.subject] = confirmation;
+    if (enrolled.every((s) => visit.subjectCheckIns?.[s])) {
+      const confirmed = enrolled.map((s) => visit.subjectCheckIns![s]!);
+      visit.handoff = {
+        ...confirmation,
+        activities: Object.assign({}, ...confirmed.map((h) => h.activities)),
+        assignmentIds: confirmed.flatMap((h) => h.assignmentIds),
+        events: confirmed.flatMap((h) => h.events),
+      };
+    }
+    observe(visit.id, [], c.text, false, c.skillRatings);
+    id = visit.id;
+  } else if (c.action === 'observation-edit') {
     teacher();
     const entry = db.observations.find((o) => o.id === c.id);
     if (!entry) throw new DomainError('Observation not found.', 404);
@@ -246,20 +456,49 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     teacher();
     const s = findStudent(c.studentId),
       old = op.students[s.id];
-    if (old.version !== c.settings.version)
+    const settings = {
+      ...c.settings,
+      subjects: {
+        Math: preserveDailyWork(old.subjects.Math, c.settings.subjects.Math),
+        Reading: preserveDailyWork(old.subjects.Reading, c.settings.subjects.Reading),
+      },
+    };
+    if (!features.homework)
+      for (const sub of ['Math', 'Reading'] as Subject[]) {
+        const keys = [
+          'level',
+          'currentStart',
+          'currentEnd',
+          'nextStart',
+          'packetsPerDay',
+          'sheetsPerPacket',
+          'classworkSheets',
+        ] as const;
+        if (
+          keys.some((key) => settings.subjects[sub][key] !== old.subjects[sub][key]) ||
+          JSON.stringify(settings.subjects[sub].dailyWork) !==
+            JSON.stringify(old.subjects[sub].dailyWork)
+        )
+          throw new DomainError(
+            'Homework workflows are turned off. Reopen the student profile.',
+            409,
+          );
+      }
+    if (old.version !== settings.version)
       throw new DomainError('Student profile changed. Reopen Edit Student.', 409);
-    if (!c.settings.active && db.visits.some((v) => v.studentId === s.id && isOpenVisit(v)))
+    if (!settings.active && db.visits.some((v) => v.studentId === s.id && isOpenVisit(v)))
       throw new DomainError('Reconcile the open attendance visit before withdrawing this student.');
-    if (!c.settings.subjects.Math.enrolled && !c.settings.subjects.Reading.enrolled)
+    if (!settings.subjects.Math.enrolled && !settings.subjects.Reading.enrolled)
       throw new DomainError('Enroll at least one subject.');
     if (c.awayUntil && c.awayUntil < dayKey(now, op.center.timezone))
       throw new DomainError('Return date must be today or later.');
     if (c.awayUntil && (weekday(c.awayUntil) < 1 || weekday(c.awayUntil) > 4))
       throw new DomainError('Choose a Monday–Thursday first return date.');
     for (const sub of ['Math', 'Reading'] as Subject[]) {
-      const next = c.settings.subjects[sub];
+      const next = settings.subjects[sub];
       const prior = old.subjects[sub];
       if (
+        features.homework &&
         next.enrolled &&
         next.format === 'Paper' &&
         (next.level !== prior.level ||
@@ -296,11 +535,11 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       .join('');
     s.earlyLearner = c.earlyLearner;
     s.subjects = (['Math', 'Reading'] as Subject[]).filter(
-      (sub) => c.settings.subjects[sub].enrolled,
+      (sub) => settings.subjects[sub].enrolled,
     );
     op.students[s.id] = {
       ...old,
-      ...c.settings,
+      ...settings,
       version: old.version + 1,
       visitDays: [...new Set(c.visitDays)],
       enrollmentDate: c.enrollmentDate,
@@ -313,7 +552,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     op.configHistory.push({
       studentId: s.id,
       at,
-      subjects: structuredClone(c.settings.subjects),
+      subjects: structuredClone(settings.subjects),
       name: s.name,
       settings: structuredClone(op.students[s.id]),
     });
@@ -384,6 +623,7 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       nextStart: c.range.start,
       sheetsPerPacket: c.range.end - c.range.start + 1,
       packetsPerDay: 0,
+      dailyWork: undefined,
     };
     const a = paperProposal(
       db,
@@ -416,9 +656,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError('This visit uses subject check-ins. Reopen Quick View.', 409);
     if (c.subject && !op.students[visit.studentId].subjects[c.subject].enrolled)
       throw new DomainError('Subject is not enrolled. Reopen Quick View.', 409);
-    const recorded = c.subject
+    const previousRecord = c.subject
       ? visit.subjectCheckIns?.[c.subject] || visit.handoff
       : visit.handoff;
+    const recorded = previousRecord?.mode === 'activity-only' ? undefined : previousRecord;
     if ((recorded?.at || null) !== c.expectedAt)
       throw new DomainError('Handoff changed on another device. Reopen Quick View.', 409);
     if (!recorded && !isOpenVisit(visit))
@@ -519,14 +760,12 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
           input.repeat.sheetsPerPacket !== undefined
         ) {
           if (!input.repeat.reason?.trim()) throw new DomainError('Enter a repeat reason.');
-          const preview = structuredClone(db);
-          preview.operations!.students[visit.studentId].subjects[input.subject] = {
-            ...cfg,
+          const preview = withSubjectSettings(db, visit.studentId, input.subject, {
             level: input.repeat.level,
             nextStart: input.repeat.start,
             packetsPerDay: input.repeat.packetsPerDay ?? cfg.packetsPerDay,
             sheetsPerPacket: input.repeat.sheetsPerPacket ?? cfg.sheetsPerPacket,
-          };
+          });
           const proposal = paperProposal(
             preview,
             visit.studentId,
@@ -828,14 +1067,28 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     observe(visit.id, c.choices, c.text, c.followUp, c.skillRatings);
     id = visit.id;
   }
-  if ((c.action === 'observation' || c.action === 'handoff') && c.skillSettings) {
+  if (
+    (c.action === 'observation' || c.action === 'handoff' || c.action === 'activity-check-in') &&
+    c.skillSettings
+  ) {
     const visit = db.visits.find((v) => v.id === c.visitId)!;
     const cfg = op.students[visit.studentId];
     cfg.observationSkills = c.skillSettings.skills.map((s) => ({ ...s }));
     cfg.version++;
     cfg.updatedAt = at;
   }
-  if (c.action !== 'observation' && c.action !== 'observation-edit' && c.action !== 'shortcuts')
+  if (
+    ![
+      'observation',
+      'observation-edit',
+      'shortcuts',
+      'center-features',
+      'activity-hours',
+      'kiosk-settings',
+      'verify-sheets',
+      'activity-check-in',
+    ].includes(c.action)
+  )
     synchronizePreparation(db, dayKey(now, op.center.timezone));
   db.audit.push({
     id: randomUUID(),

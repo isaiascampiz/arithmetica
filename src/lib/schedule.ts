@@ -32,7 +32,7 @@ export function expectedOn(op: Operations, studentId: string, date: string) {
       !op.center.closedDates.includes(date) &&
       weekday(date) >= 1 &&
       weekday(date) <= 4 &&
-      (c.awayUntil===date||recurring(op, c).includes(weekday(date))),
+      (c.awayUntil === date || recurring(op, c).includes(weekday(date))),
     );
   if (
     !c?.active ||
@@ -119,17 +119,18 @@ export function localClock(now: Date, tz: string) {
 export function zonedTimestamp(date: string, clock: string, tz: string) {
   const target = new Date(`${date}T${clock}:00Z`).getTime();
   let stamp = target;
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
   for (let i = 0; i < 4; i++) {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
-    }).formatToParts(new Date(stamp));
+    const parts = formatter.formatToParts(new Date(stamp));
     const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
     const rendered = Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`);
     stamp += target - rendered;

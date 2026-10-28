@@ -10,7 +10,7 @@ import {
   durationAxis,
 } from '@/lib/center-duration';
 import { progressBarUnit, progressBarLabels, progressDateLabel } from '@/lib/progress-chart';
-import { time, useNow } from './shared-ui';
+import { time, useCenterDay } from './shared-ui';
 
 export function CenterDuration({
   db,
@@ -29,7 +29,7 @@ export function CenterDuration({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistent = useRef(false);
   const id = useId();
-  const today = dayKey(useNow(), db.timezone);
+  const today = useCenterDay(db.timezone);
   const visits = useMemo(() => durationVisits(db, student.id), [db, student.id]);
   const first = visits[0]?.day || today;
   const window = detail

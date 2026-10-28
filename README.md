@@ -1,4 +1,8 @@
-# Centerflow
+# Arithmetica
+
+Arithmetica is the application identity for this existing Centerflow project. The visual system follows the inspected Wispr Flow Windows app and website: Figtree controls, compact row-based settings, account/theme menus, underlined subject tabs and restrained overlays. The center is displayed as **Kumon Learning Center · Yuba City**. See the [reference audit](docs/wispr-ui-reference-audit.md) and [current refinement specification](.plans/arithmetica-continuous-ui-spec.md).
+
+General contains theme, observation shortcuts and the owner’s Homework switch. Rarely changed center details are separate; staff coverage, medal visibility, reception timing and report scheduling are absent from active settings. Home provides direct check-in for expected students. Roster and preparation share search/sort menus; roster filters omit enrollment status. Insights uses enclosed gray/teal arrival gauges, with no calendar or notifications. Quick View uses full-width subject tabs and matching two-line packet tiles. Reports reveal student detail on request. **Open kiosk** opens an authenticated reception view whose brand returns Home; **Lock for shared use** pairs the isolated public kiosk and clears staff cookies. QR and exact full-name entry share attendance protection. Pouch labels retain existing identifiers and print at 2 × 2 inches.
 
 Centerflow V3 helps a learning center manage arrivals, instructor handoffs, homework packets and student observations. This is the existing working application, preserved during organization. **All included students and sample sign-ins are fictional. Real student data is not authorized.**
 
@@ -35,7 +39,11 @@ pnpm dev
 
 Open [the local preview](http://127.0.0.1:3000). Stop it with **Ctrl+C** in that terminal. For the optimized version, stop development first, then run `pnpm build` followed by `pnpm start`. A second copy can use `pnpm start --port 3001` if port 3000 is occupied. Preview links work only while that server runs on this computer.
 
-The login screen supplies fictional demo sign-ins. See [operations](docs/operations.md) for test defaults, configuration, backups and existing deployment guidance. These examples are not private production passwords; never reuse them for real access.
+The login screen uses one staff sign-in form with fictional owner credentials in demo mode; additional test accounts remain server-authorized. See [operations](docs/operations.md) for test defaults, configuration, backups and existing deployment guidance. These examples are not private production passwords; never reuse them for real access.
+
+Traffic is one attendance card with Daily, Weekly, Monthly and Yearly ranges. Daily/Weekly retain a matching-weekday comparison; longer ranges show actual check-ins. Student search updates the graph, totals and optional punch list together. Reports show Visits, Observations recorded/not recorded, and Verified completed worksheets, with one continuous panel and section buttons switching the list. Scheduled daily/weekly/monthly archives remain preserved. Only monthly Excel export is offered: student, grade, subject, last verified level/worksheet, verified worksheets and ten-sheet packet equivalents. Receipt assumptions and planned packets are excluded. See [reporting and verification](docs/operations.md#reports-and-verified-completions).
+
+The workspace opens dark and retains Light/Dark/System control. Profile editors use compact settings-style dialogs. Roster and preparation share identical toolbar/filter components; Home shows actual preparation state. Reception shows QR-reader scanning and full-name entry on one page; readers use keyboard/HID mode with an Enter suffix after OS pairing. Camera access requires HTTPS or localhost. No physical scanner or iPad compatibility claim is made without testing that device. See the [current design brief and implementation notes](.plans/arithmetica-continuous-ui-spec.md).
 
 ## Folder map
 
@@ -76,7 +84,8 @@ centerflow/
 | Instructor Quick View               | `src/components/v3-quick-view.tsx`        |
 | Homework Preparation                | `src/components/v3-preparation.tsx`       |
 | Student profile and visit history   | `src/components/v3-profile.tsx`           |
-| Progress and Center Activity charts | `src/components/v3-charts.tsx`            |
+| Student progress charts             | `src/components/v3-progress.tsx`          |
+| Center Activity charts              | `src/components/v3-center-activity.tsx`   |
 | Kiosk and sign-in                   | `src/components/kiosk.tsx`, `login.tsx`   |
 | Appearance                          | `src/app/v3.css`, `globals.css`, `v2.css` |
 | Exact homework rules                | `src/lib/v3-planning.ts`, `v3-domain.ts`  |
@@ -108,3 +117,8 @@ Build first on a fresh checkout so Next generates its types. Unit tests check ru
 Read `AGENTS.md`, create a branch (`git switch -c describe-your-change`), then ask Codex for one clear change and its acceptance checks. Request preservation of records and no unrelated redesign. Review changed files in VS Code, run the checks above and save a commit. Once GitHub publication is approved, push the branch and review a pull request before merging. Never delete `data/`, reset a live database, commit `.env.local`, or treat a source backup as a records backup.
 
 For phone tasks, follow [development and cloud setup](docs/development.md). For eventual hosting, read [Cloudflare readiness](docs/cloudflare.md). Nothing has been deployed. Current cloud verification is in [cloud setup validation](docs/cloud-setup-validation.md); the earlier migration checkpoint is in [migration status](docs/migration-status.md); earlier results remain in [V3 release validation](docs/validation.md).
+
+
+### October 28 refinement
+
+Traffic now uses Daily, Weekly, Monthly and Yearly views with a linked punch list. Subject edits retain unenrolled configurations and use an optional versioned daily worksheet policy with ten-sheet standard packets. Reception completes a uniquely matching active name inline and confirms the student by name, as explicitly authorized by the user; it does not send a roster or private records. See [implementation and privacy details](docs/arithmetica-refinement.md).

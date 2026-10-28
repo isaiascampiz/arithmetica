@@ -1,5 +1,5 @@
 // Never cache student records, authenticated documents, or mutation requests.
-const CACHE = 'centerflow-shell-v3';
+const CACHE = 'arithmetica-shell-v6';
 self.addEventListener('install', (event) =>
   event.waitUntil(
     caches
@@ -14,7 +14,15 @@ self.addEventListener('activate', (event) =>
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k.startsWith('centerflow-shell-') && k !== CACHE)
+            .filter(
+              (k) =>
+                (k.startsWith('centerflow-shell-') ||
+                  k.startsWith('cadrin-shell-') ||
+                  k.startsWith('centerbook-shell-') ||
+                  k.startsWith('auvrell-shell-') ||
+                  k.startsWith('arithmetica-shell-')) &&
+                k !== CACHE,
+            )
             .map((k) => caches.delete(k)),
         ),
       )

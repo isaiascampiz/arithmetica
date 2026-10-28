@@ -13,6 +13,8 @@ export function Modal({
   footer,
   close,
   className = '',
+  dismissOnBackdrop = false,
+  footerInBody = false,
 }: {
   title: ReactNode;
   titleLabel?: string;
@@ -20,37 +22,86 @@ export function Modal({
   footer?: ReactNode;
   close: () => void;
   className?: string;
+  dismissOnBackdrop?: boolean;
+  footerInBody?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const closing = useRef(false);
+  const titleId = useId();
   useEffect(() => {
     const prior = document.activeElement as HTMLElement;
     const d = ref.current;
-    if (d && !d.open) d.showModal();
+    if (d && !d.open) {
+      d.showModal();
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      d.animate(
+        [
+          { opacity: 0, transform: reduce ? 'none' : 'translateY(8px) scale(0.985)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
+      );
+    }
     return () => {
+      d?.getAnimations().forEach((animation) => animation.cancel());
       d?.close();
-      prior?.focus();
+      if (prior?.isConnected) prior.focus();
     };
   }, []);
+  function dismiss() {
+    if (closing.current) return;
+    const d = ref.current;
+    if (!d) return close();
+    closing.current = true;
+    d.getAnimations().forEach((animation) => animation.cancel());
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const animation = d.animate(
+      [
+        { opacity: 1, transform: 'none' },
+        { opacity: 0, transform: reduce ? 'none' : 'translateY(4px) scale(0.99)' },
+      ],
+      { duration: 120, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' },
+    );
+    void animation.finished
+      .then(() => {
+        if (d.isConnected) close();
+      })
+      .catch(() => {});
+  }
   return (
     <dialog
       className={'v3-modal ' + className}
       ref={ref}
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
+      onClick={(event) => {
+        if (!dismissOnBackdrop || event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        )
+          dismiss();
+      }}
       onCancel={(e) => {
         e.preventDefault();
-        close();
+        dismiss();
       }}
     >
       <header>
-        <h2 id="modal-title" aria-label={titleLabel}>
+        <h2 id={titleId} aria-label={titleLabel}>
           {title}
         </h2>
-        <button type="button" className="icon-button" aria-label="Close panel" onClick={close}>
+        <button type="button" className="icon-button" aria-label="Close panel" onClick={dismiss}>
           <X size={21} />
         </button>
       </header>
-      <div className="v3-modal-body">{children}</div>
-      {footer && <footer>{footer}</footer>}
+      <div className="v3-modal-body">
+        {children}
+        {footerInBody && footer && <div className="modal-inline-footer">{footer}</div>}
+      </div>
+      {!footerInBody && footer && <footer>{footer}</footer>}
     </dialog>
   );
 }

@@ -1,34 +1,75 @@
 'use client';
+/* eslint-disable @next/next/no-location-assign-relative-destination -- Locking a shared reception device clears staff state. */
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, BookOpen, Camera, Check, ScanLine, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, Camera, ShieldCheck, X } from 'lucide-react';
 import type { IScannerControls } from '@zxing/browser';
-import { request } from '@/lib/client';
-export function Kiosk() {
+import { clientId, request } from '@/lib/client';
+import './kiosk.css';
+import { BrandMark } from './brand';
+import { ReceptionSignal } from './reception-signal';
+import { APP_NAME, CENTER_NAME } from '@/lib/brand';
+import { ThemeControl } from './theme';
+export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
   const [ready, setReady] = useState<boolean | null>(null),
     [token, setToken] = useState(''),
+    [pouchCode, setPouchCode] = useState(''),
     [busy, setBusy] = useState(false),
     [camera, setCamera] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState(''),
     [direction, setDirection] = useState(''),
+    [confirmedName, setConfirmedName] = useState(''),
+    [completion, setCompletion] = useState<{ prefix: string; name: string } | null>(null),
     [manual, setManual] = useState(false);
-  const [demo, setDemo] = useState(true);
+  const endpoint = staffPreview ? '/api/reception' : '/api/kiosk';
+  const attempt = useRef<{ key: string; id: string } | null>(null);
+  const [confirmationSeconds, setConfirmationSeconds] = useState(4);
   const video = useRef<HTMLVideoElement>(null),
+    codeInput = useRef<HTMLInputElement>(null),
     lock = useRef(false),
     resume = useRef(false);
   const lastCode = useRef<string | null>(null),
     blankSince = useRef<number | null>(null);
   useEffect(() => {
-    void request<{ demo: boolean }>('/api/kiosk')
+    if (!message && !busy && !camera) codeInput.current?.focus();
+  }, [message, busy, camera]);
+  useEffect(() => {
+    void request<{ demo: boolean; confirmationSeconds: number }>(endpoint)
       .then((data) => {
         setReady(true);
-        setDemo(data.demo);
+        setConfirmationSeconds(data.confirmationSeconds);
       })
       .catch(() => setReady(false));
-  }, []);
+  }, [endpoint]);
+  const suggestedName = completion?.prefix === token ? completion.name : null;
+  const ghostName =
+    suggestedName &&
+    suggestedName.toLowerCase().startsWith(token.toLowerCase()) &&
+    suggestedName.length > token.length
+      ? suggestedName
+      : null;
+  useEffect(() => {
+    setCompletion(null);
+    if (!ready || busy || message || camera || token.trim().length < 3 || token.startsWith('CF-'))
+      return;
+    let disposed = false;
+    const timer = setTimeout(() => {
+      void request<{ completion: string | null }>(endpoint + '/name', 'POST', { prefix: token })
+        .then((result) => {
+          if (!disposed && result.completion)
+            setCompletion({ prefix: token, name: result.completion });
+        })
+        .catch(() => {});
+    }, 180);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+    };
+  }, [token, endpoint, ready, busy, message, camera]);
   function reset() {
     setMessage('');
+    setConfirmedName('');
     setError('');
     if (resume.current) setCamera(true);
   }
@@ -36,25 +77,48 @@ export function Kiosk() {
     if (!message) return;
     const t = setTimeout(() => {
       setMessage('');
+      setConfirmedName('');
       setError('');
       if (resume.current) setCamera(true);
-    }, 4000);
+    }, confirmationSeconds * 1000);
     return () => clearTimeout(t);
-  }, [message]);
-  async function submit(value: string) {
-    if (lock.current) return;
+  }, [message, confirmationSeconds]);
+  async function submit(value: string, byName = true) {
+    if (lock.current || !value.trim()) return;
     lock.current = true;
     setBusy(true);
     setError('');
     resume.current = camera;
     setCamera(false);
     try {
-      const result = await request<{ message: string; direction?: string }>('/api/kiosk', 'POST', {
-        token: value.trim(),
-      });
+      let name = value.trim();
+      if (byName && name.length >= 3) {
+        const hint =
+          suggestedName ||
+          (
+            await request<{ completion: string | null }>(endpoint + '/name', 'POST', {
+              prefix: name,
+            }).catch(() => null)
+          )?.completion;
+        if (hint) name = hint;
+      }
+      const entry = byName ? { name } : { token: value.trim() },
+        key = JSON.stringify(entry);
+      attempt.current = attempt.current?.key === key ? attempt.current : { key, id: clientId() };
+      const result = await request<{ message: string; direction?: string; studentName?: string }>(
+        endpoint,
+        'POST',
+        {
+          ...entry,
+          requestId: attempt.current.id,
+        },
+      );
+      attempt.current = null;
       setMessage(result.message);
+      setConfirmedName(result.studentName || '');
       setDirection(result.direction || 'recorded');
       setToken('');
+      setPouchCode('');
     } catch (e) {
       setError((e as Error).message);
       resume.current = false;
@@ -68,8 +132,32 @@ export function Kiosk() {
     submitRef.current = submit;
   });
   useEffect(() => {
+    if (!ready || message || camera || busy) return;
+    let buffer = '',
+      previous = 0;
+    const scan = (e: KeyboardEvent) => {
+      if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const now = performance.now();
+      if (now - previous > 200) buffer = '';
+      previous = now;
+      if (e.key === 'Enter') {
+        if (/^CF-[A-Za-z0-9-]+$/.test(buffer)) {
+          e.preventDefault();
+          e.stopPropagation();
+          setToken('');
+          void submitRef.current(buffer, false);
+        }
+        buffer = '';
+      } else if (e.key.length === 1) buffer = (buffer + e.key).slice(-100);
+      else if (e.key !== 'Shift') buffer = '';
+    };
+    document.addEventListener('keydown', scan, true);
+    return () => document.removeEventListener('keydown', scan, true);
+  }, [ready, message, camera, busy]);
+  useEffect(() => {
     if (!camera) return;
     const element = video.current;
+    element?.scrollIntoView({ block: 'center', behavior: 'instant' });
     let cancelled = false;
     let controls: IScannerControls | undefined;
     async function start() {
@@ -92,7 +180,7 @@ export function Kiosk() {
               lastCode.current = result.getText();
               cancelled = true;
               controller.stop();
-              void submitRef.current(result.getText());
+              void submitRef.current(result.getText(), false);
             }
           },
         );
@@ -105,6 +193,7 @@ export function Kiosk() {
               : 'Camera could not start. Allow camera access or enter your pouch code.',
           );
           setCamera(false);
+          setManual(true);
           resume.current = false;
         }
       }
@@ -117,15 +206,15 @@ export function Kiosk() {
     };
   }, [camera]);
   return (
-    <main className="kiosk-page v2-kiosk">
+    <main className="kiosk-page v2-kiosk reception-kiosk">
       <header className="kiosk-header">
-        <Link className="brand" href="/">
+        <Link className="brand" href="/" aria-label={APP_NAME + ' home'}>
           <span className="brand-icon">
-            <BookOpen size={23} />
+            <BrandMark />
           </span>
-          centerflow.
+          {APP_NAME}
         </Link>
-        <span className="demo-label">{demo ? 'FICTIONAL TEST DATA' : 'CENTER RECEPTION'}</span>
+        <ThemeControl compact />
       </header>
       {ready === null ? (
         <div className="kiosk-center">
@@ -147,17 +236,20 @@ export function Kiosk() {
         <div className="kiosk-center">
           {message ? (
             <div className="kiosk-success" role="status">
-              <span className="success-orbit">
-                <Check size={46} />
-              </span>
+              <ReceptionSignal confirmed />
               <h1>
                 {direction === 'in'
-                  ? 'Welcome in.'
+                  ? "You're checked in."
                   : direction === 'out'
-                    ? 'See you soon.'
+                    ? "You're checked out."
                     : 'Scan recorded.'}
               </h1>
-              <p>{message}</p>
+              <p className="confirmation-student">{confirmedName || message}</p>
+              {confirmedName && (
+                <p className="confirmation-message">
+                  {direction === 'in' ? 'Have a good session.' : 'See you next time.'}
+                </p>
+              )}
               <button className="primary" onClick={reset}>
                 Ready for the next student
                 <ArrowRight size={18} />
@@ -165,12 +257,119 @@ export function Kiosk() {
             </div>
           ) : (
             <>
-              <span className="eyebrow">RECEPTION · ARRIVAL & DEPARTURE</span>
-              <h1>SCAN YOUR POUCH</h1>
-              <p>One scan when you arrive. One scan when you leave.</p>
-              <div className={'scan-card ' + (camera ? 'camera-on' : '')}>
-                {camera ? (
-                  <>
+              <span className="eyebrow">{CENTER_NAME}</span>
+              <ReceptionSignal />
+              <h1>
+                Scan your <em>pouch.</em>
+              </h1>
+              <p>Use your pouch or enter your name.</p>
+              <div className="reception-entry">
+                <form
+                  className="manual-code"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void submit(token);
+                  }}
+                >
+                  <label htmlFor="student-name">Your name</label>
+                  <div>
+                    <div className="name-input-wrap">
+                      <input
+                        id="student-name"
+                        aria-label="Full name"
+                        ref={codeInput}
+                        value={token}
+                        placeholder="Start typing your name"
+                        autoComplete="off"
+                        spellCheck={false}
+                        maxLength={120}
+                        required
+                        disabled={busy || camera}
+                        aria-autocomplete="inline"
+                        aria-describedby={ghostName ? 'name-completion-description' : undefined}
+                        onChange={(e) => setToken(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (
+                            ghostName &&
+                            ((e.key === 'Tab' && !e.shiftKey) ||
+                              (e.key === 'ArrowRight' &&
+                                e.currentTarget.selectionStart === token.length))
+                          ) {
+                            if (e.key === 'ArrowRight') e.preventDefault();
+                            setToken(ghostName);
+                          }
+                          if (e.key === 'Escape') setCompletion(null);
+                        }}
+                      />
+                      {ghostName && (
+                        <span className="name-ghost" aria-hidden="true">
+                          <span>{token}</span>
+                          {ghostName.slice(token.length)}
+                        </span>
+                      )}
+                      {ghostName && (
+                        <span className="sr-only" id="name-completion-description">
+                          {ghostName}. Press Tab or Right Arrow to complete.
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      className="primary"
+                      aria-label="Check in or out by name"
+                      disabled={busy || camera || !token.trim()}
+                    >
+                      {busy ? 'Saving…' : 'Continue'}
+                      <ArrowRight size={18} />
+                    </button>
+                  </div>
+                </form>
+                <div className="reception-alternatives">
+                  <button
+                    className="text-button"
+                    disabled={busy || camera}
+                    onClick={() => setManual(!manual)}
+                  >
+                    Enter pouch code
+                  </button>
+                  <button
+                    className="text-button"
+                    disabled={busy || camera}
+                    onClick={() => {
+                      setError('');
+                      setCamera(true);
+                    }}
+                  >
+                    <Camera size={16} />
+                    Use camera
+                  </button>
+                </div>
+                {manual && (
+                  <form
+                    className="reception-code-entry"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void submit(pouchCode, false);
+                    }}
+                  >
+                    <label htmlFor="pouch-code">
+                      Pouch code
+                      <input
+                        id="pouch-code"
+                        placeholder="CF-…"
+                        autoComplete="off"
+                        value={pouchCode}
+                        onChange={(e) => setPouchCode(e.target.value)}
+                        disabled={busy || camera}
+                        required
+                      />
+                    </label>
+                    <button className="secondary" disabled={busy || camera || !pouchCode.trim()}>
+                      Submit pouch scan
+                    </button>
+                  </form>
+                )}
+                {camera && (
+                  <div className="scan-card camera-on">
                     <video ref={video} autoPlay muted playsInline aria-label="QR camera preview" />
                     <div className="scan-reticle" />
                     <button
@@ -184,84 +383,14 @@ export function Kiosk() {
                       <X size={20} />
                     </button>
                     <span className="camera-caption">Hold your QR code inside the frame</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="scan-illustration">
-                      <ScanLine size={92} strokeWidth={1.1} />
-                    </div>
-                    <h2>Your learning day starts here.</h2>
-                    <p>Hold the pouch code up to the camera.</p>
-                    <button
-                      className="primary"
-                      disabled={busy}
-                      onClick={() => {
-                        setError('');
-                        setCamera(true);
-                      }}
-                    >
-                      <Camera size={19} />
-                      Start camera
-                    </button>
-                  </>
+                  </div>
                 )}
               </div>
-              <button className="text-button" onClick={() => setManual(!manual)}>
-                Enter a pouch code instead
-              </button>
-              {(manual || error) && (
-                <form
-                  className="manual-code"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void submit(token);
-                  }}
-                >
-                  <label htmlFor="code">Student pouch code</label>
-                  <div>
-                    <input
-                      id="code"
-                      placeholder="Pouch code"
-                      autoComplete="off"
-                      spellCheck={false}
-                      maxLength={100}
-                      value={token}
-                      disabled={busy || camera}
-                      required
-                      onChange={(e) => setToken(e.target.value)}
-                    />
-                    <button
-                      className="primary"
-                      disabled={busy || camera || !token.trim()}
-                      aria-label="Submit pouch scan"
-                    >
-                      {busy ? 'Saving…' : <ArrowRight size={21} />}
-                    </button>
-                  </div>
-                </form>
-              )}
               {error && (
                 <p className="error kiosk-error" role="alert">
                   {error}
                 </p>
               )}
-              <details className="kiosk-test">
-                <summary>Testing without a QR card?</summary>
-                <p>Entirely fictional test code; no student name is exposed.</p>
-                <button
-                  className="text-button"
-                  disabled={camera || busy}
-                  onClick={() => {
-                    setManual(true);
-                    setToken('CF-DEMO-AVERY-7K2Q');
-                  }}
-                >
-                  Use fictional test code
-                </button>
-              </details>
-              <p className="kiosk-privacy">
-                Immediate repeat scans are ignored. Previous unverified visits require staff review.
-              </p>
             </>
           )}
         </div>
@@ -269,9 +398,25 @@ export function Kiosk() {
       <footer className="kiosk-footer">
         <span>
           <ShieldCheck size={16} />
-          Student scanning only · no roster or private notes
+          Reception
         </span>
-        <a href="/login">Staff access</a>
+        {staffPreview ? (
+          <button
+            className="text-button"
+            onClick={async () => {
+              try {
+                await request('/api/kiosk', 'PUT');
+                window.location.assign('/kiosk');
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          >
+            Lock for shared use
+          </button>
+        ) : (
+          <Link href="/login">Staff access</Link>
+        )}
       </footer>
     </main>
   );

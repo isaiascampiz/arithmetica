@@ -30,15 +30,20 @@ test('Supabase adapter retries revision conflicts and never falls back to local 
     return new Response('true');
   };
   try {
-    await repository.transaction((db) =>
+    const committed = await repository.transaction((db) => {
       db.audit.push({
         id: 'concurrent-cloud-test',
         action: 'test',
         actor: 'Fictional Test',
         at: new Date().toISOString(),
         entityId: 'test',
-      }),
-    );
+      });
+      return db;
+    });
+    assert.equal(writes, 2);
+    assert.deepEqual(committed, remote);
+    assert.equal(committed.revision, remote.revision);
+    assert.deepEqual(await repository.transaction((db) => db), remote);
     assert.equal(writes, 2);
     assert.equal(remote.audit.filter((a) => a.id === 'concurrent-cloud-test').length, 1);
     globalThis.fetch = async () => new Response('{}', { status: 503 });

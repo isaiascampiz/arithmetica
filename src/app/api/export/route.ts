@@ -9,7 +9,7 @@ export async function GET() {
     return new Response(JSON.stringify(await repository.read(), null, 2), {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': 'attachment; filename="centerflow-fictional-backup.json"',
+        'Content-Disposition': 'attachment; filename="arithmetica-fictional-backup.json"',
         'Cache-Control': 'no-store',
       },
     });

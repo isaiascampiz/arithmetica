@@ -1,6 +1,8 @@
 import { dayKey, isOpenVisit, type Database } from './model';
 import { addDays, datesBetween, expectedOn, nextOperating, weekday, localClock } from './schedule';
 import { rangeLabel } from './homework';
+import { buildReportDetail } from './report-detail';
+import { DomainError } from './domain';
 import type { Appointment, Report, ReportPayload, Subject } from './v2-model';
 export function staffingWarnings(db: Database, appointment: Appointment) {
   const op = db.operations!,
@@ -67,16 +69,22 @@ export function reportBounds(kind: Report['kind'], period: string) {
   const d = weekday(period);
   return { start: addDays(period, -((d + 6) % 7)), end: addDays(period, 6 - ((d + 6) % 7)) };
 }
-export function buildReport(db: Database, kind: Report['kind'], period: string): ReportPayload {
+export function buildReport(
+  db: Database,
+  kind: Report['kind'],
+  period: string,
+  now = new Date(),
+): ReportPayload {
   const op = db.operations!,
     { start, end } = reportBounds(kind, period),
     tz = op.center.timezone;
   const inPeriod = (stamp: string) => dayKey(stamp, tz) >= start && dayKey(stamp, tz) <= end;
-  const visits = db.visits.filter((v) => inPeriod(v.arrivedAt));
+  const detail = buildReportDetail(db, start, end, now);
+  const visits = detail.visits.map((v) => v.visit);
   const notes = db.observations.filter((o) => dayKey(o.createdAt, tz) <= end);
   const completions = op.completions.filter((c) => {
     const d = c.completedDate || dayKey(c.at, tz);
-    return c.active && d >= start && d <= end;
+    return c.active && d >= start && d <= end && Date.parse(c.at) <= now.getTime();
   });
   const assignments = op.assignments.filter((a) => a.fromDate <= end);
   const statuses: Record<string, number> = {};
@@ -115,6 +123,7 @@ export function buildReport(db: Database, kind: Report['kind'], period: string):
   )
     missing.push('Unfinished classwork remains to review');
   return {
+    detail,
     visits: visits.length,
     students: new Set(visits.map((v) => v.studentId)).size,
     verifiedDepartures: visits.filter((v) => v.departedAt && v.departureVerified !== false).length,
@@ -123,7 +132,7 @@ export function buildReport(db: Database, kind: Report['kind'], period: string):
     pendingObservations: activeNotes.length,
     corrections: corrections.length,
     assignmentStatuses: statuses,
-    physicalSheets: completions.reduce((n, c) => n + c.physicalSheets, 0),
+    physicalSheets: detail.completions.reduce((n, c) => n + c.physicalSheets, 0),
     officialSheets: completions.reduce((n, c) => n + (c.officialCount ?? 0), 0),
     unreportableCompletions: completions.filter((c) => c.officialCount === null).length,
     nextDay: next,
@@ -151,9 +160,16 @@ export function buildReport(db: Database, kind: Report['kind'], period: string):
             completions.some((c) => c.studentId === s.id && c.subject === sub),
         )
         .map((sub) => {
-          const cfg = op.configHistory
-            .filter((h) => h.studentId === s.id && dayKey(h.at, tz) <= end)
-            .at(-1)?.subjects[sub];
+          const history = op.configHistory
+            .filter(
+              (h) =>
+                h.studentId === s.id &&
+                dayKey(h.at, tz) <= end &&
+                Date.parse(h.at) <= now.getTime(),
+            )
+            .sort((a, b) => a.at.localeCompare(b.at))
+            .at(-1);
+          const cfg = history?.subjects[sub];
           const completed = completions.filter((c) => c.studentId === s.id && c.subject === sub);
           const lastCompletion = [...completed]
             .sort((a, b) =>
@@ -170,13 +186,23 @@ export function buildReport(db: Database, kind: Report['kind'], period: string):
             name: s.name,
             subject: sub,
             level: cfg?.level || lastCompletion?.level || 'Not recorded',
+            levelAt: cfg ? history!.at : lastCompletion?.at,
+            levelSource: cfg
+              ? 'Saved configuration'
+              : lastCompletion
+                ? 'Verified completion'
+                : 'Not recorded',
             range: cfg
-              ? rangeLabel({ level: cfg.level, start: cfg.currentStart, end: cfg.currentEnd })
+              ? op.v3
+                ? `${cfg.level} · next planned sheet ${cfg.nextStart}`
+                : rangeLabel({ level: cfg.level, start: cfg.currentStart, end: cfg.currentEnd })
               : lastCompletion
                 ? `${lastCompletion.level} verified sheets ${lastCompletion.worksheets.join(', ')}`
                 : 'Not recorded',
             attendance: visits.filter((v) => v.studentId === s.id).length,
-            physicalSheets: completed.reduce((n, c) => n + c.physicalSheets, 0),
+            physicalSheets: detail.completions
+              .filter((c) => c.studentId === s.id && c.subject === sub)
+              .reduce((n, c) => n + c.physicalSheets, 0),
             officialSheets: completed.reduce((n, c) => n + (c.officialCount ?? 0), 0),
             repeats: op.decisions.filter(
               (d) =>
@@ -207,6 +233,7 @@ export function archiveReport(
   now = new Date(),
   reason = 'Scheduled report',
   newVersion = false,
+  requestId?: string,
 ) {
   const op = db.operations!;
   const key =
@@ -216,6 +243,13 @@ export function archiveReport(
         ? reportBounds(kind, period).start
         : period;
   const previous = op.reports.filter((r) => r.kind === kind && r.period === key);
+  const requestKey = JSON.stringify({ kind, key, reason, newVersion });
+  const duplicate = requestId ? op.reports.find((r) => r.requestId === requestId) : undefined;
+  if (duplicate) {
+    if (duplicate.requestKey !== requestKey)
+      throw new DomainError('Report request ID was already used for another report.', 409);
+    return duplicate;
+  }
   if (previous.length && !newVersion) return previous.at(-1)!;
   const report: Report = {
     id: crypto.randomUUID(),
@@ -224,8 +258,9 @@ export function archiveReport(
     version: (previous.at(-1)?.version || 0) + 1,
     generatedAt: now.toISOString(),
     sourceRevision: db.revision,
-    payload: buildReport(db, kind, key),
+    payload: buildReport(db, kind, key, now),
     reason,
+    ...(requestId ? { requestId, requestKey } : {}),
   };
   op.reports.push(report);
   db.audit.push({
@@ -237,15 +272,21 @@ export function archiveReport(
   });
   return report;
 }
-export function runDueJobs(db: Database, now = new Date()) {
+export function closeDueVisits(db: Database, now = new Date()) {
   const op = db.operations!;
   const date = dayKey(now, op.center.timezone),
     clock = localClock(now, op.center.timezone);
   let changed = 0;
-  if (op.center.autoClose)
+  if (db.schemaVersion === 3 || op.center.autoClose)
     for (const v of db.visits.filter(isOpenVisit)) {
       const visitDate = dayKey(v.arrivedAt, op.center.timezone);
-      if (visitDate < date || (visitDate === date && clock >= op.center.closingTime)) {
+      // Explicit after-hours staff arrivals remain open until the next day.
+      if (
+        visitDate < date ||
+        (visitDate === date &&
+          clock >= op.center.closingTime &&
+          localClock(new Date(v.arrivedAt), op.center.timezone) < op.center.closingTime)
+      ) {
         v.closedAt = now.toISOString();
         v.departureVerified = false;
         v.closureReason = `Administrative closing policy ${op.center.closingTime}; physical departure unverified`;
@@ -266,9 +307,19 @@ export function runDueJobs(db: Database, now = new Date()) {
         changed++;
       }
     }
+  return changed;
+}
+export function runDueJobs(db: Database, now = new Date()) {
+  const op = db.operations!;
+  const date = dayKey(now, op.center.timezone),
+    clock = localClock(now, op.center.timezone);
+  let changed = closeDueVisits(db, now);
   // Catch up safely after server downtime, starting at the explicit migration start day.
   const start = op.center.jobStartDate;
-  const dueEnd = clock >= op.center.reportTime ? date : addDays(date, -1);
+  const dueEnd =
+    clock >= (db.schemaVersion === 3 ? op.center.closingTime : op.center.reportTime)
+      ? date
+      : addDays(date, -1);
   for (const d of datesBetween(start, dueEnd)) {
     if (!op.center.operatingDays.includes(weekday(d)) || op.center.closedDates.includes(d))
       continue;

@@ -1,13 +1,13 @@
 ﻿'use client';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, List } from 'lucide-react';
-import { dayKey, type Snapshot, type Student } from '@/lib/model';
+import type { Snapshot, Student } from '@/lib/model';
 import type { Subject } from '@/lib/v2-model';
 import { academicPeriods, academicWindow, type AcademicPeriod } from '@/lib/academic-progress';
 import { homeworkReviews, homeworkBuckets, homeworkTotals } from '@/lib/homework-consistency';
 import { progressBarUnit, progressBarLabels, progressDateLabel } from '@/lib/progress-chart';
 import { packetLabel } from '@/lib/v3-planning';
-import { useNow } from './shared-ui';
+import { useCenterDay } from './shared-ui';
 
 export function HomeworkConsistency({
   db,
@@ -28,7 +28,7 @@ export function HomeworkConsistency({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistent = useRef(false);
   const id = useId();
-  const today = dayKey(useNow(), db.timezone);
+  const today = useCenterDay(db.timezone);
   const reviews = useMemo(
     () => homeworkReviews(db, student.id, subject),
     [db, student.id, subject],

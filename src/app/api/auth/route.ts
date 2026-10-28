@@ -23,6 +23,10 @@ export async function POST(req: Request) {
       !timingSafeEqual(Buffer.from(a.password), Buffer.from(password))
     )
       throw new DomainError('Email or password is incorrect.', 401);
+    const { repository } = await import('@/lib/repository');
+    const { staffProfile } = await import('@/lib/staff-profile');
+    if (staffProfile(await repository.read(), { name: a.name, role: a.role }).disabledAt)
+      throw new DomainError('This account has been deactivated.', 401);
     await setSession('staff', a.role, a.name);
     return json({ ok: true });
   } catch (e) {

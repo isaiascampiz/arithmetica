@@ -86,8 +86,14 @@ export function centerActivity(
   const dates = datesBetween(start, end).filter(
     (d) => selectedDay === null || weekday(d) === selectedDay,
   );
-  const source = [...new Map(db.visits.map((v) => [v.id, v])).values()];
-  const visits = source.filter((v) => dates.includes(dayKey(v.arrivedAt, tz)));
+  const selectedDates = new Set(dates);
+  const today = dayKey(now, tz);
+  const source = [...new Map(db.visits.map((v) => [v.id, v])).values()].map((visit) => ({
+    visit,
+    date: dayKey(visit.arrivedAt, tz),
+    arrival: Date.parse(visit.arrivedAt),
+  }));
+  const visits = source.filter((v) => selectedDates.has(v.date));
   const bins = Array.from({ length: 24 }, (_, hour) => ({ hour, arrivals: 0, occupancy: 0 }));
   const hourFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
@@ -108,26 +114,33 @@ export function centerActivity(
       denominators[h] += end - t;
     }
   }
-  for (const v of visits) bins[Number(hourFormatter.format(new Date(v.arrivedAt)))].arrivals++;
+  for (const { arrival } of visits)
+    bins[Number(hourFormatter.format(new Date(arrival)))].arrivals++;
   let excluded = 0;
-  for (const v of source) {
-    const date = dayKey(v.arrivedAt, tz);
+  for (const { visit: v, date, arrival } of source) {
     const departure =
       v.departedAt && v.departureVerified !== false
         ? Date.parse(v.departedAt)
-        : isOpenVisit(v) && date === dayKey(now, tz)
+        : isOpenVisit(v) && date === today
           ? now.getTime()
           : null;
     if (departure === null) {
-      if (dates.includes(date)) excluded++;
+      if (selectedDates.has(date)) excluded++;
       continue;
     }
-    for (const segment of segments) {
+    // Segments are chronological, including weekday gaps and DST transitions.
+    // Find the first possible overlap, then stop at the visit's departure.
+    let low = 0,
+      high = segments.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (segments[middle].until <= arrival) low = middle + 1;
+      else high = middle;
+    }
+    for (let i = low; i < segments.length && segments[i].from < departure; i++) {
+      const segment = segments[i];
       const { from, until, hour } = segment;
-      const overlap = Math.max(
-        0,
-        Math.min(departure, until) - Math.max(Date.parse(v.arrivedAt), from),
-      );
+      const overlap = Math.max(0, Math.min(departure, until) - Math.max(arrival, from));
       bins[hour].occupancy += overlap;
     }
   }
@@ -137,8 +150,7 @@ export function centerActivity(
     excluded,
     visits: visits.length,
     days: dates.length,
-    live: visits.filter((v) => isOpenVisit(v) && dayKey(v.arrivedAt, tz) === dayKey(now, tz))
-      .length,
+    live: visits.filter((v) => isOpenVisit(v.visit) && v.date === today).length,
   };
 }
 export function studentMedals(db: Database, s: Student) {

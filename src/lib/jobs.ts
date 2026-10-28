@@ -7,7 +7,7 @@ export function startJobs() {
     repository
       .transaction((db) => runDueJobs(db))
       .catch((e) =>
-        console.error('Centerflow scheduled jobs need attention:', (e as Error).message),
+        console.error('Arithmetica scheduled jobs need attention:', (e as Error).message),
       );
   void tick();
   runtime.centerJobs = setInterval(() => void tick(), 60000);

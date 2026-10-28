@@ -14,13 +14,13 @@ Begin with a visible screen and follow one interaction. You do not need to read 
 | Area               | Files and purpose                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pages and APIs     | `src/app/page.tsx`, `login/page.tsx`, `kiosk/page.tsx`; each `api/*/route.ts` handles HTTP requests                                               |
-| Active screens     | `staff-app.tsx`, `v3-roster.tsx`, `v3-quick-view.tsx`, `v3-preparation.tsx`, `v3-profile.tsx`, `v3-charts.tsx`, `v3-settings.tsx`                 |
+| Active screens     | `staff-app.tsx`, `v3-roster.tsx`, `v3-quick-view.tsx`, `v3-preparation.tsx`, `v3-profile.tsx`, `v3-progress.tsx`, `v3-center-activity.tsx`, `v3-settings.tsx` |
 | Shared interface   | `v3-shared.tsx`, `shared-ui.tsx`, `pwa.tsx`; reusable controls and installation behavior                                                          |
 | Reporting/settings | `calendar-reports.tsx` supplies `ReportsWorkspace` and `CenterSettings`; Calendar is not an active V3 destination despite the historical filename |
 | Data shape         | `model.ts`, `v2-model.ts`, `v3-model.ts` describe fields; they do not store actual records                                                        |
 | Rules              | `domain.ts`, `v2-domain.ts`, `v3-domain.ts`; validation and mutations for preserved command versions                                              |
 | Homework           | `v3-planning.ts` is the shared V3 packet planner; `homework.ts` retains older compatibility                                                       |
-| Dates/analytics    | `schedule.ts`, `v3-analytics.ts`; timezone/away/scheduling, history matching and occupancy                                                        |
+| Dates/analytics    | `schedule.ts`, `v3-analytics.ts`, `calendar-buckets.ts`; timezone/away/scheduling, history matching, occupancy and shared read-only chart grouping |
 | Persistence        | `repository.ts`; locked atomic local writes or revision-checked Supabase operations                                                               |
 | Access             | `auth.ts`, `cloud-auth.ts`, `http.ts`; sessions, active membership, permissions and responses                                                     |
 | Upgrades           | `migrate.ts`, `v3-migrate.ts`, immutable SQL under `supabase/migrations/`                                                                         |

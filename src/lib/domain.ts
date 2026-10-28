@@ -1,3 +1,4 @@
+import { centerFeatures } from './center-features';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { choices, isOpenVisit, type Database, type Staff } from './model';
@@ -73,6 +74,11 @@ export function attendance(
   return { message: 'You’re checked out. See you next time!', changed: true };
 }
 export function applyCommand(db: Database, command: Command, staff: Staff, now = new Date()) {
+  if (
+    !centerFeatures(db).homework &&
+    (command.kind === 'homework' || command.kind === 'homework-status')
+  )
+    throw new DomainError('Homework workflows are turned off.', 409);
   const at = now.toISOString();
   let entityId = '';
   if (command.kind === 'observation' || command.kind === 'review') {

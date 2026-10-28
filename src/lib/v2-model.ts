@@ -2,6 +2,7 @@ export type Subject = 'Math' | 'Reading';
 export type Format = 'Paper' | 'CONNECT';
 export type Range = { level: string; start: number; end: number };
 export type SubjectSettings = {
+  dailyWork?: { version: 1; worksheets: number; packetSheets: 10 };
   enrolled: boolean;
   format: Format;
   level: string;
@@ -137,6 +138,9 @@ export type Assignment = {
   }[];
 };
 export type Completion = {
+  packetId?: string;
+  visitId?: string;
+  supersedes?: string;
   id: string;
   assignmentId: string;
   studentId: string;
@@ -217,6 +221,7 @@ export type Appointment = {
   updatedAt: string;
 };
 export type CenterSettings = {
+  version?: number;
   name: string;
   timezone: string;
   operatingDays: number[];
@@ -229,6 +234,7 @@ export type CenterSettings = {
   jobStartDate: string;
 };
 export type ReportPayload = {
+  detail?: import('./report-detail').ReportDetail;
   visits: number;
   students: number;
   verifiedDepartures: number;
@@ -252,6 +258,8 @@ export type ReportPayload = {
     subject: Subject;
     level: string;
     range: string;
+    levelAt?: string;
+    levelSource?: string;
     attendance: number;
     physicalSheets: number;
     officialSheets: number;
@@ -262,6 +270,8 @@ export type ReportPayload = {
   }[];
 };
 export type Report = {
+  requestId?: string;
+  requestKey?: string;
   id: string;
   kind: 'daily' | 'weekly' | 'monthly';
   period: string;
