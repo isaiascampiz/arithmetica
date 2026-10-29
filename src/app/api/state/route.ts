@@ -30,6 +30,10 @@ export async function GET() {
       runtime: {
         demo: process.env.DEMO_MODE !== 'false',
         adapter: process.env.DATA_ADAPTER || 'local',
+        environment: process.env.DEPLOYMENT_ENV || 'local',
+        dictationApproved:
+          process.env.DICTATION_PRIVACY_APPROVED === 'true' &&
+          !!process.env.DICTATION_APPROVAL_REFERENCE?.trim(),
         scheduler: process.env.ENABLE_SCHEDULER === 'true',
       },
       timezone:

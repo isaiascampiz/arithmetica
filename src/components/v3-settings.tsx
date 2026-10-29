@@ -10,6 +10,7 @@ import { Modal, type V3Act } from './v3-shared';
 import { ThemeControl, AccentControl } from './theme';
 import { InfoTip, SettingRow, Switch } from './ui-primitives';
 import { AccountSettings } from './account-settings';
+import { RosterImport } from './roster-import';
 import './v3-settings.css';
 type Props = {
   db: Snapshot;
@@ -232,9 +233,14 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
             )}
             <SettingRow label="Data environment">
               <span className="setting-value">
-                {db.runtime?.demo ? 'Fictional demo' : 'Center workspace'}
+                {db.runtime?.demo
+                  ? 'Fictional demo'
+                  : db.runtime?.environment === 'staging'
+                    ? 'Staging — synthetic data only'
+                    : 'Center workspace'}
               </span>
             </SettingRow>
+            <RosterImport db={db} />
           </div>
         )}
       </div>
@@ -459,7 +465,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
           }
         >
           <p className="muted">
-            Use center-approved bounds. The demonstration catalog is fictional.
+            Use center-approved bounds. {db.runtime?.demo ? 'The demonstration catalog is fictional.' : 'Approve each level from the center’s verified materials.'}
           </p>
           <div className="form-grid">
             <label className="full-width-field">

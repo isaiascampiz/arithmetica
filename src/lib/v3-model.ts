@@ -6,7 +6,7 @@ export type SessionRecord = {
   at: string;
   actor: string;
   activity: Activity;
-  format: 'Paper' | 'CONNECT';
+  format: 'Paper' | 'CONNECT' | 'Unspecified';
   incoming: {
     packet: Packet;
     outcome: 'assumed completed' | 'finished' | 'unfinished' | 'missing';
@@ -67,11 +67,25 @@ export type CatalogLevel = {
   source: string;
 };
 export type V3Settings = {
+  dataMode?: 'production';
+  rosterImports?: Record<
+    string,
+    {
+      fingerprint: string;
+      sourceSha256: string;
+      studentIds: string[];
+      at: string;
+      actor: string;
+    }
+  >;
   staffProfiles?: Record<string, StaffProfile>;
   accountRequests?: Record<string, { fingerprint: string; owner: string }>;
   receptionReceipts?: Record<
     string,
-    { fingerprint: string; result: { message: string; changed: boolean; direction?: 'in' | 'out'; studentName?: string } }
+    {
+      fingerprint: string;
+      result: { message: string; changed: boolean; direction?: 'in' | 'out'; studentName?: string };
+    }
   >;
   kiosk?: { version: number; confirmationSeconds: number };
   activityHours?: { version: number; days: import('./activity-settings').ActivityHours };

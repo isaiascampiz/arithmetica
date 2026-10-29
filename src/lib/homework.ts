@@ -1,4 +1,5 @@
 import type { Database } from './model';
+import { subjectNeedsSetup } from './student-setup';
 import { dayKey, isOpenVisit } from './model';
 import type { Assignment, Range, Subject } from './v2-model';
 import { addDays, datesBetween, nextExpected } from './schedule';
@@ -37,6 +38,8 @@ export function planHomework(
   if (!op.students[studentId]?.active)
     throw new Error('Inactive students cannot receive new homework proposals.');
   if (!config?.enrolled) throw new Error('Subject is not enrolled.');
+  if (subjectNeedsSetup(config))
+    throw new Error('Complete subject setup before planning homework.');
   const next = nextExpected(op, studentId, fromDate);
   const allDays = next
     ? datesBetween(addDays(fromDate, 1), addDays(next, -1)).filter(

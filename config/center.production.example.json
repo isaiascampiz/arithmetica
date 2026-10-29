@@ -1,0 +1,8 @@
+{
+  "name": "Kumon Learning Center · Yuba City",
+  "timezone": "America/Los_Angeles",
+  "operatingDays": [1, 2, 3, 4],
+  "closingTime": "19:15",
+  "expectedMinutes": 45,
+  "earlyPerInstructor": 2
+}

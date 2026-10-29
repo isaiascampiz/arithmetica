@@ -1,4 +1,5 @@
 'use client';
+import { subjectNeedsSetup } from '@/lib/student-setup';
 import { useState } from 'react';
 import { Check, ChevronDown, RefreshCw } from 'lucide-react';
 import type { Snapshot } from '@/lib/model';
@@ -43,6 +44,7 @@ export function Preparation({
       c.active &&
       !(c.awayUntil && c.awayUntil > today) &&
       c.subjects[a.subject].enrolled &&
+      !subjectNeedsSetup(c.subjects[a.subject]) &&
       c.subjects[a.subject].format === 'Paper'
     );
   });

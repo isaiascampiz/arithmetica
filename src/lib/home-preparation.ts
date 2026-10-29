@@ -1,6 +1,7 @@
 import type { Database, Visit } from './model';
 import { currentSets } from './v3-planning';
 import { centerFeatures } from './center-features';
+import { subjectNeedsSetup } from './student-setup';
 
 /** Preparation is a physical state; issued work stays distinct from an unissued ready set. */
 export function homePreparation(db: Database, studentId: string, today: string, visit?: Visit) {
@@ -13,10 +14,16 @@ export function homePreparation(db: Database, studentId: string, today: string, 
       );
   const subjects = (['Math', 'Reading'] as const).filter(
     (s) =>
-      (cfg.subjects[s].enrolled && cfg.subjects[s].format === 'Paper') ||
+      (cfg.subjects[s].enrolled &&
+        !subjectNeedsSetup(cfg.subjects[s]) &&
+        cfg.subjects[s].format === 'Paper') ||
       sets.some((a) => a.subject === s && (a.v3?.temporaryPaper || a.v3?.issuedAt)),
   );
-  if (!subjects.length) return { state: 'none', label: 'No paper homework' };
+  if (!subjects.length)
+    return {
+      state: 'none',
+      label: cfg.setupPending ? 'Homework setup needed' : 'No paper homework',
+    };
   const applicable = subjects.map((subject) => sets.filter((a) => a.subject === subject).at(-1));
   if (applicable.every((a) => a?.v3?.issuedAt))
     return { state: 'issued', label: 'Homework issued' };

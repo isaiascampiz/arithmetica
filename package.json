@@ -1,6 +1,6 @@
 {
-  "name": "centerflow",
-  "version": "3.0.0",
+  "name": "arithmetica",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "scripts": {
@@ -12,6 +12,14 @@
     "test": "node scripts/run-ts.cjs --test",
     "test:e2e": "node scripts/e2e.mjs",
     "benchmark": "node scripts/run-ts.cjs scripts/benchmark.ts",
+    "roster:preview": "node scripts/run-ts.cjs scripts/roster-preview.ts",
+    "roster:stage": "node scripts/run-ts.cjs scripts/roster-stage.ts",
+    "center:prepare": "node scripts/run-ts.cjs scripts/center-prepare.ts",
+    "cloudflare:build": "node scripts/cloudflare-build.mjs",
+    "cloudflare:deploy": "node scripts/cloudflare-deploy.mjs",
+    "api:deploy": "node scripts/supabase-deploy.mjs",
+    "backup:cloud": "node scripts/run-ts.cjs scripts/cloud-backup.ts",
+    "test:hosted": "playwright test --config playwright.hosted.config.ts",
     "backup": "node scripts/run-ts.cjs scripts/backup.ts",
     "demo:restore": "node scripts/run-ts.cjs scripts/restore-demo.ts",
     "demo:quick-view": "node scripts/run-ts.cjs scripts/quick-view-demo.ts",
@@ -27,7 +35,7 @@
     "@zxing/browser": "0.2.1",
     "exceljs": "4.4.0",
     "lucide-react": "1.55.0",
-    "next": "16.4.0",
+    "next": "16.4.1",
     "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -39,10 +47,14 @@
     "@types/qrcode": "1.5.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "deno": "2.9.6",
+    "esbuild": "0.28.2",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.1",
     "prettier": "3.9.10",
+    "supabase": "2.122.0",
     "tsx": "4.23.15",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "wrangler": "4.155.0"
   }
 }

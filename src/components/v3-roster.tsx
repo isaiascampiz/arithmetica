@@ -88,7 +88,7 @@ export function RosterV3({
                         : c.active
                           ? 'Active'
                           : 'Inactive'}{' '}
-                    · {s.id}
+                    {c.setupPending ? '· Setup incomplete' : ''}
                   </small>
                 </div>
               </button>
@@ -110,7 +110,7 @@ export function RosterV3({
       {add && (
         <Modal
           variant="form"
-          title="Add fictional student"
+          title={db.runtime?.demo ? 'Add fictional student' : 'Add student'}
           close={() => setAdd(false)}
           footer={
             <>
@@ -133,7 +133,7 @@ export function RosterV3({
           }
         >
           <label>
-            New fictional student name
+            {db.runtime?.demo ? 'New fictional student name' : 'Student name'}
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
           </label>
           <SettingRow label="Early learner">

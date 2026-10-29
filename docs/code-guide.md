@@ -1,4 +1,6 @@
-# Explore Centerflow one step at a time
+# Explore Arithmetica one step at a time
+
+Deployed V1 uses the same screen/domain modules through two build boundaries: `scripts/static-build.mjs` generates browser-only entry points, and `scripts/edge-build.mjs` bundles existing API routes for Supabase. `src/server/` contains the small proxy and request-scoped runtime adapters; business rules remain in `src/lib/`. The local Node pages described below remain useful for development and isolated regression tests.
 
 Begin with a visible screen and follow one interaction. You do not need to read the application in order.
 
@@ -11,24 +13,26 @@ Begin with a visible screen and follow one interaction. You do not need to read 
 
 ## Source map
 
-| Area               | Files and purpose                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pages and APIs     | `src/app/page.tsx`, `login/page.tsx`, `kiosk/page.tsx`; each `api/*/route.ts` handles HTTP requests                                               |
+| Area               | Files and purpose                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pages and APIs     | `src/app/page.tsx`, `login/page.tsx`, `kiosk/page.tsx`; each `api/*/route.ts` handles HTTP requests                                                           |
 | Active screens     | `staff-app.tsx`, `v3-roster.tsx`, `v3-quick-view.tsx`, `v3-preparation.tsx`, `v3-profile.tsx`, `v3-progress.tsx`, `v3-center-activity.tsx`, `v3-settings.tsx` |
-| Shared interface   | `v3-shared.tsx`, `shared-ui.tsx`, `pwa.tsx`; reusable controls and installation behavior                                                          |
-| Reporting/settings | `calendar-reports.tsx` supplies `ReportsWorkspace` and `CenterSettings`; Calendar is not an active V3 destination despite the historical filename |
-| Data shape         | `model.ts`, `v2-model.ts`, `v3-model.ts` describe fields; they do not store actual records                                                        |
-| Rules              | `domain.ts`, `v2-domain.ts`, `v3-domain.ts`; validation and mutations for preserved command versions                                              |
-| Homework           | `v3-planning.ts` is the shared V3 packet planner; `homework.ts` retains older compatibility                                                       |
-| Dates/analytics    | `schedule.ts`, `v3-analytics.ts`, `calendar-buckets.ts`; timezone/away/scheduling, history matching, occupancy and shared read-only chart grouping |
-| Persistence        | `repository.ts`; locked atomic local writes or revision-checked Supabase operations                                                               |
-| Access             | `auth.ts`, `cloud-auth.ts`, `http.ts`; sessions, active membership, permissions and responses                                                     |
-| Upgrades           | `migrate.ts`, `v3-migrate.ts`, immutable SQL under `supabase/migrations/`                                                                         |
-| Jobs               | `reports.ts`, `jobs.ts`, root `instrumentation.ts`, `api/jobs/route.ts`                                                                           |
-| Fictional fixtures | `seed.ts`; separate from evolving ignored `data/` files                                                                                           |
-| Verification       | `tests/*.test.ts`, `tests/e2e/`, `supabase/tests/access-control.sql`                                                                              |
+| Shared interface   | `v3-shared.tsx`, `shared-ui.tsx`, `pwa.tsx`; reusable controls and installation behavior                                                                      |
+| Reporting/settings | `calendar-reports.tsx` supplies `ReportsWorkspace` and `CenterSettings`; Calendar is not an active V3 destination despite the historical filename             |
+| Data shape         | `model.ts`, `v2-model.ts`, `v3-model.ts` describe fields; they do not store actual records                                                                    |
+| Rules              | `domain.ts`, `v2-domain.ts`, `v3-domain.ts`; validation and mutations for preserved command versions                                                          |
+| Homework           | `v3-planning.ts` is the shared V3 packet planner; `homework.ts` retains older compatibility                                                                   |
+| Dates/analytics    | `schedule.ts`, `v3-analytics.ts`, `calendar-buckets.ts`; timezone/away/scheduling, history matching, occupancy and shared read-only chart grouping            |
+| Persistence        | `repository.ts`; locked atomic local writes or revision-checked Supabase operations                                                                           |
+| Access             | `auth.ts`, `cloud-auth.ts`, `http.ts`; sessions, active membership, permissions and responses                                                                 |
+| Upgrades           | `migrate.ts`, `v3-migrate.ts`, immutable SQL under `supabase/migrations/`                                                                                     |
+| Jobs               | `reports.ts`, `jobs.ts`, root `instrumentation.ts`, `api/jobs/route.ts`                                                                                       |
+| Fictional fixtures | `seed.ts`; separate from evolving ignored `data/` files                                                                                                       |
+| Verification       | `tests/*.test.ts`, `tests/e2e/`, `supabase/tests/access-control.sql`                                                                                          |
 
 The table's component names are under `src/components/`; business/storage modules are under `src/lib/`.
+
+New V1 modules are grouped by purpose: `roster-intake.ts` inspects workbooks, `roster/import.ts` validates/commits the explicit batch, `student-setup.ts` handles pending subjects, and `center-initialization.ts` constructs an empty center without demo fixtures. `backup-archive.ts` supplies authenticated archive encryption; `scripts/cloud-backup.ts` captures consistent cloud data and metadata. Provider deployment/recovery commands are documented in [hosting](cloudflare.md) and [operations](deployment-and-import-plan.md). Private generated files stay under ignored `data/`.
 
 ## Why older files remain
 

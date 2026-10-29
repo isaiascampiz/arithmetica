@@ -1,6 +1,8 @@
 'use client';
 import { clientId } from '@/lib/client';
 import { centerFeatures } from '@/lib/center-features';
+import { subjectNeedsSetup } from '@/lib/student-setup';
+import { dictationAllowed } from '@/lib/privacy';
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { isOpenVisit, type Snapshot, type Visit } from '@/lib/model';
@@ -57,16 +59,69 @@ export function QuickView(props: QuickViewProps) {
   const config = student && props.db.operations!.students[student.id];
   if (!config || !Object.values(config.subjects).some((subject) => subject.enrolled))
     return (
-      <Modal title={student?.name || 'Quick View'} close={props.close} className="quick-view">
-        <p>
-          No enrolled subjects. Open the student profile to review this visit or update enrollment.
-        </p>
-        <button type="button" className="secondary" onClick={props.openProfile}>
-          Open student profile
-        </button>
-      </Modal>
+      <UnconfiguredQuickView
+        {...props}
+        name={student?.name || 'Quick View'}
+        canObserve={!!config}
+      />
     );
   return <QuickViewContent {...props} />;
+}
+
+function UnconfiguredQuickView(props: QuickViewProps & { name: string; canObserve: boolean }) {
+  const [text, setText] = useState('');
+  const teacher = props.canObserve && props.db.staff.role !== 'assistant';
+  return (
+    <Modal
+      title={props.name}
+      close={props.close}
+      className="quick-view"
+      footer={
+        teacher ? (
+          <button
+            className="primary"
+            disabled={props.busy || !text.trim()}
+            onClick={async () => {
+              if (
+                await props.act({
+                  action: 'observation',
+                  visitId: props.visit.id,
+                  choices: [],
+                  text,
+                  followUp: false,
+                })
+              )
+                props.close();
+            }}
+          >
+            {props.busy ? 'Saving…' : 'Save observations'}
+          </button>
+        ) : undefined
+      }
+    >
+      <p>
+        No enrolled subjects. Open the student profile to review this visit or update enrollment.
+      </p>
+      <button type="button" className="secondary" onClick={props.openProfile}>
+        Open student profile
+      </button>
+      {teacher && (
+        <label>
+          Visit observations
+          <textarea
+            maxLength={1200}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+          />
+        </label>
+      )}
+      {props.error && (
+        <p className="error" role="alert">
+          {props.error}
+        </p>
+      )}
+    </Modal>
+  );
 }
 
 /** Keep the live clock separate from the packet planner and unsaved form. */
@@ -126,7 +181,11 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
         cfg.subjects[s].format === 'CONNECT')
         ? visit.handoff
         : undefined);
-    return features.homework && record?.mode === 'activity-only' ? undefined : record;
+    return features.homework &&
+      !subjectNeedsSetup(cfg.subjects[s]) &&
+      record?.mode === 'activity-only'
+      ? undefined
+      : record;
   };
   const defaultDraft = (s: Subject): Draft => ({
     activity: savedFor(s)?.activities[s] || 'Worksheets',
@@ -149,6 +208,7 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
     a = sets.find((a) => a.subject === shown),
     d = drafts[shown] || defaultDraft(shown),
     saved = savedFor(shown),
+    activityOnly = !features.homework || subjectNeedsSetup(cfg.subjects[shown]),
     teaching = db.staff.role !== 'assistant',
     editable = teaching && isOpenVisit(visit) && (!saved || d.correcting);
   const prior = incomingPackets(db, student.id, shown, a?.id),
@@ -339,7 +399,7 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
       setLocalError('Enter a correction reason.');
       return;
     }
-    const ok = !features.homework
+    const ok = activityOnly
       ? await act({
           action: 'activity-check-in',
           visitId: visit.id,
@@ -514,7 +574,7 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
         aria-labelledby={'quick-tab-' + shown}
         className="quick-section quick-subject-card"
       >
-        {!features.homework ? (
+        {activityOnly ? (
           <>
             <h4>In-center activity</h4>
             <div className="activity-choices">
@@ -766,6 +826,7 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
                       </p>
                     )}
                     <DictatedNote
+                      allowDictation={dictationAllowed(db)}
                       label="Adjustment reason"
                       buttonLabel="Dictate"
                       maxLength={400}
@@ -888,6 +949,7 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
                       )}
                     </div>
                     <DictatedNote
+                      allowDictation={dictationAllowed(db)}
                       label="Repeat reason"
                       buttonLabel="Dictate"
                       maxLength={400}
@@ -926,9 +988,11 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
           </>
         ) : (
           <p>
-            {cfg.subjects[shown].format === 'CONNECT'
-              ? 'Assignments are managed in Kumon CONNECT.'
-              : 'No paper plan is linked to this visit.'}
+            {subjectNeedsSetup(cfg.subjects[shown]) && features.homework
+              ? 'Complete this subject in the student profile before using homework. Observations can be saved now.'
+              : cfg.subjects[shown].format === 'CONNECT'
+                ? 'Assignments are managed in Kumon CONNECT.'
+                : 'No paper plan is linked to this visit.'}
           </p>
         )}
         {teaching && saved && isOpenVisit(visit) && (
@@ -1081,7 +1145,13 @@ function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: Q
       {teaching && (
         <section className="quick-section quick-note quick-observation-note">
           <h3>Instructional note</h3>
-          <DictatedNote text={text} setText={setText} label="Instructional note" hideLabel />
+          <DictatedNote
+            allowDictation={dictationAllowed(db)}
+            text={text}
+            setText={setText}
+            label="Instructional note"
+            hideLabel
+          />
         </section>
       )}
       {(error || localError) && (

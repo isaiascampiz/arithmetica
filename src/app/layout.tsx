@@ -24,7 +24,7 @@ const editorialFont = localFont({
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Arithmetica · Learning center',
-  description: 'A calmer day at your learning center. Fictional operations demo.',
+  description: 'A calmer day at your learning center.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Arithmetica' },
   icons: { icon: '/icon.svg?v=7', apple: '/icon-192.png?v=7' },

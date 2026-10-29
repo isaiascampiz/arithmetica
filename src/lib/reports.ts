@@ -313,6 +313,13 @@ export function closeDueVisits(db: Database, now = new Date()) {
 }
 export function runDueJobs(db: Database, now = new Date()) {
   const op = db.operations!;
+  // A newly provisioned center must stay empty until its explicit first import.
+  if (
+    op.v3?.dataMode === 'production' &&
+    !db.students.length &&
+    !Object.keys(op.v3.rosterImports || {}).length
+  )
+    return 0;
   const date = dayKey(now, op.center.timezone),
     clock = localClock(now, op.center.timezone);
   let changed = closeDueVisits(db, now);

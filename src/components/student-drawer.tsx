@@ -1,4 +1,5 @@
 'use client';
+import { dictationAllowed } from '@/lib/privacy';
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
@@ -62,6 +63,7 @@ export function StudentDrawer({ student: s, db, busy, error, mutate, close }: Dr
     };
   }, []);
   async function dictate() {
+    if (!dictationAllowed(db)) return;
     const w = window as unknown as {
       SpeechRecognition?: new () => Recognition;
       webkitSpeechRecognition?: new () => Recognition;
@@ -259,6 +261,7 @@ export function StudentDrawer({ student: s, db, busy, error, mutate, close }: Dr
                   type="button"
                   className={`text-button ${listening ? 'listening' : ''}`}
                   onClick={() => void dictate()}
+                  disabled={!dictationAllowed(db)}
                 >
                   <Mic size={16} />
                   {listening ? 'Stop dictation' : 'Dictate a note'}

@@ -1,5 +1,9 @@
 node_modules/
 .next/
+.open-next/
+.wrangler/
+supabase/.temp/
+.dev.vars*
 .pnpm-store/
 .env*
 !.env.example

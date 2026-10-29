@@ -9,7 +9,10 @@ export async function GET() {
     return new Response(JSON.stringify(await repository.read(), null, 2), {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': 'attachment; filename="arithmetica-fictional-backup.json"',
+        'Content-Disposition':
+          process.env.DEMO_MODE === 'false'
+            ? 'attachment; filename="arithmetica-backup.json"'
+            : 'attachment; filename="arithmetica-fictional-backup.json"',
         'Cache-Control': 'no-store',
       },
     });

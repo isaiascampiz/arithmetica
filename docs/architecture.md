@@ -1,4 +1,14 @@
-# Centerflow V3 architecture
+# Arithmetica architecture
+
+## Deployed V1 boundary — October 29, 2026
+
+Cloudflare serves a generated static Next.js browser bundle and `src/server/static-worker.ts`. Its fixed-project proxy forwards only application cookies to `arithmetica-api` in Supabase Edge Functions; the gateway JWT check stays enabled. `edge-handler.ts` dispatches the original API routes, using request-scoped cookie/response adapters. The same domain rules, membership authorization, repository CAS writes and validation run in Node tests and the deployed API. Cloud errors fail visibly; there is no local-data fallback.
+
+Privileged database/session credentials belong to the Supabase backend, not browser assets or the Cloudflare proxy. The proxy needs only the gateway anonymous key and a scoped jobs secret. Its scheduled handler invokes the authenticated idempotent jobs endpoint every 15 minutes. Center-local time rules remain in the domain. Visible staff pages poll every seven seconds; hidden pages stop polling and refresh on return. Restored browser-history pages reload before trusting private client state.
+
+Five ordered SQL migrations are recorded in `application_versions`. Production was initialized empty, then the explicitly authorized initial roster batch was committed once. No demo fixture is deployed as state. Pending subjects cannot create ordinary paper preparation until instructors confirm format and worksheet position. Import IDs, source dates and batch fingerprints are preserved; no DOB field was introduced.
+
+App updates replace code independently of PostgreSQL. Daily encrypted OneDrive recovery archives contain the current aggregate, paginated revision history, memberships, center metadata, migration SQL and Auth identity metadata. They exclude passwords, hashes, sessions and deployment secrets. Recovery recreates the original Auth UUIDs with new passwords. See [operations and deployment](deployment-and-import-plan.md). Descriptions below preserve prior design/validation history; this section supersedes earlier statements that cloud validation/import had not occurred.
 
 ## Current Arithmetica refinement
 
@@ -96,7 +106,6 @@ The three operational charts use compact inline period controls with accessible 
 
 Academic progress now matches the operational previews and expanded duration panel: eight-week preview, subject caption, configured current-level headline, 190px preview chart, matching detailed plot bounds and neutral history actions. Its expanded default is 8 weeks, with prior/next eight-week navigation and existing calendar/all-time choices. Five linear Y ticks fit all visible recorded page positions with round page increments; no planned or issued work creates points. Weekly desktop / fortnightly phone grid lines and fewer regularly spaced date labels preserve readability. The source history and student configuration are unchanged. Guidance: https://service-manual.ons.gov.uk/data-visualisation/guidance/axes-and-gridlines (cropped line axes, round intervals and responsive grid density); five labels and faint vertical guides are Centerflow choices.
 
-
 Progress chart consistency: all four previews and expanded panels default to eight weeks. Previews share 210px chart frames (expanded maximum 310px), five value ticks, horizontal unit titles, right-aligned numeric labels with a separate plot gutter, and four fortnightly date labels. The homework outcome legend occupies the same corner summary box as Skills. Academic and Skills share calendar-day coordinates and one responsive calendar tick policy: daily grids for a week, weekly for a month/eight weeks, fortnightly for a quarter, then aligned calendar months (coarsened at longer spans or narrower widths). Label density is independent of record count and never creates data points. Both bar charts use daily buckets for a week/month, weekly for eight weeks through six months, monthly for a year; All time adapts to its actual span. Headline totals still use original records and full histories remain available. These are read-only presentation changes; no persisted records, attendance behavior or schema changes. Guidance: https://service-manual.ons.gov.uk/data-visualisation/guidance/axes-and-gridlines and https://nces.ed.gov/statprog/styleguide/pdf/2004606.pdf.
 
 Progress visual refinement: all preview and expanded charts use vertical unit titles beside horizontal numeric labels, preserving shared plot bounds. Homework outcomes use an unboxed horizontal legend above the plot on the right. Preview skill summaries remain centered for one, two or three pinned skills. Academic progress has a muted 9% area fill beneath its existing straight line. Homework amber is darkened for improved contrast against white; records and calculations are unchanged.
@@ -105,7 +114,6 @@ Homework preparation layout: compact student/date summaries, explicit per-subjec
 
 Preparation simplification: student groups use a single white surface with Math and Reading stacked. Each subject shows its actual first worksheet, packet size when uniform, exact in-center/homework ranges in saved order, and one prominent Mark prepared action. There is no overall preparation button or progression/repeat editor. Raw catalog warnings are replaced with a neutral instructor-review message; invalid and stale sets remain blocked and are not regenerated by the pulling UI. Server validation, sequencing and packet identity remain unchanged.
 
-
 ## Gradual rollout with center features
 
 The owner can change Homework in General. Achievement-medal visibility is no longer an active setting; its saved compatibility field remains preserved. Existing centers default to both enabled when settings are absent. These are center-wide, version-checked settings in the existing V3 aggregate; no SQL migration or schema reset is used. Only owners may save them.
@@ -113,7 +121,6 @@ The owner can change Homework in General. Achievement-medal visibility is no lon
 With homework off, Homework Preparation navigation, paper planning controls, academic/homework charts and historical packet sections are hidden. Direct preparation URLs show Home. Quick View retains subject tabs, Packet/Corrections/Both, optional skill ratings and typed/dictated notes in the existing layout. Its activity-only command records the actual subject format, actor and visit, without changing paper sets, cursor positions, receipt outcomes, issuance, preparation or physical attendance. Subject confirmations remain independent. The server blocks disabled paper/medal actions, including legacy mutation endpoints, and the preparation synchronizer pauses. Activity-only records never replace historical paper review evidence in charts.
 
 Turning medals off hides current awards and achievement history/editors without removing their records. Turning homework back on requires an owner acknowledgement that current levels and saved plans have been reviewed. Enabling is not preparation or issuance. Earlier packet records and activity-only sessions remain distinct; an activity-only session continues to show activity rather than fabricated packet history after homework is re-enabled. Settings, IDs, timestamps, observations, attribution and migration history are preserved. The optional fields retain older aggregates without rewriting them. Malformed feature settings fail closed. Normal backup/export procedures remain applicable. No new environment variables are required.
-
 
 Claude-inspired appearance experiment: the final claude-theme.css layer uses a warm near-black/ivory/clay palette drawn from https://claude.com/product/overview, system sans-serif controls and Georgia editorial headings. Proprietary Anthropic fonts/assets are not redistributed. Existing V3 spacing, plot dimensions, workflows and feature settings remain in place. New sessions default to dark; an existing cf-theme preference is honored, and the same theme button switches to a warm paper light variant. No student records or business rules change. The stylesheet is isolated so the later Linear experiment can be evaluated separately.
 
@@ -131,11 +138,9 @@ Historical report levels come from dated configuration or completion evidence; c
 
 Reception writes carry durable request IDs. Optional `v3.receptionReceipts` stores a fingerprint and its original confirmation; retries after the debounce window return that receipt without toggling attendance. Reusing an ID with different input is rejected. Malformed receipts fail closed and the receipt map is excluded from staff snapshots. Legacy token-only kiosk requests remain compatible. `clientId` uses Web Crypto UUIDs or equally random `getRandomValues` bytes for local HTTP previews; no weak-random fallback is used.
 
-
 ### October 28 refinement
 
 Traffic now uses Daily, Weekly, Monthly and Yearly views with a linked punch list. Subject edits retain unenrolled configurations and use an optional versioned daily worksheet policy with ten-sheet standard packets. Reception completes a uniquely matching active name inline and confirms the student by name, as explicitly authorized by the user; it does not send a roster or private records. See [implementation and privacy details](arithmetica-refinement.md).
-
 
 ### Appearance and shared report headers
 

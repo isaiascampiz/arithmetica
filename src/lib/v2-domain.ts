@@ -1,4 +1,5 @@
 import { dailyWorkInput, preserveDailyWork } from './worksheet-allocation';
+import { pendingStudentSettings, subjectNeedsSetup } from './student-setup';
 import { randomUUID } from 'node:crypto';
 import { centerFeatures } from './center-features';
 import { z } from 'zod';
@@ -39,22 +40,33 @@ const range = z
   );
 export const subjectSettingsInput = z
   .object({
+    setupPending: z.boolean().optional(),
     enrolled: z.boolean(),
     dailyWork: dailyWorkInput.optional(),
-    format: z.enum(['Paper', 'CONNECT']),
-    level: z.string().trim().min(1).max(20),
-    currentStart: z.number().int().min(1).max(10000),
-    currentEnd: z.number().int().min(1).max(10000),
-    nextStart: z.number().int().min(1).max(10000),
+    format: z.enum(['Paper', 'CONNECT', 'Unspecified']),
+    level: z.string().trim().max(20),
+    currentStart: z.number().int().min(0).max(10000),
+    currentEnd: z.number().int().min(0).max(10000),
+    nextStart: z.number().int().min(0).max(10000),
     packetsPerDay: z.number().int().min(0).max(10),
     sheetsPerPacket: z.number().int().min(1).max(100),
-    classworkSheets: z.number().int().min(1).max(100),
+    classworkSheets: z.number().int().min(0).max(100),
     excludeDays: days,
     maxDays: z.number().int().min(1).max(90),
     maxSheets: z.number().int().min(1).max(1000),
   })
-  .refine((s) => s.currentEnd >= s.currentStart, 'Current worksheet range must be ordered.');
+  .refine((s) => s.currentEnd >= s.currentStart, 'Current worksheet range must be ordered.')
+  .refine(
+    (s) =>
+      s.setupPending === true ||
+      (s.format !== 'Unspecified' &&
+        s.level.length > 0 &&
+        (s.format === 'CONNECT' ||
+          (s.currentStart > 0 && s.currentEnd > 0 && s.nextStart > 0 && s.classworkSheets > 0))),
+    'Complete subject setup before enabling its homework.',
+  );
 export const studentSettingsInput = z.object({
+  setupPending: z.boolean().optional(),
   grade: z.string().trim().max(40).nullable().optional(),
   version: z.number().int().min(1),
   active: z.boolean(),
@@ -284,6 +296,14 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
   if (protectedActions.includes(c.action)) teacher(staff);
   if ('studentId' in c && c.studentId && !db.students.some((s) => s.id === c.studentId))
     throw new DomainError('Student not found.', 404);
+  if (
+    'studentId' in c &&
+    c.studentId &&
+    'subject' in c &&
+    ['plan', 'completion', 'classwork', 'decision', 'correction-add'].includes(c.action) &&
+    subjectNeedsSetup(op.students[c.studentId].subjects[c.subject as Subject])
+  )
+    throw new DomainError('Complete subject setup before recording worksheet work.', 409);
   if (c.action === 'student-add') {
     entityId = randomUUID();
     const s = {
@@ -297,12 +317,15 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
         .toUpperCase(),
       color: 'blue',
       earlyLearner: c.earlyLearner,
-      subjects: ['Math'],
-      level: '4A',
-      token: `CF-${randomUUID()}`,
+      subjects: op.v3?.dataMode === 'production' ? [] : ['Math'],
+      level: op.v3?.dataMode === 'production' ? '' : '4A',
+      token: `AR-${randomUUID()}`,
     };
     db.students.push(s);
-    op.students[s.id] = defaultStudentSettings(s, now);
+    op.students[s.id] =
+      op.v3?.dataMode === 'production'
+        ? pendingStudentSettings(op.center.expectedMinutes, now)
+        : defaultStudentSettings(s, now);
     op.students[s.id].expectedMinutes = op.center.expectedMinutes;
     op.configHistory.push({
       studentId: s.id,
@@ -312,6 +335,8 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
       settings: structuredClone(op.students[s.id]),
     });
   } else if (c.action === 'student-save') {
+    if (op.v3 && op.students[c.studentId]?.setupPending)
+      throw new DomainError('Use the current profile editor to complete student setup.', 409);
     const s = db.students.find((s) => s.id === c.studentId)!;
     const old = op.students[s.id];
     if (op.v3 && c.settings.recurringDays.some((d) => d < 1 || d > 4))
@@ -395,7 +420,7 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     entityId = c.studentId;
   } else if (c.action === 'qr-reissue') {
     const s = db.students.find((s) => s.id === c.studentId)!;
-    s.token = `CF-${randomUUID()}`;
+    s.token = `AR-${randomUUID()}`;
     entityId = s.id;
   } else if (c.action === 'family-save') {
     entityId = c.id || randomUUID();

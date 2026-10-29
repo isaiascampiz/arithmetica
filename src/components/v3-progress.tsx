@@ -1,5 +1,6 @@
 'use client';
 import { centerFeatures } from '@/lib/center-features';
+import { subjectNeedsSetup } from '@/lib/student-setup';
 import { useState, type ReactNode } from 'react';
 import { type Snapshot, type Student } from '@/lib/model';
 import type { Subject } from '@/lib/v2-model';
@@ -26,12 +27,17 @@ export function ProgressCharts({ db, student }: { db: Snapshot; student: Student
   const subjects = (['Math', 'Reading'] as Subject[]).filter((sub) => cfg.subjects[sub].enrolled);
   const subject = subjects.includes(selected) ? selected : subjects[0];
   const homeworkEnabled = centerFeatures(db).homework;
-  const paper = subject && cfg.subjects[subject].format === 'Paper';
+  const paper =
+    subject &&
+    cfg.subjects[subject].format === 'Paper' &&
+    !subjectNeedsSetup(cfg.subjects[subject]);
   const connect = (
     <p className="progress-empty">
-      {subject
-        ? 'Assignments and academic progression are managed in Kumon CONNECT.'
-        : 'No enrolled subjects recorded.'}
+      {subject && subjectNeedsSetup(cfg.subjects[subject])
+        ? 'Subject setup is incomplete. No academic work has been inferred.'
+        : subject
+          ? 'Assignments and academic progression are managed in Kumon CONNECT.'
+          : 'No enrolled subjects recorded.'}
     </p>
   );
 

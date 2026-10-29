@@ -5,6 +5,7 @@ import { isOpenVisit, type Snapshot, type Student } from '@/lib/model';
 import { recurring } from '@/lib/schedule';
 import { dailyWorksheets, dailyWork } from '@/lib/worksheet-allocation';
 import { centerFeatures } from '@/lib/center-features';
+import { subjectNeedsSetup } from '@/lib/student-setup';
 import type { Subject, StudentSettings } from '@/lib/v2-model';
 import type { V2Command } from '@/lib/v2-domain';
 import { Modal, type V3Act } from './v3-shared';
@@ -196,7 +197,15 @@ export function OverviewSubjects({
         <dl className="profile-readout">
           <div>
             <dt>Learning mode</dt>
-            <dd>{c.enrolled ? (c.format === 'CONNECT' ? 'Kumon CONNECT' : 'PAPER') : '\u2014'}</dd>
+            <dd>
+              {c.enrolled
+                ? c.format === 'Unspecified'
+                  ? 'Not set'
+                  : c.format === 'CONNECT'
+                    ? 'Kumon CONNECT'
+                    : 'PAPER'
+                : '\u2014'}
+            </dd>
           </div>
           <div>
             <dt>Current level</dt>
@@ -205,7 +214,10 @@ export function OverviewSubjects({
           <div>
             <dt>Current worksheet</dt>
             <dd>
-              {c.enrolled && c.format === 'Paper' && centerFeatures(db).homework
+              {c.enrolled &&
+              !subjectNeedsSetup(c) &&
+              c.format === 'Paper' &&
+              centerFeatures(db).homework
                 ? c.currentStart
                 : '\u2014'}
             </dd>
@@ -213,12 +225,23 @@ export function OverviewSubjects({
           <div>
             <dt>Worksheets per day</dt>
             <dd>
-              {c.enrolled && c.format === 'Paper' && centerFeatures(db).homework
+              {c.enrolled &&
+              !subjectNeedsSetup(c) &&
+              c.format === 'Paper' &&
+              centerFeatures(db).homework
                 ? dailyWorksheets(c)
                 : '\u2014'}
             </dd>
           </div>
         </dl>
+        {c.enrolled && subjectNeedsSetup(c) && (
+          <p className="muted">
+            Subject setup is incomplete. Homework begins after an instructor confirms its settings.
+          </p>
+        )}
+        {cfg.intake?.subjectEnrollmentDates[selected] && (
+          <p className="muted">Subject enrollment: {cfg.intake.subjectEnrollmentDates[selected]}</p>
+        )}
         {c.enrolled && centerFeatures(db).medals && (
           <SubjectAchievement
             db={db}
@@ -269,6 +292,7 @@ function ProfileEditor({
     if (subject && enrollOnOpen) {
       copy.subjects[subject].enrolled = true;
       if (
+        !copy.subjects[subject].setupPending &&
         !db.operations!.configHistory.some(
           (h) => h.studentId === student.id && h.subjects[subject].enrolled,
         )
@@ -283,6 +307,8 @@ function ProfileEditor({
     return copy;
   });
   const [name, setName] = useState(student.name),
+    [firstName, setFirstName] = useState(student.firstName || ''),
+    [lastName, setLastName] = useState(student.lastName || ''),
     [early, setEarly] = useState(student.earlyLearner),
     [page, setPage] = useState(initialPage);
   const days = cfg.visitDays || recurring(db.operations!, cfg);
@@ -296,6 +322,7 @@ function ProfileEditor({
         action: 'student-save',
         studentId: student.id,
         name,
+        ...(student.firstName !== undefined ? { firstName, lastName } : {}),
         earlyLearner: early,
         settings: cfg,
         enrollmentDate: cfg.enrollmentDate || null,
@@ -347,15 +374,44 @@ function ProfileEditor({
             />
             {page === 'Details' ? (
               <div className="profile-edit-fields">
-                <label>
-                  Student name
-                  <input
-                    value={name}
-                    maxLength={120}
-                    required
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
+                {student.firstName !== undefined ? (
+                  <div className="profile-edit-pair">
+                    <label>
+                      First name
+                      <input
+                        value={firstName}
+                        maxLength={120}
+                        required
+                        onChange={(event) => {
+                          setFirstName(event.target.value);
+                          setName(`${event.target.value.trim()} ${lastName.trim()}`.trim());
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Last name
+                      <input
+                        value={lastName}
+                        maxLength={120}
+                        required
+                        onChange={(event) => {
+                          setLastName(event.target.value);
+                          setName(`${firstName.trim()} ${event.target.value.trim()}`.trim());
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label>
+                    Student name
+                    <input
+                      value={name}
+                      maxLength={120}
+                      required
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </label>
+                )}
                 <label>
                   Grade
                   <input
@@ -436,8 +492,17 @@ function ProfileEditor({
                       Learning mode
                       <select
                         value={c.format}
-                        onChange={(e) => patch({ format: e.target.value as 'Paper' | 'CONNECT' })}
+                        onChange={(e) =>
+                          patch({
+                            format: e.target.value as 'Paper' | 'CONNECT' | 'Unspecified',
+                            ...(e.target.value === 'Unspecified' ? { setupPending: true } : {}),
+                            ...(e.target.value === 'CONNECT' ? { setupPending: false } : {}),
+                          })
+                        }
                       >
+                        {c.format === 'Unspecified' && (
+                          <option value="Unspecified">Choose learning mode</option>
+                        )}
                         <option value="Paper">PAPER</option>
                         <option value="CONNECT">Kumon CONNECT</option>
                       </select>
@@ -458,7 +523,7 @@ function ProfileEditor({
                         <input
                           type="number"
                           min={1}
-                          value={c.currentStart}
+                          value={c.currentStart || ''}
                           onChange={(e) =>
                             patch({
                               currentStart: Number(e.target.value),
@@ -474,7 +539,7 @@ function ProfileEditor({
                           type="number"
                           min={0}
                           max={50}
-                          value={dailyWorksheets(c)}
+                          value={c.setupPending ? dailyWorksheets(c) || '' : dailyWorksheets(c)}
                           onChange={(e) => {
                             const worksheets = Number(e.target.value);
                             patch({
@@ -490,6 +555,17 @@ function ProfileEditor({
                       </label>
                     </div>
                   )}
+                  {centerFeatures(db).homework &&
+                    c.format === 'Paper' &&
+                    original.subjects[subject!].setupPending && (
+                      <SettingRow label="Enable homework for this subject">
+                        <Switch
+                          label="Enable homework for this subject"
+                          checked={!c.setupPending}
+                          onChange={(enabled) => patch({ setupPending: !enabled })}
+                        />
+                      </SettingRow>
+                    )}
                 </>
               )}
             </div>

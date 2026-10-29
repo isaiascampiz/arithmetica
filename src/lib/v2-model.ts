@@ -1,7 +1,8 @@
 export type Subject = 'Math' | 'Reading';
-export type Format = 'Paper' | 'CONNECT';
+export type Format = 'Paper' | 'CONNECT' | 'Unspecified';
 export type Range = { level: string; start: number; end: number };
 export type SubjectSettings = {
+  setupPending?: boolean;
   dailyWork?: { version: 1; worksheets: number; packetSheets: 10 };
   enrolled: boolean;
   format: Format;
@@ -17,6 +18,14 @@ export type SubjectSettings = {
   maxSheets: number;
 };
 export type StudentSettings = {
+  setupPending?: boolean;
+  intake?: {
+    version: 1;
+    batchRequestId: string;
+    sourceSha256: string;
+    sourceRows: number[];
+    subjectEnrollmentDates: Partial<Record<Subject, string>>;
+  };
   grade?: string | null;
   enrollmentDate?: string | null;
   visitDays?: number[];

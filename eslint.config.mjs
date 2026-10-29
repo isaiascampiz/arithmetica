@@ -6,6 +6,8 @@ export default defineConfig([
   ...ts,
   globalIgnores([
     '.next/**',
+    '.open-next/**',
+    '.wrangler/**',
     '.pnpm-store/**',
     'test-results/**',
     'playwright-report/**',

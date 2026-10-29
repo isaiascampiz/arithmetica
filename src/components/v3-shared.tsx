@@ -162,6 +162,7 @@ export function DictatedNote({
   dictationOnly = false,
   showPrivacyHint = true,
   hideLabel = false,
+  allowDictation = true,
 }: {
   text: string;
   setText: (s: string) => void;
@@ -171,6 +172,7 @@ export function DictatedNote({
   dictationOnly?: boolean;
   showPrivacyHint?: boolean;
   hideLabel?: boolean;
+  allowDictation?: boolean;
 }) {
   const fieldId = useId();
   const [listening, setListening] = useState(false),
@@ -190,6 +192,7 @@ export function DictatedNote({
     [],
   );
   function dictate() {
+    if (!allowDictation) return;
     const w = window as unknown as {
       SpeechRecognition?: new () => Recognition;
       webkitSpeechRecognition?: new () => Recognition;
@@ -199,7 +202,7 @@ export function DictatedNote({
       setError(
         dictationOnly
           ? 'Dictation unavailable in this browser.'
-          : 'Dictation unavailable; type or use the keyboard microphone.',
+          : 'Dictation unavailable; type your note.',
       );
       return;
     }
@@ -255,13 +258,15 @@ export function DictatedNote({
         onChange={(e) => setText(e.target.value)}
         placeholder="A brief note for this visit…"
       />
-      <button className="text-button" type="button" onClick={dictate}>
+      <button className="text-button" type="button" disabled={!allowDictation} onClick={dictate}>
         <Mic size={17} />
         {listening ? 'Stop dictation' : buttonLabel}
       </button>
       {showPrivacyHint && (
         <small className="muted">
-          Fictional speech only; browser/provider privacy requires approval.
+          {allowDictation
+            ? 'Use the center-approved dictation provider. Arithmetica saves text only.'
+            : 'Dictation requires documented provider privacy approval. Typed notes remain available.'}
         </small>
       )}
       {error && <p role="status">{error}</p>}

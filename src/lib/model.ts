@@ -8,6 +8,8 @@ export type Staff = {
   picture?: string;
 };
 export type Student = {
+  firstName?: string;
+  lastName?: string;
   id: string;
   name: string;
   initials: string;
@@ -74,7 +76,13 @@ export type Database = {
 export type Snapshot = Database & {
   staff: Staff;
   timezone: string;
-  runtime?: { demo: boolean; adapter: string; scheduler: boolean };
+  runtime?: {
+    demo: boolean;
+    adapter: string;
+    scheduler: boolean;
+    environment?: string;
+    dictationApproved?: boolean;
+  };
 };
 export const choices = [
   'Worked independently',

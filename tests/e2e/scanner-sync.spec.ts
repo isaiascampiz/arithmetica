@@ -45,7 +45,18 @@ test('real QR decoder reads a synthetic camera stream and releases it', async ({
     });
   }, image);
   await page.getByRole('button', { name: 'Use camera' }).click();
-  await expect(page.getByRole('status')).toContainText(/checked (in|out)/);
+  try {
+    await expect(page.getByRole('status')).toContainText(/checked (in|out)/);
+  } catch (error) {
+    console.log('Synthetic camera diagnostic', await page.evaluate(() => {
+      const video = document.querySelector('video');
+      const stream = (window as unknown as { testStream?: MediaStream }).testStream;
+      return { video: video ? { width: video.videoWidth, height: video.videoHeight, readyState: video.readyState, paused: video.paused, currentTime: video.currentTime } : null,
+        tracks: stream?.getTracks().map((track) => ({ state: track.readyState, settings: track.getSettings() })) };
+    }));
+    await page.locator('video').screenshot({ path: 'test-results/synthetic-camera-diagnostic.png' });
+    throw error;
+  }
   await expect
     .poll(() =>
       page.evaluate(() =>

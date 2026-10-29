@@ -26,7 +26,10 @@ export function filterRoster(db: Database, f: RosterFilter) {
       const subs = (['Math', 'Reading'] as Subject[]).filter(
         (sub) => c.subjects[sub].enrolled && (f.subject === 'All' || f.subject === sub),
       );
-      if (!subs.some((sub) => f.format === 'All' || c.subjects[sub].format === f.format))
+      if (
+        (f.subject !== 'All' || f.format !== 'All') &&
+        !subs.some((sub) => f.format === 'All' || c.subjects[sub].format === f.format)
+      )
         return false;
       if (f.medal !== 'All') {
         const medals = op.achievements.filter(

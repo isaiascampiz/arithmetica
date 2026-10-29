@@ -1,4 +1,5 @@
 'use client';
+import { subjectNeedsSetup } from '@/lib/student-setup';
 /* eslint-disable @next/next/no-location-assign-relative-destination -- Authentication changes discard private client state. */
 import { centerFeatures } from '@/lib/center-features';
 import Image from 'next/image';
@@ -114,7 +115,18 @@ export function StaffApp() {
   useEffect(() => {
     const pending = refreshState.current;
     void refresh();
-    const poll = setInterval(() => void refresh(), 7000);
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, 7000);
+    const resume = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    // A restored history page must reauthorize before showing private records.
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) location.reload();
+    };
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('pageshow', restored);
     setCollapsed(readPreference('cf-sidebar') === 'collapsed');
     const read = () => {
       const params = new URLSearchParams(location.search),
@@ -130,6 +142,8 @@ export function StaffApp() {
       clearInterval(poll);
       pending.sequence++;
       window.removeEventListener('popstate', read);
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('pageshow', restored);
     };
   }, [refresh]);
   useEffect(() => {
@@ -262,6 +276,7 @@ export function StaffApp() {
           op.students[a.studentId].active &&
           !(op.students[a.studentId].awayUntil && today < op.students[a.studentId].awayUntil!) &&
           op.students[a.studentId].subjects[a.subject].enrolled &&
+          !subjectNeedsSetup(op.students[a.studentId].subjects[a.subject]) &&
           op.students[a.studentId].subjects[a.subject].format === 'Paper',
       )
       .map((a) => a.studentId),
@@ -565,9 +580,12 @@ export function StaffApp() {
                                       sub +
                                       ' · ' +
                                       (op.students[s.id].subjects[sub as 'Math' | 'Reading']
-                                        .format === 'Paper'
-                                        ? 'PAPER'
-                                        : 'CONNECT'),
+                                        .format === 'Unspecified'
+                                        ? 'Not set'
+                                        : op.students[s.id].subjects[sub as 'Math' | 'Reading']
+                                              .format === 'Paper'
+                                          ? 'PAPER'
+                                          : 'CONNECT'),
                                   )
                                   .join(' / ')}
                               </span>

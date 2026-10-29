@@ -74,6 +74,7 @@ for (const [width, theme] of [
         json: {
           ...fixture,
           staff: session.staff,
+          runtime: session.runtime,
           timezone: fixture.operations!.center.timezone,
         },
       }),

@@ -1,18 +1,26 @@
 # Arithmetica
 
+## Live V1 — October 29, 2026
+
+Production: **https://arithmetica.arithmetica.workers.dev**. The authorized roster is imported: **71 profiles, 102 Math/Reading enrollments**, with all saved fields reconciled and no fictional operational students. Three profiles await a subject choice; missing modality, worksheets and schedules remain pending. The preserved local demo and staging fixtures remain fictional and separate.
+
+The deployed app uses Cloudflare static assets and a small proxy, with the existing authenticated API running in Supabase Edge Functions and records in Supabase PostgreSQL. App deployments do not import, reset or replace records. See the current [deployment and recovery runbook](docs/deployment-and-import-plan.md), [hosting commands](docs/cloudflare.md), and [V1 verification record](docs/release-review-2026-10-29.md). Earlier validation descriptions below record historical work and are superseded by those documents for live status.
+
 Arithmetica is the application identity for this existing Centerflow project. The visual system follows the inspected Wispr Flow Windows app and website: Figtree controls, compact row-based settings, account/theme menus, underlined subject tabs and restrained overlays. The center is displayed as **Kumon Learning Center · Yuba City**. See the [reference audit](docs/wispr-ui-reference-audit.md) and [current refinement specification](.plans/arithmetica-appearance-header-spec.md).
 
 General contains theme, accent color, observation shortcuts and the owner’s Homework switch. Rarely changed center details are separate; staff coverage, medal visibility, reception timing and report scheduling are absent from active settings. Home provides direct check-in for expected students. Roster and preparation share search/sort menus; roster filters omit enrollment status. Traffic uses enclosed neutral/accent arrival gauges and shared date/period controls. Quick View uses full-width subject tabs and matching two-line packet tiles. Reports reveal student detail on request. **Open kiosk** opens an authenticated reception view whose brand returns Home; **Lock for shared use** pairs the isolated public kiosk and clears staff cookies. QR and exact full-name entry share attendance protection. Pouch labels retain existing identifiers and print at 2 × 2 inches.
 
-Centerflow V3 helps a learning center manage arrivals, instructor handoffs, homework packets and student observations. This is the existing working application, preserved during organization. **All included students and sample sign-ins are fictional. Real student data is not authorized.**
+Arithmetica helps a learning center manage arrivals, instructor handoffs, homework packets and student observations. Checked-in student fixtures and local sample sign-ins are fictional. Production is a separately initialized, authorized workspace; student files and credentials are excluded from Git.
 
 Start here, then explore [the code guide](docs/code-guide.md). You do not need to understand every file at once.
+
+The supplied roster was inspected, consolidated and explicitly imported after fictional staging validation: see the [intake findings and commands](docs/roster-intake-review-2026-10-28.md). Keep real workbooks outside Git. `pnpm roster:preview "C:\private\roster.xlsx" YYYY-MM-DD` reports counts and row issues; `pnpm roster:stage` prepares private drafts in ignored `data/private-intake/`, preserving IDs on repeat attempts. Neither command activates profiles or supplies missing values. The owner-only initial importer refuses an occupied center, except for an idempotent retry of the exact saved batch.
 
 ## Your tools
 
 - **Git** records checkpoints on your computer. A branch is a separate line of work; a commit is a saved checkpoint.
 - **GitHub** is the private online home for those checkpoints: [isaiascampiz/centerflow](https://github.com/isaiascampiz/centerflow). The authorized source and original Git history are now pushed, including the V3 baseline tag. Privacy was verified during repository creation; this cloud host verified Git read/write access. GitHub does not run the app or automatically back up student records.
-- **VS Code** is your local editor. Open this folder, or double-click `Centerflow.code-workspace`. Explorer shows files; Terminal runs commands; Source Control shows proposed changes.
+- **VS Code** is your local editor. Open this folder, or double-click `Arithmetica.code-workspace`. Explorer shows files; Terminal runs commands; Source Control shows proposed changes.
 - **Codex** helps read and edit the same code. Local tasks require your computer. A separately published **Codex Cloud** environment can run tasks without it. The setup UI confirmed **Environment published** with **Only me** sharing. A fresh cloud task restored this project and passed build, typecheck, lint, all 94 unit tests, the synthetic QR browser smoke and authorized HTTP checks without the Windows computer. It is ready for fictional-data phone coding tasks. See [cloud validation](docs/cloud-setup-validation.md).
 
 ## Start and stop
@@ -77,20 +85,20 @@ centerflow/
 
 ## Find a screen
 
-| Screen or behavior                  | Start with                                |
-| ----------------------------------- | ----------------------------------------- |
-| Home and sidebar                    | `src/components/staff-app.tsx`            |
-| Student Roster                      | `src/components/v3-roster.tsx`            |
-| Instructor Quick View               | `src/components/v3-quick-view.tsx`        |
-| Homework Preparation                | `src/components/v3-preparation.tsx`       |
-| Student profile and visit history   | `src/components/v3-profile.tsx`           |
-| Student progress charts             | `src/components/v3-progress.tsx`          |
-| Center Activity charts              | `src/components/v3-center-activity.tsx`   |
-| Kiosk and sign-in                   | `src/components/kiosk.tsx`, `login.tsx`   |
-| Appearance                          | `src/app/v3.css`, `globals.css`, `v2.css` |
-| Exact homework rules                | `src/lib/v3-planning.ts`, `v3-domain.ts`  |
+| Screen or behavior                | Start with                                |
+| --------------------------------- | ----------------------------------------- |
+| Home and sidebar                  | `src/components/staff-app.tsx`            |
+| Student Roster                    | `src/components/v3-roster.tsx`            |
+| Instructor Quick View             | `src/components/v3-quick-view.tsx`        |
+| Homework Preparation              | `src/components/v3-preparation.tsx`       |
+| Student profile and visit history | `src/components/v3-profile.tsx`           |
+| Student progress charts           | `src/components/v3-progress.tsx`          |
+| Center Activity charts            | `src/components/v3-center-activity.tsx`   |
+| Kiosk and sign-in                 | `src/components/kiosk.tsx`, `login.tsx`   |
+| Appearance                        | `src/app/v3.css`, `globals.css`, `v2.css` |
+| Exact homework rules              | `src/lib/v3-planning.ts`, `v3-domain.ts`  |
 
-**TypeScript** is JavaScript with checked types. **React** builds screens from components. `.tsx` files combine TypeScript and screen markup. **Next.js 16** supplies page routing and server endpoints in the same project. **CSS** controls appearance. **PostgreSQL/Supabase** is the implemented optional cloud storage/auth path; it is not live-validated. Centerflow needs no OpenAI API key to run.
+**TypeScript** is JavaScript with checked types. **React** builds screens from components. `.tsx` files combine TypeScript and screen markup. **Next.js 16** supplies the local application and generates the deployed browser bundle. **CSS** controls appearance. **Supabase** supplies deployed Auth, the shared API and PostgreSQL storage. Arithmetica needs no OpenAI API key to run.
 
 ## Records and requests
 
@@ -103,6 +111,8 @@ A screen uses `src/lib/client.ts` to send JSON to `/api/commands`. The server ch
 ## Check a change
 
 The [October 28 first-shipment review](docs/release-review-2026-10-28.md) records the latest consistency fixes, simulations, checks and external verification limits.
+
+The [live deployment and recovery runbook](docs/deployment-and-import-plan.md) records production configuration, import, backups, cloud validation and the remaining physical-device pilot.
 
 ```powershell
 pnpm build
@@ -120,13 +130,11 @@ The browser runner owns and stops its new test server directly, including on Win
 
 Read `AGENTS.md`, create a branch (`git switch -c describe-your-change`), then ask Codex for one clear change and its acceptance checks. Request preservation of records and no unrelated redesign. Review changed files in VS Code, run the checks above and save a commit. Once GitHub publication is approved, push the branch and review a pull request before merging. Never delete `data/`, reset a live database, commit `.env.local`, or treat a source backup as a records backup.
 
-For phone tasks, follow [development and cloud setup](docs/development.md). For eventual hosting, read [Cloudflare readiness](docs/cloudflare.md). Nothing has been deployed. Current cloud verification is in [cloud setup validation](docs/cloud-setup-validation.md); the earlier migration checkpoint is in [migration status](docs/migration-status.md); earlier results remain in [V3 release validation](docs/validation.md).
-
+For phone tasks, follow [development and cloud setup](docs/development.md). For live hosting and updates, read [hosting commands](docs/cloudflare.md). Earlier cloud development verification is in [cloud setup validation](docs/cloud-setup-validation.md); migration history remains in [migration status](docs/migration-status.md) and [V3 release validation](docs/validation.md).
 
 ### October 28 refinement
 
 Traffic now uses Daily, Weekly, Monthly and Yearly views with a linked punch list. Subject edits retain unenrolled configurations and use an optional versioned daily worksheet policy with ten-sheet standard packets. Reception completes a uniquely matching active name inline and confirms the student by name, as explicitly authorized by the user; it does not send a roster or private records. See [implementation and privacy details](docs/arithmetica-refinement.md).
-
 
 ### Appearance and shared report headers
 

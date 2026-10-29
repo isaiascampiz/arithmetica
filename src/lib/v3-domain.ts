@@ -1,4 +1,5 @@
 import { preserveDailyWork } from './worksheet-allocation';
+import { subjectNeedsSetup } from './student-setup';
 import { randomUUID } from 'node:crypto';
 import { centerFeatures } from './center-features';
 import { activityHoursInput, activitySettings } from './activity-settings';
@@ -105,11 +106,13 @@ export const v3CommandInput = z.discriminatedUnion('action', [
     action: z.literal('student-save'),
     studentId: z.string(),
     name: z.string().trim().min(2).max(120),
+    firstName: z.string().trim().min(1).max(120).optional(),
+    lastName: z.string().trim().min(1).max(120).optional(),
     earlyLearner: z.boolean(),
     settings: studentSettingsInput,
     enrollmentDate: dateInput.nullable(),
     awayUntil: dateInput.nullable().optional(),
-    visitDays: z.array(z.number().int().min(1).max(4)).min(1).max(4),
+    visitDays: z.array(z.number().int().min(1).max(4)).max(4),
     tiles,
     goals: z.string().trim().max(400),
     arrivalWindow: z.string().max(40).default(''),
@@ -334,10 +337,13 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     op.v3!.features = { homework: c.homework, medals: c.medals, version: features.version + 1 };
     id = 'center-features';
   } else if (c.action === 'activity-check-in') {
-    if (features.homework || features.version !== c.expectedFeaturesVersion)
-      throw new DomainError('Center features changed. Reopen Quick View.', 409);
     const visit = db.visits.find((v) => v.id === c.visitId)!;
     const cfg = op.students[visit.studentId];
+    if (
+      (features.homework && !subjectNeedsSetup(cfg.subjects[c.subject])) ||
+      features.version !== c.expectedFeaturesVersion
+    )
+      throw new DomainError('Center features changed or subject setup completed. Reopen Quick View.', 409);
     if (!cfg.subjects[c.subject].enrolled) throw new DomainError('Subject is not enrolled.', 409);
     const recorded =
       visit.subjectCheckIns?.[c.subject] ||
@@ -421,6 +427,8 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     for (const key of c.ids) {
       const a = op.assignments.find((a) => a.id === key && a.v3);
       if (!a) throw new DomainError('Preparation not found.', 404);
+      if (subjectNeedsSetup(op.students[a.studentId].subjects[a.subject]))
+        throw new DomainError('Complete subject setup before preparing worksheets.', 409);
       const v = a.v3!;
       if (v.issuedAt) throw new DomainError('Issued work cannot be marked prepared again.');
       if (c.versions[key] !== v.version)
@@ -463,6 +471,12 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         Reading: preserveDailyWork(old.subjects.Reading, c.settings.subjects.Reading),
       },
     };
+    for (const subject of ['Math', 'Reading'] as Subject[])
+      if (
+        old.subjects[subject].setupPending === true &&
+        settings.subjects[subject].setupPending === undefined
+      )
+        throw new DomainError('Student setup changed. Reopen the current profile editor.', 409);
     if (!features.homework)
       for (const sub of ['Math', 'Reading'] as Subject[]) {
         const keys = [
@@ -486,9 +500,20 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       }
     if (old.version !== settings.version)
       throw new DomainError('Student profile changed. Reopen Edit Student.', 409);
+    if (c.firstName !== undefined || c.lastName !== undefined) {
+      if (!c.firstName || !c.lastName || `${c.firstName} ${c.lastName}` !== c.name)
+        throw new DomainError('First and last names must match the displayed student name.');
+    } else if ((s.firstName || s.lastName) && c.name !== s.name)
+      throw new DomainError('Use the current profile editor to update first and last names.', 409);
     if (!settings.active && db.visits.some((v) => v.studentId === s.id && isOpenVisit(v)))
       throw new DomainError('Reconcile the open attendance visit before withdrawing this student.');
-    if (!settings.subjects.Math.enrolled && !settings.subjects.Reading.enrolled)
+    if (!c.visitDays.length && !old.setupPending && !old.intake)
+      throw new DomainError('Choose at least one regular visit day.');
+    if (
+      !settings.subjects.Math.enrolled &&
+      !settings.subjects.Reading.enrolled &&
+      !old.setupPending
+    )
       throw new DomainError('Enroll at least one subject.');
     if (c.awayUntil && c.awayUntil < dayKey(now, op.center.timezone))
       throw new DomainError('Return date must be today or later.');
@@ -500,11 +525,13 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       if (
         features.homework &&
         next.enrolled &&
+        !subjectNeedsSetup(next) &&
         next.format === 'Paper' &&
         (next.level !== prior.level ||
           next.nextStart !== prior.nextStart ||
           prior.format !== 'Paper' ||
-          !prior.enrolled)
+          !prior.enrolled ||
+          subjectNeedsSetup(prior))
       ) {
         const error = validateRange(db, sub, {
           level: next.level,
@@ -513,7 +540,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         });
         if (error) throw new DomainError(error);
       }
-      if (next.level !== prior.level || next.nextStart !== prior.nextStart)
+      if (
+        !subjectNeedsSetup(next) &&
+        (next.level !== prior.level || next.nextStart !== prior.nextStart)
+      )
         op.decisions.push({
           id: randomUUID(),
           studentId: s.id,
@@ -528,6 +558,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         });
     }
     s.name = c.name;
+    if (c.firstName !== undefined && c.lastName !== undefined) {
+      s.firstName = c.firstName;
+      s.lastName = c.lastName;
+    }
     s.initials = c.name
       .split(/\s+/)
       .slice(0, 2)
@@ -540,6 +574,12 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
     op.students[s.id] = {
       ...old,
       ...settings,
+      setupPending:
+        !c.visitDays.length ||
+        !(['Math', 'Reading'] as Subject[]).some((sub) => settings.subjects[sub].enrolled) ||
+        (['Math', 'Reading'] as Subject[]).some(
+          (sub) => settings.subjects[sub].enrolled && subjectNeedsSetup(settings.subjects[sub]),
+        ),
       version: old.version + 1,
       visitDays: [...new Set(c.visitDays)],
       enrollmentDate: c.enrollmentDate,
@@ -615,6 +655,8 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError('A paper set already exists for this subject. Adjust it instead.');
     const cfg = op.students[visit.studentId],
       old = cfg.subjects[c.subject];
+    if (subjectNeedsSetup(old))
+      throw new DomainError('Complete subject setup before issuing temporary paper.', 409);
     cfg.subjects[c.subject] = {
       ...old,
       enrolled: true,
@@ -656,6 +698,17 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError('This visit uses subject check-ins. Reopen Quick View.', 409);
     if (c.subject && !op.students[visit.studentId].subjects[c.subject].enrolled)
       throw new DomainError('Subject is not enrolled. Reopen Quick View.', 409);
+    if (
+      (c.subject ? [c.subject] : (['Math', 'Reading'] as Subject[])).some(
+        (subject) =>
+          op.students[visit.studentId].subjects[subject].enrolled &&
+          subjectNeedsSetup(op.students[visit.studentId].subjects[subject]),
+      )
+    )
+      throw new DomainError(
+        'Complete subject setup before recording a homework handoff. Save observations instead.',
+        409,
+      );
     const previousRecord = c.subject
       ? visit.subjectCheckIns?.[c.subject] || visit.handoff
       : visit.handoff;

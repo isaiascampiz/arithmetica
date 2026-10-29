@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Arithmetica",
   "short_name": "Arithmetica",
-  "description": "Learning center workspace - fictional demo",
+  "description": "Arithmetica learning center workspace",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

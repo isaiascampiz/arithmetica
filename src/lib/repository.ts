@@ -1,4 +1,5 @@
 import { centerFeatures } from './center-features';
+import { validateStudentSetup } from './student-setup';
 import { activitySettings } from './activity-settings';
 import { kioskSettings } from './kiosk-settings';
 import { validateStaffProfiles } from './staff-profile';
@@ -6,6 +7,7 @@ import { validateReceptionReceipts } from './kiosk-attendance';
 import { validateDailyWork } from './worksheet-allocation';
 import { mkdir, readFile, rename, writeFile, rmdir } from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { seed } from './seed';
 import { migrateV2 } from './migrate';
 import { migrateV3 } from './v3-migrate';
@@ -52,6 +54,7 @@ async function locked<T>(fn: () => Promise<T>) {
   }
 }
 export function validateDatabase(db: Database) {
+  validateStudentSetup(db);
   centerFeatures(db);
   activitySettings(db);
   kioskSettings(db);
@@ -139,19 +142,52 @@ export async function supabaseRpc<T>(name: string, args: unknown): Promise<T> {
     );
   return (await res.json()) as T;
 }
+let remoteCache: { key: string; revision: number; payload: Database } | undefined;
 async function remoteLoad() {
-  const result = await supabaseRpc<{ revision: number; payload: Database } | null>(
-    'read_centerflow',
-    { p_center: process.env.CENTER_ID },
-  );
+  // Cache only in server memory. Every use is checked against the live cloud revision;
+  // any provider error fails closed even when a previous payload is available.
+  const key = createHash('sha256')
+    .update(
+      JSON.stringify([
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.CENTER_ID,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      ]),
+    )
+    .digest('hex');
+  if (remoteCache?.key !== key) remoteCache = undefined;
+  const reply = await supabaseRpc<{
+    revision: number;
+    payload?: Database;
+    unchanged?: boolean;
+  } | null>('read_arithmetica_if_changed', {
+    p_center: process.env.CENTER_ID,
+    p_revision: remoteCache?.revision ?? -1,
+  });
+  if (reply?.unchanged && (!remoteCache || remoteCache.revision !== reply.revision))
+    throw new Error(
+      'Cloud revision reply has no matching server snapshot. No fallback is allowed.',
+    );
+  const result = reply
+    ? {
+        revision: reply.revision,
+        payload: reply.unchanged ? structuredClone(remoteCache!.payload) : reply.payload!,
+      }
+    : null;
   if (!result)
     throw new Error(
       'Cloud state is not initialized. Follow the documented provisioning procedure.',
     );
+  if (!result.payload || result.payload.revision !== result.revision)
+    throw new Error('Cloud payload/revision mismatch. No fallback is allowed.');
   validateDatabase(result.payload);
+  const cacheable = result.payload.schemaVersion === 3;
   if (result.payload.schemaVersion === 2) migrateV3(result.payload);
   if (result.payload.schemaVersion !== 3)
     throw new Error('Cloud state needs a compatible explicit migration.');
+  remoteCache = cacheable
+    ? { key, revision: result.revision, payload: structuredClone(result.payload) }
+    : undefined;
   return result;
 }
 const cloud = () => process.env.DATA_ADAPTER === 'supabase';

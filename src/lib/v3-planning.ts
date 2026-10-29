@@ -1,4 +1,5 @@
 import { allocatedRanges, dailyWorksheets, dailyWork } from './worksheet-allocation';
+import { subjectNeedsSetup } from './student-setup';
 import type { Database, Student, Visit } from './model';
 import { centerFeatures } from './center-features';
 import { dayKey, isOpenVisit } from './model';
@@ -40,7 +41,8 @@ export function paperProposal(
     !cfg.active ||
     (cfg.awayUntil && visitDate < cfg.awayUntil) ||
     !s.enrolled ||
-    s.format !== 'Paper'
+    s.format !== 'Paper' ||
+    subjectNeedsSetup(s)
   )
     return null;
   // An absence is a pause, never an extended vacation assignment. Before a
@@ -218,7 +220,7 @@ export function synchronizePreparation(
     for (const subject of ['Math', 'Reading'] as Subject[]) {
       const cfg = c.subjects[subject];
       if (open && !open.handoff && open.subjectCheckIns?.[subject]) continue;
-      if (!cfg.enrolled || cfg.format !== 'Paper') continue;
+      if (!cfg.enrolled || cfg.format !== 'Paper' || subjectNeedsSetup(cfg)) continue;
       const existing = op.assignments.find(
         (a) => a.v3 && a.studentId === student.id && a.subject === subject && !a.v3.issuedAt,
       );
@@ -259,6 +261,7 @@ export function currentSets(db: Database, visit: Visit) {
         (!a.v3.issuedAt &&
           (a.v3.temporaryPaper ||
             (db.operations!.students[visit.studentId].subjects[a.subject].enrolled &&
+              !subjectNeedsSetup(db.operations!.students[visit.studentId].subjects[a.subject]) &&
               db.operations!.students[visit.studentId].subjects[a.subject].format === 'Paper')) &&
           a.v3.visitDate === dayKey(visit.arrivedAt, db.operations!.center.timezone))),
   );

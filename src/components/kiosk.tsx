@@ -1,4 +1,5 @@
 'use client';
+import { isPouchCode, isPouchCodePrefix } from '@/lib/pouch-code';
 /* eslint-disable @next/next/no-location-assign-relative-destination -- Locking a shared reception device clears staff state. */
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -51,7 +52,7 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
       : null;
   useEffect(() => {
     setCompletion(null);
-    if (!ready || busy || message || camera || token.trim().length < 3 || token.startsWith('CF-'))
+    if (!ready || busy || message || camera || token.trim().length < 3 || isPouchCodePrefix(token))
       return;
     let disposed = false;
     const timer = setTimeout(() => {
@@ -141,7 +142,7 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
       if (now - previous > 200) buffer = '';
       previous = now;
       if (e.key === 'Enter') {
-        if (/^CF-[A-Za-z0-9-]+$/.test(buffer)) {
+        if (isPouchCode(buffer)) {
           e.preventDefault();
           e.stopPropagation();
           setToken('');
@@ -371,7 +372,7 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
                       Pouch code
                       <input
                         id="pouch-code"
-                        placeholder="CF-…"
+                        placeholder="Scan a pouch label"
                         autoComplete="off"
                         value={pouchCode}
                         onChange={(e) => setPouchCode(e.target.value)}

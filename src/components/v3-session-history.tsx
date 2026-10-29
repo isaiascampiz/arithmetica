@@ -1,4 +1,5 @@
 'use client';
+import { dictationAllowed } from '@/lib/privacy';
 import { useState } from 'react';
 import { centerFeatures } from '@/lib/center-features';
 import type { Snapshot, Visit, Observation } from '@/lib/model';
@@ -328,6 +329,7 @@ function HistoricalObservation({
             ))}
           </div>
           <DictatedNote
+            allowDictation={dictationAllowed(db)}
             text={text}
             setText={setText}
             label="Instructional note"

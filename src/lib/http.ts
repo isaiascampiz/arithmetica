@@ -9,7 +9,7 @@ export function failure(error: unknown) {
   if (error instanceof DomainError) return json({ error: error.message }, error.status);
   if (error instanceof ZodError)
     return json({ error: error.issues[0]?.message || 'Invalid input.' }, 400);
-  console.error('CenterFlow request failed', error instanceof Error ? error.message : 'unknown');
+  console.error('Arithmetica request failed', error instanceof Error ? error.message : 'unknown');
   return json(
     { error: 'Unable to save. Check the server and retry; no success has been recorded.' },
     500,
