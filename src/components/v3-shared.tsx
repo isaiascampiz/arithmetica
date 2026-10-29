@@ -176,7 +176,19 @@ export function DictatedNote({
   const [listening, setListening] = useState(false),
     [error, setError] = useState('');
   const recognition = useRef<Recognition | null>(null);
-  useEffect(() => () => recognition.current?.stop(), []);
+  const latestText = useRef(text);
+  useEffect(() => {
+    latestText.current = text;
+  }, [text]);
+  useEffect(
+    () => () => {
+      const current = recognition.current;
+      if (!current) return;
+      current.onresult = current.onerror = current.onend = null;
+      current.stop();
+    },
+    [],
+  );
   function dictate() {
     const w = window as unknown as {
       SpeechRecognition?: new () => Recognition;
@@ -203,7 +215,7 @@ export function DictatedNote({
     r.onresult = (e) =>
       setText(
         (
-          text +
+          latestText.current +
           ' ' +
           Array.from(e.results)
             .filter((x) => x.isFinal)

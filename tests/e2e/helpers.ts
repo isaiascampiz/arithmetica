@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import type { Snapshot, Visit } from '../../src/lib/model';
 import type { V2Command } from '../../src/lib/v2-domain';
 import type { V3Command } from '../../src/lib/v3-domain';
@@ -8,7 +8,20 @@ import { zonedTimestamp, addDays, localClock } from '../../src/lib/schedule';
 import path from 'node:path';
 import { currentSets, incomingPackets } from '../../src/lib/v3-planning';
 import { dayKey } from '../../src/lib/model';
+/** Assert geometry in the final state, rather than halfway through dialog entry. */
+export async function settleDialog(dialog: Locator) {
+  await expect(dialog).toBeVisible();
+  await dialog.evaluate((element) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => {}))),
+  );
+}
+let nextLogin = 0;
 export async function login(page: Page, role = 'owner') {
+  // Exercise real authentication without a fast suite exhausting its unchanged
+  // 20-attempt/minute server protection. Reserve slots before concurrent calls.
+  const wait = Math.max(0, nextLogin - Date.now());
+  nextLogin = Date.now() + wait + 3500;
+  if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
   await page.goto('/login');
   await page.getByLabel('Email address').fill(role + '@demo.center');
   await page

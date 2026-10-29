@@ -51,3 +51,7 @@ The fictional busy-day scenario used 50 expected students, six early learners ph
 - Production hosting/scheduling, managed off-host backup retention, power-loss recovery, infrastructure limits and production load.
 
 This is a completed, locally validated V3 fictional-data application with source and forward migrations. The external checks above are deployment/device gates, not claimed completed tests.
+
+## October 28 first-shipment maintenance
+
+The latest review, regression fixes, isolated simulations and release-check results are recorded in [the October 28 review](release-review-2026-10-28.md). Earlier validation evidence above remains preserved.

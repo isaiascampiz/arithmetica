@@ -200,8 +200,10 @@
   box-shadow: var(--shadow);
   transition: border-color 0.15s;
 }
-.action-tile:hover {
-  border-color: var(--brand);
+@media (hover: hover) {
+  .action-tile:hover {
+    border-color: var(--brand);
+  }
 }
 .action-tile > span {
   display: flex;

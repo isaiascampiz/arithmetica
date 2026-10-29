@@ -42,15 +42,7 @@ type Draft = {
   correcting: boolean;
   reason: string;
 };
-export function QuickView({
-  db,
-  visit,
-  busy,
-  error,
-  act,
-  close,
-  openProfile,
-}: {
+type QuickViewProps = {
   db: Snapshot;
   visit: Visit;
   busy: boolean;
@@ -58,10 +50,37 @@ export function QuickView({
   act: V3Act;
   close: () => void;
   openProfile: () => void;
-}) {
+};
+
+export function QuickView(props: QuickViewProps) {
+  const student = props.db.students.find((s) => s.id === props.visit.studentId);
+  const config = student && props.db.operations!.students[student.id];
+  if (!config || !Object.values(config.subjects).some((subject) => subject.enrolled))
+    return (
+      <Modal title={student?.name || 'Quick View'} close={props.close} className="quick-view">
+        <p>
+          No enrolled subjects. Open the student profile to review this visit or update enrollment.
+        </p>
+        <button type="button" className="secondary" onClick={props.openProfile}>
+          Open student profile
+        </button>
+      </Modal>
+    );
+  return <QuickViewContent {...props} />;
+}
+
+/** Keep the live clock separate from the packet planner and unsaved form. */
+function VisitWaitTime({ arrivedAt, ready }: { arrivedAt: string; ready: boolean }) {
+  const now = useNow();
+  const minutes = Math.max(0, Math.floor((now.getTime() - Date.parse(arrivedAt)) / 60000));
+  return (
+    <>{(ready ? 'Time here: ' : 'Waited: ') + minutes + (minutes === 1 ? ' minute' : ' minutes')}</>
+  );
+}
+
+function QuickViewContent({ db, visit, busy, error, act, close, openProfile }: QuickViewProps) {
   const features = centerFeatures(db);
-  const now = useNow(),
-    student = db.students.find((s) => s.id === visit.studentId)!,
+  const student = db.students.find((s) => s.id === visit.studentId)!,
     cfg = db.operations!.students[student.id],
     sets = features.homework ? currentSets(db, visit) : [],
     subjects = (['Math', 'Reading'] as Subject[]).filter((s) => cfg.subjects[s].enrolled);
@@ -399,7 +418,6 @@ export function QuickView({
       </div>
     );
   }
-  const minutes = Math.max(0, Math.floor((now.getTime() - Date.parse(visit.arrivedAt)) / 60000));
   return (
     <Modal
       titleLabel={student.name}
@@ -416,13 +434,13 @@ export function QuickView({
           <span className="quick-student-identity">
             <span>{student.name}</span>
             <small>
-              {isOpenVisit(visit)
-                ? (saved ? 'Time here: ' : 'Waited: ') +
-                  minutes +
-                  (minutes === 1 ? ' minute' : ' minutes')
-                : visit.departedAt
-                  ? 'Departed ' + time(visit.departedAt, db.timezone)
-                  : 'Departure unverified'}
+              {isOpenVisit(visit) ? (
+                <VisitWaitTime arrivedAt={visit.arrivedAt} ready={!!saved} />
+              ) : visit.departedAt ? (
+                'Departed ' + time(visit.departedAt, db.timezone)
+              ) : (
+                'Departure unverified'
+              )}
             </small>
           </span>
           <ProfileMedals db={db} student={student} />

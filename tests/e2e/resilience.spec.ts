@@ -43,7 +43,21 @@ test('installed service worker gives a generic offline page without cached stude
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Let’s reconnect.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reconnect to Arithmetica.' })).toBeVisible();
+  const cached = await page.evaluate(async () =>
+    (
+      await Promise.all(
+        (await caches.keys()).map(async (key) =>
+          (await (await caches.open(key)).keys()).map((request) => new URL(request.url).pathname),
+        ),
+      )
+    ).flat(),
+  );
+  expect(
+    cached.every((path) =>
+      ['/offline.html', '/icon.svg', '/icon-192.png', '/icon-512.png'].includes(path),
+    ),
+  ).toBe(true);
   await expect(page.locator('body')).not.toContainText('Avery');
   await context.setOffline(false);
 });

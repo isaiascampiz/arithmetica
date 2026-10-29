@@ -3,7 +3,7 @@
 import { centerFeatures } from '@/lib/center-features';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Layers3,
   House,
@@ -29,6 +29,7 @@ import { homePreparation } from '@/lib/home-preparation';
 import { homeRoster, type HomeFilter } from '@/lib/v3-planning';
 import { measuredMinutes } from '@/lib/v3-analytics';
 import { clientId, request } from '@/lib/client';
+import { readPreference, writePreference } from '@/lib/device-preferences';
 import { Avatar, Empty, time, CenterClock, LiveElapsed, useCenterDay } from './shared-ui';
 import { BrandMark } from './brand';
 import { APP_NAME, centerName } from '@/lib/brand';
@@ -66,37 +67,68 @@ export function StaffApp() {
     [undo, setUndo] = useState<string | null>(null);
   const [settingsSection, setSettingsSection] = useState('general');
   const [refreshing, setRefreshing] = useState(false);
+  const refreshState = useRef({ sequence: 0, error: '' });
   const requestIds = useRef(new Map<string, string>());
   const [settingsReturn, setSettingsReturn] = useState<{ view: View; profileId: string | null }>({
     view: 'home',
     profileId: null,
   });
   const today = useCenterDay(db?.timezone || 'America/Los_Angeles');
+  const home = useMemo(
+    () => (db ? homeRoster(db, today, homeFilter) : null),
+    [db, today, homeFilter],
+  );
   const refresh = useCallback(async () => {
+    const pending = refreshState.current;
+    const sequence = ++pending.sequence;
     try {
-      setDb(await request<Snapshot>('/api/state'));
+      const next = await request<Snapshot>('/api/state');
+      if (sequence !== pending.sequence) return;
+      // Delayed polls must not replace a newer save; unchanged polls need no render.
+      setDb((current) => {
+        if (current && next.revision < current.revision) return current;
+        if (
+          current?.revision === next.revision &&
+          current.timezone === next.timezone &&
+          JSON.stringify(current.staff) === JSON.stringify(next.staff) &&
+          JSON.stringify(current.runtime) === JSON.stringify(next.runtime)
+        )
+          return current;
+        return next;
+      });
       setOnline(true);
+      if (pending.error) {
+        const previous = pending.error;
+        setError((current) => (current === previous ? '' : current));
+        pending.error = '';
+      }
     } catch (e) {
+      if (sequence !== pending.sequence) return;
       const message = (e as Error).message;
       if (message.includes('sign in')) location.assign('/login');
       setOnline(false);
+      pending.error = message;
       setError(message);
     }
   }, []);
   useEffect(() => {
+    const pending = refreshState.current;
     void refresh();
     const poll = setInterval(() => void refresh(), 7000);
-    setCollapsed(localStorage.getItem('cf-sidebar') === 'collapsed');
+    setCollapsed(readPreference('cf-sidebar') === 'collapsed');
     const read = () => {
       const params = new URLSearchParams(location.search),
         id = params.get('view') as View;
-      if (nav.some((n) => n.id === id) || id === 'settings') setView(id);
+      setView(nav.some((n) => n.id === id) || id === 'settings' ? id : 'home');
       setProfile(params.get('student'));
+      setVisit(null);
+      setMenu(false);
     };
     read();
     window.addEventListener('popstate', read);
     return () => {
       clearInterval(poll);
+      pending.sequence++;
       window.removeEventListener('popstate', read);
     };
   }, [refresh]);
@@ -134,6 +166,7 @@ export function StaffApp() {
     setProfile(id);
     setView('students');
     setMenu(false);
+    setVisit(null);
     history.pushState(null, '', '/?view=students&student=' + encodeURIComponent(id));
   }
   async function mutate(c: Mutation) {
@@ -175,13 +208,24 @@ export function StaffApp() {
   async function openKiosk() {
     location.assign('/reception');
   }
+  async function signOut() {
+    setBusy(true);
+    setError('');
+    try {
+      await request('/api/auth', 'DELETE');
+      location.assign('/login');
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
   function toggleSidebar() {
     setCollapsed((v) => {
-      localStorage.setItem('cf-sidebar', v ? 'expanded' : 'collapsed');
+      writePreference('cf-sidebar', v ? 'expanded' : 'collapsed');
       return !v;
     });
   }
-  if (!db?.operations?.v3)
+  if (!db?.operations?.v3 || !home)
     return (
       <main className="loading">
         <span className="brand-icon">
@@ -206,7 +250,6 @@ export function StaffApp() {
   const displayProfileId = activeView === 'settings' ? settingsReturn.profileId : profileId;
   const op = db.operations,
     teacher = db.staff.role !== 'assistant',
-    home = homeRoster(db, today, homeFilter),
     student = displayProfileId ? db.students.find((s) => s.id === displayProfileId) : undefined,
     visit = visitId ? db.visits.find((v) => v.id === visitId) : undefined;
   const prepCount = new Set(
@@ -291,9 +334,10 @@ export function StaffApp() {
                 </button>
                 <button
                   role="menuitem"
-                  onClick={async () => {
-                    await request('/api/auth', 'DELETE');
-                    location.assign('/login');
+                  disabled={busy}
+                  onClick={() => {
+                    close();
+                    void signOut();
                   }}
                 >
                   <LogOut size={17} />

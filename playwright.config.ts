@@ -1,10 +1,13 @@
 import { defineConfig } from '@playwright/test';
-const testPort = Number(process.env.CENTERFLOW_E2E_PORT || 3100);
-if (!Number.isInteger(testPort) || testPort < 1024 || testPort > 65535)
-  throw Error('Invalid fictional test server port.');
-const testOrigin = `http://127.0.0.1:${testPort}`;
+import {
+  e2eEnvironment,
+  e2eOutputDirectory,
+  testOrigin,
+  testPort,
+} from './scripts/e2e-settings.mjs';
 export default defineConfig({
   testDir: './tests/e2e',
+  outputDir: e2eOutputDirectory(process.env.CENTERFLOW_E2E_OUTPUT_DIR),
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
@@ -34,13 +37,6 @@ export default defineConfig({
           url: testOrigin + '/login',
           reuseExistingServer: false,
           timeout: 120000,
-          env: {
-            DEMO_DATA_PATH: process.env.CENTERFLOW_E2E_DATA_PATH || 'data/e2e-v3.json',
-            SESSION_SECRET: 'fictional-e2e-session-secret-for-tests-only-123456',
-            DEMO_MODE: 'true',
-            DATA_ADAPTER: 'local',
-            PRODUCTION_DATA_APPROVED: 'false',
-            ENABLE_SCHEDULER: 'false',
-          },
+          env: e2eEnvironment(),
         },
 });

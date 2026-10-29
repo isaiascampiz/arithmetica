@@ -98,10 +98,15 @@
   width: 100%;
   text-align: left;
 }
-.v3-settings-workspace .settings-navigation button:hover,
 .v3-settings-workspace .settings-navigation button[aria-current='page'] {
   background: var(--brand-soft);
   color: var(--brand);
+}
+@media (hover: hover) {
+  .v3-settings-workspace .settings-navigation button:hover {
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
 }
 .v3-settings-workspace .settings-navigation button span,
 .v3-settings-workspace .settings-nav-note {

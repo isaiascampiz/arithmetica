@@ -36,6 +36,8 @@ A future Cloudflare host would run the application/API after adapter validation;
 
 ## Implementation reference
 
+The first-shipment maintenance pass keeps the same domain and persistence boundaries. `client.ts` coalesces concurrent staff refreshes and replays original request bodies/IDs; public kiosk requests never refresh staff sessions. Polling ignores outdated responses and reuses unchanged authorized snapshots in memory, without persisting records in browser storage. Only theme, accent and sidebar preferences use `device-preferences.ts`. Quick View isolates its clock from planning and handles students without current enrollment. See `release-review-2026-10-28.md` for validation and limits.
+
 V3 extends the original Next.js application and preserved V2 operations aggregate. It does not create a second app or a new database. V1/V2 domain modules remain for historical compatibility; new daily UI calls V3 commands.
 
 | Module                                   | Responsibility                                                                                                                                                                   |

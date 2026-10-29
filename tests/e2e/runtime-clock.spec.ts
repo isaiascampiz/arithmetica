@@ -30,7 +30,9 @@ test('center midnight, live elapsed time and activity counts keep ticking after 
   await expect(expected).toHaveText('1');
   await page.clock.runFor(3000);
   await expect(expected).toHaveText('0');
-  await expect(page.locator('.header-location > span')).toContainText('Oct 13');
+  await expect(page.locator('.header-location > span:not(.workspace-center-name)')).toContainText(
+    'Tuesday 12:00 AM',
+  );
 
   snapshot.visits.push({
     id: 'clock-visit',
@@ -45,16 +47,14 @@ test('center midnight, live elapsed time and activity counts keep ticking after 
   await expect(elapsed).toHaveText('1 min');
 
   await page.goto('/?view=activity');
-  await expect(page.locator('.activity-now strong').first()).toHaveText('0');
-  await expect(
-    page.getByText('1 earlier visits have no confirmed departure and need review.'),
-  ).toBeVisible();
+  const total = page.locator('.traffic-summary .recorded-stat dd').first();
+  await expect(total).toHaveText('0');
   snapshot.visits[0].arrivedAt = new Date(
     (await page.evaluate(() => Date.now())) - 1000,
   ).toISOString();
   await page.reload();
-  await expect(page.locator('.activity-now strong').first()).toHaveText('1');
+  await expect(total).toHaveText('1');
   await page.clock.runFor(3000);
-  await expect(page.locator('.activity-now strong').first()).toHaveText('1');
+  await expect(total).toHaveText('1');
   expect(writes).toBe(0);
 });

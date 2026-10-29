@@ -102,6 +102,8 @@ A screen uses `src/lib/client.ts` to send JSON to `/api/commands`. The server ch
 
 ## Check a change
 
+The [October 28 first-shipment review](docs/release-review-2026-10-28.md) records the latest consistency fixes, simulations, checks and external verification limits.
+
 ```powershell
 pnpm build
 pnpm typecheck
@@ -111,6 +113,8 @@ pnpm test:e2e
 ```
 
 Build first on a fresh checkout so Next generates its types. Unit tests check rules directly; browser tests click through the optimized app using **separate fictional test data** on port 3100. Windows uses installed Chrome. Linux/cloud setup needs Playwright Chromium (`pnpm exec playwright install --with-deps chromium`). Live database policy checks under `supabase/tests/` are separate from local tests.
+
+The browser runner owns and stops its new test server directly, including on Windows. It refuses occupied ports instead of reusing another server and isolates failure artifacts under `test-results/runs/<run ID>`. Explicitly named review screenshots remain under `test-results/`. Set `CENTERFLOW_E2E_PORT` to an unused port if needed. If `pnpm` is not on PATH, use `corepack pnpm` with the same commands.
 
 ## Safe development
 

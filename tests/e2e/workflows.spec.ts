@@ -49,6 +49,7 @@ test('kiosk manual flow is idempotent and cannot read staff records', async ({ p
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
   await page.getByRole('button', { name: 'Lock for shared use' }).click();
+  await expect(page).toHaveURL(/\/kiosk$/);
   await page.getByRole('button', { name: 'Enter pouch code' }).click();
   await page.getByLabel('Pouch code', { exact: true }).fill(token);
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();

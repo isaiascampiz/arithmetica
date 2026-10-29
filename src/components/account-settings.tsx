@@ -56,7 +56,8 @@ export function AccountSettings({ staff }: { staff: Staff }) {
           256,
         );
       bitmap.close();
-      setProfile({ ...profile, picture: canvas.toDataURL('image/webp', 0.85) });
+      const picture = canvas.toDataURL('image/webp', 0.85);
+      setProfile((current) => (current ? { ...current, picture } : current));
       setError('');
     } catch (e) {
       setError((e as Error).message);
@@ -148,9 +149,17 @@ export function AccountSettings({ staff }: { staff: Staff }) {
       <div className="account-actions">
         <button
           className="secondary"
+          disabled={busy}
           onClick={async () => {
-            await request('/api/auth', 'DELETE');
-            location.assign('/login');
+            setBusy(true);
+            setError('');
+            try {
+              await request('/api/auth', 'DELETE');
+              location.assign('/login');
+            } catch (e) {
+              setError((e as Error).message);
+              setBusy(false);
+            }
           }}
         >
           Sign out

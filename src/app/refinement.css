@@ -437,16 +437,25 @@ strong {
   font-size: 12px;
   color: var(--muted);
 }
-.theme-select {
-  min-width: 164px;
+.theme-select,
+.accent-select {
+  width: 164px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
   display: flex;
   justify-content: flex-start;
   gap: 8px;
+  font-size: 14px;
   background: var(--bg);
   border: 1px solid var(--input-edge);
 }
-.theme-select > span {
+.theme-select > span,
+.accent-select > span {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
 }
 .info-tip {
@@ -1187,9 +1196,12 @@ strong {
   .setting-value {
     font-size: 13px;
   }
-  .setting-control > .secondary,
-  .theme-select {
+  .setting-control > .secondary {
     min-width: 100px;
+  }
+  .theme-select,
+  .accent-select {
+    width: 120px;
   }
   .setting-control {
     max-width: 55%;

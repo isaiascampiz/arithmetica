@@ -31,6 +31,7 @@ test('Home checks in an expected student directly and the wordmark stays passive
       arrivedAt: now.toISOString(),
       departedAt: null,
     });
+    fixture.revision++; // A successful saved command advances the source revision.
     await route.fulfill({ json: { ok: true } });
   });
   await page.goto('/');

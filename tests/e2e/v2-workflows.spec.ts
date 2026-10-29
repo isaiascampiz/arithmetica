@@ -137,6 +137,7 @@ test('Home tiles toggle exclusive filters, preserve repeated visits and open exp
   await here.click();
   db.visits[0].departedAt = '2026-10-12T21:00:00Z';
   db.visits[0].departureVerified = true;
+  db.revision++; // Match the repository contract for a new saved snapshot.
   await expect(here.locator('b')).toHaveText('1', { timeout: 15000 });
   await expect(rows).toHaveCount(1);
   await expect(out.locator('b')).toHaveText('3');

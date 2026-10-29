@@ -1,6 +1,6 @@
 import { addFictionalSkillRatings } from '../fixtures/skill-progress-demo';
 import { test, expect } from '@playwright/test';
-import { login, state } from './helpers';
+import { login, settleDialog, state } from './helpers';
 import { academicProgressDemo } from '../fixtures/academic-progress-demo';
 import {
   addInteractiveProgressStudent,
@@ -192,7 +192,7 @@ for (const width of [1440, 1024, 390, 320])
         const expand = page.getByRole('button', { name: 'Open ' + title, exact: true });
         await page.getByRole('article', { name: title, exact: true }).click();
         const dialog = page.getByRole('dialog', { name: title, exact: true });
-        await expect(dialog).toBeVisible();
+        await settleDialog(dialog);
         expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
         if (
           title === 'Homework consistency' ||
@@ -378,6 +378,7 @@ test('interactive Rowan has connected sampled history and navigable week, month 
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
   await page.getByRole('button', { name: 'Open Academic progress' }).click();
   const dialog = page.getByRole('dialog', { name: 'Academic progress', exact: true });
+  await settleDialog(dialog);
   const period = dialog.getByRole('combobox', { name: 'Academic period' });
   await expect(dialog.locator('.academic-connection path')).toHaveAttribute('d', /L /);
   expect(await dialog.locator('.academic-point').count()).toBe(14);
@@ -454,6 +455,7 @@ test('academic controls and both history actions fit without scrolling on laptop
     await page.getByRole('button', { name: 'Progress', exact: true }).click();
     await page.getByRole('button', { name: 'Open Academic progress' }).click();
     const dialog = page.getByRole('dialog', { name: 'Academic progress', exact: true });
+    await settleDialog(dialog);
     const body = dialog.locator('.v3-modal-body');
     const frame = (await body.boundingBox())!;
     expect(await body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
@@ -509,6 +511,7 @@ test('Academic and Skills share date labels and grid positions across calendar r
   ]) {
     await page.getByRole('article', { name: title, exact: true }).click();
     const dialog = page.getByRole('dialog', { name: title, exact: true });
+    await settleDialog(dialog);
     for (const period of ['1 week', '1 month', '8 weeks', '3 months', '6 months', '1 year']) {
       await dialog.getByRole('combobox', { name: periodName }).selectOption(period);
       const dates = await dialog

@@ -41,13 +41,6 @@
   border-radius: 4px;
   border: 1px solid #0002;
 }
-.accent-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-size: 13px;
-}
 .app-popover [aria-label='Accent color'] button {
   gap: 10px;
 }

@@ -166,8 +166,10 @@ select {
   color: white;
   box-shadow: 0 3px 6px #5383b712;
 }
-.primary:hover:enabled {
-  background: #5084bc;
+@media (hover: hover) {
+  .primary:hover:enabled {
+    background: #5084bc;
+  }
 }
 .secondary {
   background: var(--surface);
@@ -175,8 +177,10 @@ select {
   color: var(--ink);
   box-shadow: 0 2px 5px #27335503;
 }
-.secondary:hover:enabled {
-  background: var(--bg);
+@media (hover: hover) {
+  .secondary:hover:enabled {
+    background: var(--bg);
+  }
 }
 .wide {
   width: 100%;
@@ -205,9 +209,11 @@ select {
   border-radius: 10px;
   color: var(--muted);
 }
-.icon-button:hover {
-  background: var(--brand-soft);
-  color: var(--brand);
+@media (hover: hover) {
+  .icon-button:hover {
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
 }
 .brand {
   display: flex;
@@ -394,8 +400,10 @@ select {
   background: var(--brand-soft);
   color: var(--brand);
 }
-.nav-item:hover {
-  background: var(--brand-soft);
+@media (hover: hover) {
+  .nav-item:hover {
+    background: var(--brand-soft);
+  }
 }
 .nav-count {
   background: #fff8;
@@ -809,8 +817,10 @@ select {
   border-bottom: 1px solid var(--line);
   transition: background 0.15s;
 }
-.student-row:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .student-row:hover {
+    background: var(--bg);
+  }
 }
 .student-row:last-child {
   border-bottom: 0;
@@ -873,8 +883,10 @@ select {
   font-size: 10px;
   min-height: 52px;
 }
-.panel-footer:hover {
-  background: var(--brand-soft);
+@media (hover: hover) {
+  .panel-footer:hover {
+    background: var(--brand-soft);
+  }
 }
 .rhythm-panel {
   min-height: 246px;
@@ -946,8 +958,10 @@ select {
   padding: 15px 23px;
   border-top: 1px solid var(--line);
 }
-.queue-row:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .queue-row:hover {
+    background: var(--bg);
+  }
 }
 .queue-row .avatar {
   width: 36px;

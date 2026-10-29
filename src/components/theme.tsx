@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Monitor, Moon, Sun } from 'lucide-react';
 import { accents, isAccent, type Accent } from '@/lib/appearance';
+import { readPreference, writePreference } from '@/lib/device-preferences';
 import { Popover } from './ui-primitives';
 export type Appearance = 'light' | 'dark' | 'system';
 const ThemeContext = createContext<{
@@ -19,8 +20,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, update] = useState<Appearance>('dark');
   const [accent, updateAccent] = useState<Accent>('teal');
   useEffect(() => {
-    const value = localStorage.getItem('cf-theme');
-    const savedAccent = localStorage.getItem('cf-accent');
+    const value = readPreference('cf-theme');
+    const savedAccent = readPreference('cf-accent');
     if (isAccent(savedAccent)) updateAccent(savedAccent);
     if (value === 'light' || value === 'dark' || value === 'system') update(value);
   }, []);
@@ -32,19 +33,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.dataset.accent = accent;
       root.dataset.theme = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
       void root.offsetHeight;
-      requestAnimationFrame(() => root.classList.remove('theme-changing'));
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => root.classList.remove('theme-changing'));
     };
+    let frame = 0;
     apply();
     media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
+    return () => {
+      media.removeEventListener('change', apply);
+      cancelAnimationFrame(frame);
+      document.documentElement.classList.remove('theme-changing');
+    };
   }, [theme, accent]);
   function setTheme(value: Appearance) {
-    localStorage.setItem('cf-theme', value);
+    writePreference('cf-theme', value);
     update(value);
   }
   function setAccent(value: Accent) {
     if (!isAccent(value)) return;
-    localStorage.setItem('cf-accent', value);
+    writePreference('cf-accent', value);
     updateAccent(value);
   }
   return <ThemeContext value={{ theme, setTheme, accent, setAccent }}>{children}</ThemeContext>;
@@ -118,6 +125,7 @@ export function AccentControl() {
           <p className="menu-caption">Accent color</p>
           {accents.map((a) => (
             <button
+              type="button"
               role="menuitemradio"
               aria-checked={accent === a.id}
               key={a.id}

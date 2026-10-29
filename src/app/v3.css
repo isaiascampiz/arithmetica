@@ -52,8 +52,10 @@
   justify-content: space-between;
   align-items: center;
 }
-.home-v3-metrics > button:hover {
-  background: var(--brand-soft);
+@media (hover: hover) {
+  .home-v3-metrics > button:hover {
+    background: var(--brand-soft);
+  }
 }
 .home-v3-metrics > button[aria-pressed='true'] {
   background: var(--brand-soft);
@@ -107,8 +109,10 @@
   padding: 16px 20px;
   min-height: 84px;
 }
-.live-v3-row:hover {
-  background: var(--brand-soft);
+@media (hover: hover) {
+  .live-v3-row:hover {
+    background: var(--brand-soft);
+  }
 }
 .live-v3-row.waiting {
   border-left: 3px solid var(--brand);
@@ -2024,8 +2028,10 @@
   font: inherit;
   border-radius: 5px;
 }
-.quick-view .quick-profile-link:hover {
-  color: var(--brand);
+@media (hover: hover) {
+  .quick-view .quick-profile-link:hover {
+    color: var(--brand);
+  }
 }
 .quick-view .quick-profile-link > .profile-name-medals {
   flex-shrink: 0;
@@ -3162,8 +3168,10 @@
   cursor: pointer;
   padding: 0;
 }
-.progress-card-hit:hover {
-  background: color-mix(in srgb, var(--brand) 3%, transparent);
+@media (hover: hover) {
+  .progress-card-hit:hover {
+    background: color-mix(in srgb, var(--brand) 3%, transparent);
+  }
 }
 .progress-card:focus-within {
   outline: 2px solid var(--brand);
@@ -5577,8 +5585,10 @@
   border: 1px solid var(--line);
   border-radius: 6px;
 }
-.academic-detail .academic-history-actions button:hover {
-  background: var(--bg);
+@media (hover: hover) {
+  .academic-detail .academic-history-actions button:hover {
+    background: var(--bg);
+  }
 }
 .academic-point-popup {
   padding: 10px 12px;
@@ -5636,6 +5646,15 @@
 }
 
 /* Shared chart gutters and compact summaries leave the space to the data. */
+.homework-history-toggle,
+.center-time-history-toggle,
+.skill-scatter-history-toggle {
+  height: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+}
 .progress-summary-card
   .progress-card-preview
   > :is(.academic-progress, .homework-consistency, .center-duration, .skill-scatter) {
@@ -5744,7 +5763,7 @@
     .center-time-chart,
     .skill-scatter-chart
   ) {
-  height: clamp(150px, calc(100dvh - 380px), 310px);
+  height: clamp(150px, calc(100dvh - var(--progress-detail-space, 380px)), 310px);
   margin-top: 4px;
 }
 @media (max-width: 1100px) {
@@ -5759,13 +5778,19 @@
   }
 }
 @media (max-width: 350px) {
+  :is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail) > header {
+    min-height: 92px;
+  }
+  :is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail) {
+    --progress-detail-space: 420px;
+  }
   :is(.academic-detail, .homework-detail, .center-time-detail, .skill-trend-detail)
     :is(.academic-context, .homework-context, .center-time-context, .skill-scatter-summary-panel) {
     height: 94px;
   }
 }
 
-@media (max-width: 350px) {
+@media (max-width: 600px) {
   :is(.academic-footnote, .homework-footnote, .center-time-footnote, .skill-scatter-footnote) {
     min-height: 33px;
   }

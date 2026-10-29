@@ -1,5 +1,5 @@
 'use client';
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Info } from 'lucide-react';
 /** Native top-layer popovers dismiss on outside press/Escape and restore trigger focus. */
 export function Popover({
@@ -19,14 +19,55 @@ export function Popover({
     ref = useRef<HTMLDivElement>(null),
     button = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const position = useCallback(() => {
+    const element = ref.current,
+      anchor = button.current;
+    if (!element || !anchor || !element.matches(':popover-open')) return;
+    const viewport = window.visualViewport,
+      left = (viewport?.offsetLeft || 0) + 12,
+      top = (viewport?.offsetTop || 0) + 12,
+      right = left + (viewport?.width || innerWidth) - 24,
+      bottom = top + (viewport?.height || innerHeight) - 24;
+    element.style.maxHeight = Math.max(0, bottom - top) + 'px';
+    const rect = anchor.getBoundingClientRect(),
+      height = element.offsetHeight,
+      below = rect.bottom + 6,
+      above = rect.top - height - 6;
+    element.style.top =
+      Math.max(top, Math.min(below + height <= bottom ? below : above, bottom - height)) + 'px';
+    element.style.left = Math.max(left, Math.min(rect.left, right - element.offsetWidth)) + 'px';
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    let frame = 0;
+    const reposition = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(position);
+    };
+    const observer = new ResizeObserver(reposition);
+    if (ref.current) observer.observe(ref.current);
+    if (button.current) observer.observe(button.current);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    window.visualViewport?.addEventListener('resize', reposition);
+    window.visualViewport?.addEventListener('scroll', reposition);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+      window.visualViewport?.removeEventListener('resize', reposition);
+      window.visualViewport?.removeEventListener('scroll', reposition);
+    };
+  }, [open, position]);
   function close() {
-    const element = document.getElementById(id) as HTMLDivElement | null;
-    element?.hidePopover();
-    (element?.previousElementSibling as HTMLButtonElement | null)?.focus();
+    document.getElementById(id)?.hidePopover();
+    document.getElementById(id + '-trigger')?.focus();
   }
   return (
     <span className={'popover-control ' + className}>
       <button
+        id={id + '-trigger'}
         ref={button}
         className={buttonClass}
         type="button"
@@ -45,14 +86,13 @@ export function Popover({
         onToggle={(e) => {
           const visible = e.newState === 'open';
           setOpen(visible);
-          if (visible && button.current) {
-            const rect = button.current.getBoundingClientRect(),
-              element = e.currentTarget;
-            element.style.top =
-              Math.min(rect.bottom + 6, innerHeight - element.offsetHeight - 12) + 'px';
-            element.style.left =
-              Math.max(12, Math.min(rect.left, innerWidth - element.offsetWidth - 12)) + 'px';
-            element.querySelector<HTMLElement>('button, input, a')?.focus();
+          if (visible) {
+            position();
+            e.currentTarget
+              .querySelector<HTMLElement>(
+                'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]',
+              )
+              ?.focus({ preventScroll: true });
           }
         }}
         onKeyDown={(e) => {
@@ -72,7 +112,11 @@ export function Popover({
               ? 0
               : e.key === 'End'
                 ? items.length - 1
-                : (index + (e.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length
+                : index === -1
+                  ? e.key === 'ArrowUp'
+                    ? items.length - 1
+                    : 0
+                  : (index + (e.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length
           ].focus();
         }}
       >
@@ -88,6 +132,14 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
     tip = useRef<HTMLSpanElement>(null),
     fromPointer = useRef(false),
     hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frame = useRef(0);
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
   const [position, setPosition] = useState({ left: 12, top: 12, width: 280 });
   function cancelHide() {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -104,7 +156,8 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
     );
     setPosition({ left, top: rect.bottom + 8, width });
     setOpen(true);
-    requestAnimationFrame(() => {
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
       const height = tip.current?.getBoundingClientRect().height || 0;
       setPosition({
         left,

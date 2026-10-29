@@ -419,12 +419,16 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
         {staffPreview ? (
           <button
             className="text-button"
+            disabled={busy}
             onClick={async () => {
+              setBusy(true);
+              setError('');
               try {
                 await request('/api/kiosk', 'PUT');
                 window.location.assign('/kiosk');
               } catch (e) {
                 setError((e as Error).message);
+                setBusy(false);
               }
             }}
           >
