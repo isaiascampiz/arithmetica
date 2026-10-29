@@ -45,7 +45,7 @@ for (const size of [
     await page.goto('/?view=activity');
     const panel = page.locator('.activity-comparison');
     await expect(page.getByRole('heading', { name: 'Traffic', exact: true })).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Monthly', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Monthly', exact: true })).toBeVisible();
     const result = arrivalComparison(db, '2026-10-19', 'Daily', now, true);
     await expect(panel.locator('.traffic-stat-group:first-child .recorded-stat dd')).toHaveText(
       String(result.total),
@@ -71,10 +71,10 @@ for (const size of [
       expect(expectedBar.x).toBeCloseTo(actualBar.x, 0);
       expect(expectedBar.width).toBeCloseTo(actualBar.width, 0);
     }
-    await panel.getByRole('button', { name: 'Weekly', exact: true }).click();
+    await page.getByRole('button', { name: 'Weekly', exact: true }).click();
     await expect(panel.locator('.attendance-column')).toHaveCount(7);
     await expect(panel.locator('.traffic-summary')).toContainText('Selected week');
-    await panel.getByRole('button', { name: 'Monthly', exact: true }).click();
+    await page.getByRole('button', { name: 'Monthly', exact: true }).click();
     await expect(panel.locator('.attendance-column')).toHaveCount(31);
     await expect(panel.locator('.activity-expected-bar')).toHaveCount(0);
     await page.getByLabel('Search check-ins').fill(db.students[0].name);
@@ -83,7 +83,7 @@ for (const size of [
     await expect(panel.locator('.activity-punch summary b').first()).toHaveText(
       db.students[0].name,
     );
-    await panel.getByRole('button', { name: 'Yearly', exact: true }).click();
+    await page.getByRole('button', { name: 'Yearly', exact: true }).click();
     await expect(panel.locator('.attendance-column')).toHaveCount(12);
     await expect(panel.locator('.activity-expected-bar')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -95,7 +95,9 @@ for (const size of [
       animations: 'disabled',
     });
     await page.getByLabel('Search check-ins').fill('No fictional match');
-    await expect(panel.locator('.traffic-stat-group:first-child .recorded-stat dd')).toHaveText('0');
+    await expect(panel.locator('.traffic-stat-group:first-child .recorded-stat dd')).toHaveText(
+      '0',
+    );
     await expect(panel.locator('.activity-punch')).toHaveCount(0);
     await page.goto('/?view=settings');
     const settings = page.getByRole('dialog', { name: 'Settings', exact: true });

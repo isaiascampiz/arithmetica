@@ -1,5 +1,5 @@
 // Never cache student records, authenticated documents, or mutation requests.
-const CACHE = 'arithmetica-shell-v6';
+const CACHE = 'arithmetica-shell-v7';
 self.addEventListener('install', (event) =>
   event.waitUntil(
     caches

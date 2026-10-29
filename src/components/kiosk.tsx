@@ -2,12 +2,12 @@
 /* eslint-disable @next/next/no-location-assign-relative-destination -- Locking a shared reception device clears staff state. */
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Camera, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, Camera, Check, ShieldCheck, X } from 'lucide-react';
 import type { IScannerControls } from '@zxing/browser';
 import { clientId, request } from '@/lib/client';
 import './kiosk.css';
 import { BrandMark } from './brand';
-import { ReceptionSignal } from './reception-signal';
+import { ReceptionBackdrop } from './reception-backdrop';
 import { APP_NAME, CENTER_NAME } from '@/lib/brand';
 import { ThemeControl } from './theme';
 export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
@@ -206,7 +206,12 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
     };
   }, [camera]);
   return (
-    <main className="kiosk-page v2-kiosk reception-kiosk">
+    <main className="kiosk-page v2-kiosk reception-kiosk immersive-reception">
+      <ReceptionBackdrop
+        state={
+          message ? (direction === 'in' ? 'in' : direction === 'out' ? 'out' : 'recorded') : 'idle'
+        }
+      />
       <header className="kiosk-header">
         <Link className="brand" href="/" aria-label={APP_NAME + ' home'}>
           <span className="brand-icon">
@@ -236,7 +241,9 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
         <div className="kiosk-center">
           {message ? (
             <div className="kiosk-success" role="status">
-              <ReceptionSignal confirmed />
+              <span className="receipt-mark" aria-hidden="true">
+                <Check size={34} />
+              </span>
               <h1>
                 {direction === 'in'
                   ? "You're checked in."
@@ -244,6 +251,13 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
                     ? "You're checked out."
                     : 'Scan recorded.'}
               </h1>
+              <p className="receipt-direction">
+                {direction === 'in'
+                  ? 'Arrival recorded'
+                  : direction === 'out'
+                    ? 'Departure recorded'
+                    : 'Attendance'}
+              </p>
               <p className="confirmation-student">{confirmedName || message}</p>
               {confirmedName && (
                 <p className="confirmation-message">
@@ -258,7 +272,6 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
           ) : (
             <>
               <span className="eyebrow">{CENTER_NAME}</span>
-              <ReceptionSignal />
               <h1>
                 Scan your <em>pouch.</em>
               </h1>

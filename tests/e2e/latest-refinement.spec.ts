@@ -29,7 +29,7 @@ test('inline name completion waits for a surname, confirms the matching student 
   await page.getByRole('button', { name: 'Check in or out by name' }).click();
   await expect(page.getByRole('status')).toContainText(first);
   await expect(page.getByRole('status')).toContainText("You're checked in.");
-  await expect(page.locator('.signal-check')).toBeVisible();
+  await expect(page.locator('.receipt-mark')).toBeVisible();
   await page.screenshot({
     path: 'test-results/arithmetica-confirmation.png',
     animations: 'disabled',
@@ -130,10 +130,10 @@ test('manual pouch entry fits a phone and reduced motion retains a readable conf
   await page.getByRole('button', { name: 'Submit pouch scan', exact: true }).click();
   await expect(page.getByRole('status')).toContainText(student.name);
   expect(
-    await page.locator('.signal-core').evaluate((el) => getComputedStyle(el).animationName),
+    await page.locator('.backdrop-plane').evaluate((el) => getComputedStyle(el).animationName),
   ).toBe('none');
-  expect(
-    await page.locator('.signal-check').evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('none');
-  await expect(page.locator('.signal-check')).toBeVisible();
+  expect(await page.locator('.receipt-mark').evaluate((el) => getComputedStyle(el).transform)).toBe(
+    'none',
+  );
+  await expect(page.locator('.receipt-mark')).toBeVisible();
 });

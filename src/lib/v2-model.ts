@@ -308,3 +308,6 @@ export type Operations = {
     settings?: StudentSettings;
   }[];
 };
+
+/** Read-only yearly views do not create a new archived report kind. */
+export type ReportView = Omit<Report, 'kind'> & { kind: Report['kind'] | 'yearly' };

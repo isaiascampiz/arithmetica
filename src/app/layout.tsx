@@ -6,6 +6,7 @@ import './v3.css';
 import './identity.css';
 import './refinement.css';
 import './iteration.css';
+import './workspace-refinement.css';
 import { Pwa } from '@/components/pwa';
 import { ThemeProvider } from '@/components/theme';
 const interfaceFont = localFont({
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   description: 'A calmer day at your learning center. Fictional operations demo.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Arithmetica' },
-  icons: { icon: '/icon.svg?v=6', apple: '/icon-192.png?v=6' },
+  icons: { icon: '/icon.svg?v=7', apple: '/icon-192.png?v=7' },
 };
 export const viewport: Viewport = {
   width: 'device-width',

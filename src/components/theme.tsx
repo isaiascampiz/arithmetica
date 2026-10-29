@@ -1,16 +1,27 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Monitor, Moon, Sun } from 'lucide-react';
+import { accents, isAccent, type Accent } from '@/lib/appearance';
 import { Popover } from './ui-primitives';
 export type Appearance = 'light' | 'dark' | 'system';
-const ThemeContext = createContext<{ theme: Appearance; setTheme: (t: Appearance) => void }>({
+const ThemeContext = createContext<{
+  theme: Appearance;
+  setTheme: (t: Appearance) => void;
+  accent: Accent;
+  setAccent: (a: Accent) => void;
+}>({
   theme: 'dark',
+  accent: 'teal',
+  setAccent: () => {},
   setTheme: () => {},
 });
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, update] = useState<Appearance>('dark');
+  const [accent, updateAccent] = useState<Accent>('teal');
   useEffect(() => {
     const value = localStorage.getItem('cf-theme');
+    const savedAccent = localStorage.getItem('cf-accent');
+    if (isAccent(savedAccent)) updateAccent(savedAccent);
     if (value === 'light' || value === 'dark' || value === 'system') update(value);
   }, []);
   useEffect(() => {
@@ -18,6 +29,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const apply = () => {
       const root = document.documentElement;
       root.classList.add('theme-changing');
+      root.dataset.accent = accent;
       root.dataset.theme = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
       void root.offsetHeight;
       requestAnimationFrame(() => root.classList.remove('theme-changing'));
@@ -25,12 +37,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [theme]);
+  }, [theme, accent]);
   function setTheme(value: Appearance) {
     localStorage.setItem('cf-theme', value);
     update(value);
   }
-  return <ThemeContext value={{ theme, setTheme }}>{children}</ThemeContext>;
+  function setAccent(value: Accent) {
+    if (!isAccent(value)) return;
+    localStorage.setItem('cf-accent', value);
+    updateAccent(value);
+  }
+  return <ThemeContext value={{ theme, setTheme, accent, setAccent }}>{children}</ThemeContext>;
 }
 export const useTheme = () => useContext(ThemeContext);
 export function ThemeControl({ compact = false }: { compact?: boolean }) {
@@ -74,6 +91,45 @@ export function ThemeControl({ compact = false }: { compact?: boolean }) {
               </button>
             );
           })}
+        </div>
+      )}
+    </Popover>
+  );
+}
+
+export function AccentControl() {
+  const { accent, setAccent } = useTheme(),
+    selected = accents.find((a) => a.id === accent)!;
+  return (
+    <Popover
+      label="Accent color"
+      buttonClass="secondary accent-select"
+      trigger={
+        <>
+          <i className="accent-swatch" style={{ background: 'var(--chart-primary)' }} />
+          <span>{selected.label}</span>
+          <ChevronDown size={15} />
+        </>
+      }
+    >
+      {(close) => (
+        <div role="menu" aria-label="Accent color">
+          <p className="menu-caption">Accent color</p>
+          {accents.map((a) => (
+            <button
+              role="menuitemradio"
+              aria-checked={accent === a.id}
+              key={a.id}
+              onClick={() => {
+                setAccent(a.id);
+                close();
+              }}
+            >
+              <i className="accent-swatch" style={{ background: a.dark }} />
+              <span>{a.label}</span>
+              {accent === a.id && <Check size={16} />}
+            </button>
+          ))}
         </div>
       )}
     </Popover>

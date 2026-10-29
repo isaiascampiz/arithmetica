@@ -1,0 +1,463 @@
+/* Shared appearance, period headers and full-screen reception feedback. */
+:root[data-accent] {
+  --accent: #247872;
+  --chart-primary: var(--accent);
+  --green: var(--accent);
+  --focus: var(--accent);
+  --mint: color-mix(in srgb, var(--accent) 16%, var(--bg));
+}
+:root[data-accent='blue'] {
+  --accent: #315ea8;
+}
+:root[data-accent='violet'] {
+  --accent: #7150a0;
+}
+:root[data-accent='amber'] {
+  --accent: #8a5a14;
+}
+:root[data-accent='rose'] {
+  --accent: #a14e69;
+}
+:root[data-theme='dark'][data-accent] {
+  --accent: #84cdc1;
+}
+:root[data-theme='dark'][data-accent='blue'] {
+  --accent: #9cbcff;
+}
+:root[data-theme='dark'][data-accent='violet'] {
+  --accent: #c8acf0;
+}
+:root[data-theme='dark'][data-accent='amber'] {
+  --accent: #e7c183;
+}
+:root[data-theme='dark'][data-accent='rose'] {
+  --accent: #eab0bd;
+}
+.accent-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 4px;
+  border: 1px solid #0002;
+}
+.accent-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.app-popover [aria-label='Accent color'] button {
+  gap: 10px;
+}
+.app-popover [aria-label='Accent color'] button > span {
+  flex: 1;
+}
+.v3-shell .period-workspace-toolbar {
+  margin-bottom: 20px;
+}
+.period-workspace-toolbar .workspace-date-slot {
+  grid-column: 2 / -1;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.workspace-date-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.workspace-date-controls .icon-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+.workspace-date-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 174px;
+  min-height: 44px;
+  border: 1px solid var(--input-edge);
+  border-radius: 7px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.workspace-date-field > svg {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.v3-shell .workspace-date-field > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.workspace-date-field:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.v3-shell .workspace-year-field select {
+  width: 174px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.workspace-period-rail {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.v3-shell .workspace-period-rail > .segmented {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  gap: 24px;
+}
+.v3-shell .workspace-period-rail .segmented button {
+  min-height: 44px;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 400;
+  background: transparent;
+  border-radius: 0;
+}
+.v3-shell .workspace-period-rail .segmented button.selected {
+  font-weight: 500;
+}
+.v3-shell .traffic-workspace .attendance-workspace {
+  padding-top: 0;
+}
+.traffic-workspace .traffic-summary {
+  margin-top: 24px;
+}
+.v3-shell .report-document-heading {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.report-document-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.report-document-heading p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.report-document-heading .report-export-link {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+.v3-shell .report-continuous .report-metric-tabs {
+  padding-top: 4px;
+}
+/* The toggle, wordmark and every navigation glyph share an optical center. */
+.v3-shell .app-toolbar {
+  padding-inline: 14px;
+}
+.v3-shell .sidebar-brand {
+  padding: 0 8px 12px;
+}
+.v3-shell .v2-sidebar .brand-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  min-width: 28px;
+  height: 32px;
+  margin-right: 7px;
+}
+.v3-shell .brand-icon > svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+.v3-shell .v2-sidebar .nav-item {
+  padding-inline: 12px;
+}
+.v3-shell .v2-sidebar .nav-item > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+.v3-shell.side-collapsed {
+  --side-width: 72px;
+}
+.v3-shell.side-collapsed .sidebar-brand {
+  padding-inline: 0;
+  align-items: center;
+  justify-content: flex-start;
+}
+.v3-shell.side-collapsed .v2-sidebar .brand {
+  justify-content: center;
+  width: 44px;
+}
+.v3-shell.side-collapsed .v2-sidebar .brand-icon {
+  margin: 0;
+}
+.v3-shell.side-collapsed .v2-sidebar .nav-item {
+  width: 44px;
+  padding-inline: 0;
+  justify-content: center;
+}
+.immersive-reception {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+}
+.immersive-reception::before {
+  display: none;
+}
+.immersive-reception :is(.kiosk-header, .kiosk-center, .kiosk-footer) {
+  position: relative;
+  z-index: 1;
+}
+.reception-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--chart-primary);
+  z-index: 0;
+}
+.backdrop-plane {
+  position: absolute;
+  inset: -24px;
+}
+.reception-atmosphere {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 5% 30%,
+      color-mix(in srgb, var(--chart-primary) 12%, transparent),
+      transparent 43%
+    ),
+    radial-gradient(
+      ellipse at 96% 75%,
+      color-mix(in srgb, var(--chart-primary) 9%, transparent),
+      transparent 45%
+    );
+}
+.reception-contours {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.22;
+}
+.contour-nodes {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.7;
+}
+.immersive-reception .kiosk-center {
+  min-height: calc(100dvh - 200px);
+  padding-top: 35px;
+  padding-bottom: 35px;
+}
+.immersive-reception .kiosk-center > .eyebrow {
+  margin-bottom: 26px;
+}
+.immersive-reception .kiosk-center > h1 {
+  margin-top: 0;
+}
+.immersive-reception .manual-code {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+}
+.immersive-reception .receipt-mark {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 26px;
+  border: 1px solid color-mix(in srgb, var(--chart-primary) 65%, var(--line));
+  border-radius: 16px;
+  color: var(--chart-primary);
+  background: color-mix(in srgb, var(--chart-primary) 10%, var(--bg));
+}
+.immersive-reception .receipt-direction {
+  order: 0;
+  margin: 22px 0 0;
+  color: var(--chart-primary);
+  font-size: 12px;
+  letter-spacing: 0.025em;
+}
+.immersive-reception .confirmation-student {
+  margin-top: 8px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .backdrop-plane {
+    transition: transform 300ms var(--ease-out);
+  }
+  .reception-atmosphere {
+    transition:
+      opacity 280ms var(--ease-out),
+      transform 280ms var(--ease-out);
+  }
+  .reception-backdrop[data-state='in'] .reception-atmosphere {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  .reception-backdrop[data-state='out'] .reception-atmosphere {
+    opacity: 0.6;
+    transform: scale(0.94);
+  }
+  .reception-backdrop[data-state='in'] .reception-contours {
+    animation: arrival-contour 600ms var(--ease-out) both;
+    transform-origin: 50% 50%;
+  }
+  .reception-backdrop[data-state='out'] .reception-contours {
+    animation: departure-contour 600ms var(--ease-out) both;
+    transform-origin: 50% 50%;
+  }
+  .immersive-reception .receipt-mark {
+    animation: receipt-entrance 240ms var(--ease-out) both;
+  }
+  @keyframes arrival-contour {
+    from {
+      opacity: 0.55;
+      transform: scale(1.12);
+    }
+    to {
+      opacity: 0.22;
+      transform: scale(1);
+    }
+  }
+  @keyframes departure-contour {
+    from {
+      opacity: 0.55;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 0.22;
+      transform: scale(1.04);
+    }
+  }
+  @keyframes receipt-entrance {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reception-backdrop[data-state='in'] .reception-contours,
+  .reception-backdrop[data-state='out'] .reception-contours {
+    opacity: 0.35;
+    animation: contour-fade 150ms ease-out both;
+  }
+  @keyframes contour-fade {
+    from {
+      opacity: 0.15;
+    }
+    to {
+      opacity: 0.35;
+    }
+  }
+  .immersive-reception .receipt-mark {
+    animation: atmosphere-fade 150ms ease-out both;
+  }
+  @keyframes atmosphere-fade {
+    from {
+      opacity: 0.15;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+@media (max-width: 700px) {
+  .period-workspace-toolbar .workspace-date-slot {
+    justify-content: flex-end;
+  }
+  .workspace-date-field,
+  .v3-shell .workspace-year-field select {
+    width: 164px;
+  }
+  .v3-shell .report-document-heading {
+    padding: 18px 16px;
+    flex-wrap: wrap;
+  }
+  .workspace-period-rail {
+    margin-bottom: 18px;
+  }
+}
+@media (max-width: 430px) {
+  .v3-shell .workspace-period-rail > .segmented {
+    gap: 22px;
+  }
+  .workspace-date-controls {
+    gap: 0;
+  }
+  .workspace-date-field,
+  .v3-shell .workspace-year-field select {
+    width: 150px;
+  }
+}
+
+.v3-shell .reports-workspace {
+  max-width: none;
+  margin-inline: 0;
+}
+@media (max-width: 600px) {
+  .period-workspace-toolbar .workspace-date-slot {
+    grid-column: 1 / -1;
+  }
+}
+
+.reception-backdrop[data-state='out'] .reception-atmosphere {
+  opacity: 0.6;
+}
+@media (max-width: 700px) {
+  .v3-shell.side-collapsed .v2-sidebar.open .sidebar-brand {
+    padding-inline: 8px;
+  }
+  .v3-shell.side-collapsed .v2-sidebar.open .brand {
+    width: auto;
+    justify-content: flex-start;
+  }
+  .v3-shell.side-collapsed .v2-sidebar.open .brand-icon {
+    margin-right: 7px;
+  }
+  .v3-shell.side-collapsed .v2-sidebar.open .nav-item {
+    width: 100%;
+    padding-inline: 12px;
+    justify-content: flex-start;
+  }
+}
+
+.v3-shell .homework-unfinished,
+.v3-shell .homework-legend > span:last-child i {
+  background: var(--chart-comparison);
+}

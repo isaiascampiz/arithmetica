@@ -11,3 +11,12 @@ As explicitly requested by the user, POST `/api/kiosk/name` and `/api/reception/
 Reception uses a quiet scan signal and a named receipt with a one-time check/opacity sequence, plus an opacity-only reduced-motion variant. The geometric brand is a flat dissected-square mark. `scripts/ui-showcase.ts` creates a separate, uniquely named fictional file with exclusive-create semantics; it never opens or replaces existing center data. Run only with explicit `DEMO_MODE=true`, `DATA_ADAPTER=local`, and no production approval.
 
 Validation: lint, typecheck, 229 unit tests, production build and 65 distinct Chromium checks pass. Physical iPad/Safari, Bluetooth pairing and slow DevTools motion replay remain unverified. Main preview: port 3001 with the preserved center file. Separate fictional preparation showcase: port 3002. Both are local previews and require the host computer to remain running.
+
+
+### Appearance and shared report headers
+
+General places Accent color immediately below Theme. Five contrast-checked palettes recolor the existing accent tokens in charts and feedback; skill identities keep their original per-skill palette, and their overall average stays neutral. Only the non-record device preference `cf-accent` is stored beside `cf-theme`. No center record or authentication data enters browser storage.
+
+Traffic and Reports reuse `WorkspacePeriodControls`: identical search geometry, native calendar input with Today in its own field, and Daily/Weekly/Monthly/Yearly navigation outside the card. Reports adds a dated document heading. Yearly is a read-only `ReportView`; `Report` archive kinds, scheduled jobs, existing snapshots and monthly-only Excel rules remain unchanged. The server uses the existing authorization, revision and no-store protections.
+
+Reception uses original full-screen contours and a restrained accent glow, without a central logo illustration. Pointer response moves only the decorative background. Arrival contracts the contour field; departure expands it and softens the glow. Text explicitly confirms check-in/out. Reduced motion keeps static geometry and a brief opacity fade. The planar geometric brand and SVG/PNG/PWA assets are consistent, with aligned 44px sidebar controls in expanded/collapsed layouts. No dependency, schema migration or data rewrite is introduced.

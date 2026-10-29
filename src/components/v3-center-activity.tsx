@@ -1,18 +1,13 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { dayKey, type Snapshot } from '@/lib/model';
-import {
-  centerAttendance,
-  moveAttendanceDate,
-  attendanceAxis,
-  type AttendancePeriod,
-} from '@/lib/center-attendance';
+import { centerAttendance, attendanceAxis, type AttendancePeriod } from '@/lib/center-attendance';
 import { attendancePunches, type ArrivalBin } from '@/lib/center-arrivals';
 import { SessionHistory } from './v3-session-history';
 import type { V3Act } from './v3-shared';
-import { SearchField, SortMenu } from './list-controls';
+import { SortMenu } from './list-controls';
 import { useNow } from './shared-ui';
+import { WorkspacePeriodControls } from './workspace-period-controls';
 import { InfoTip } from './ui-primitives';
 import './v3-center-activity.css';
 const number = (n: number | null) =>
@@ -50,89 +45,27 @@ export function CenterActivity({ db, ...actions }: ActivityProps) {
   };
   return (
     <div className="center-activity-workspace unified-attendance traffic-workspace">
-      <div className="attendance-tools traffic-toolbar">
-        <SearchField
-          label="Search check-ins"
-          placeholder="Find a student"
-          value={query}
-          onChange={(value) => {
-            setQuery(value);
-            setSelected(null);
-          }}
-        />
-        <div className="attendance-date">
-          <button
-            className="icon-button"
-            aria-label="Previous period"
-            onClick={() => changeDate(moveAttendanceDate(date, period, -1))}
-          >
-            <ChevronLeft size={17} />
-          </button>
-          {period === 'Yearly' ? (
-            <select
-              aria-label="Activity year"
-              value={date.slice(0, 4)}
-              onChange={(e) => changeDate(e.target.value + '-01-01')}
-            >
-              {Array.from(
-                {
-                  length: Math.max(
-                    12,
-                    Math.max(Number(today.slice(0, 4)) + 1, Number(date.slice(0, 4))) -
-                      Math.min(Number(today.slice(0, 4)) - 10, Number(date.slice(0, 4))) +
-                      1,
-                  ),
-                },
-                (_, i) =>
-                  String(Math.max(Number(today.slice(0, 4)) + 1, Number(date.slice(0, 4))) - i),
-              ).map((y) => (
-                <option key={y}>{y}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              aria-label="Activity date"
-              type={period === 'Monthly' ? 'month' : 'date'}
-              value={period === 'Monthly' ? date.slice(0, 7) : date}
-              onChange={(e) => {
-                if (e.target.value)
-                  changeDate(period === 'Monthly' ? e.target.value + '-01' : e.target.value);
-              }}
-            />
-          )}
-          <button
-            className="icon-button"
-            aria-label="Next period"
-            onClick={() => changeDate(moveAttendanceDate(date, period, 1))}
-          >
-            <ChevronRight size={17} />
-          </button>
-          {chosenDate && (
-            <button className="text-button" onClick={() => changeDate(null)}>
-              Today
-            </button>
-          )}
-        </div>
-      </div>
+      <WorkspacePeriodControls
+        period={period}
+        date={date}
+        today={today}
+        query={query}
+        searchLabel="Search check-ins"
+        dateLabel="Activity date"
+        changeDate={changeDate}
+        changePeriod={(p) => {
+          setPeriod(p);
+          setSelected(null);
+        }}
+        changeQuery={(value) => {
+          setQuery(value);
+          setSelected(null);
+        }}
+      />
       <section
         className="panel activity-comparison attendance-workspace"
         aria-label="Arrival traffic"
       >
-        <div className="segmented attendance-periods" aria-label="Activity period">
-          {(['Daily', 'Weekly', 'Monthly', 'Yearly'] as const).map((p) => (
-            <button
-              key={p}
-              className={p === period ? 'selected' : ''}
-              aria-pressed={p === period}
-              onClick={() => {
-                setPeriod(p);
-                setSelected(null);
-              }}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
         <div
           className={'traffic-summary' + (period === 'Daily' ? ' daily' : '')}
           aria-label="Attendance for selected period"

@@ -2,6 +2,10 @@
 
 ## Latest user-directed refinement
 
+The newest pass adds an accent menu immediately below Theme, shared external search/date/period headers for Traffic and Reports, and a read-only Yearly report. Native calendars display Today within the date field. Original planar geometry replaces the mark, and reception uses full-screen interactive contours rather than a small logo illustration. Skill colors remain independent of the chosen accent. See [the current brief](../.plans/arithmetica-appearance-header-spec.md). The official Wispr appearance release and public Eden homepage were revisited; their source/assets are not copied.
+
+### Previous refinement
+
 **Latest refinement:** Arithmetica now uses flat dissected-square geometry. Subject dialogs pair Learning mode/Current level and Current worksheet/Worksheets per day; unenrolled values stay hidden while saved settings remain. Preparation uses Home-aligned identity and a compact filter order, with refresh beside status tabs. Traffic has Daily/Weekly/Monthly/Yearly views, grouped day/hour values, seven visible hourly gauges and a linked punch disclosure. Reception completes one uniquely matching active name inline and uses a named receipt with a restrained check/ring sequence and reduced-motion fade. This narrow name disclosure is expressly user-authorized and documented in AGENTS.md. See the current [.plans/arithmetica-continuous-ui-spec.md](../.plans/arithmetica-continuous-ui-spec.md) for implementation and validation. Earlier notes below retain their original historical scope.
 
 ### Earlier 28 October pass

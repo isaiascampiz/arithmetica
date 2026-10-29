@@ -133,3 +133,12 @@ Reception writes carry durable request IDs. Optional `v3.receptionReceipts` stor
 ### October 28 refinement
 
 Traffic now uses Daily, Weekly, Monthly and Yearly views with a linked punch list. Subject edits retain unenrolled configurations and use an optional versioned daily worksheet policy with ten-sheet standard packets. Reception completes a uniquely matching active name inline and confirms the student by name, as explicitly authorized by the user; it does not send a roster or private records. See [implementation and privacy details](arithmetica-refinement.md).
+
+
+### Appearance and shared report headers
+
+General places Accent color immediately below Theme. Five contrast-checked palettes recolor the existing accent tokens in charts and feedback; skill identities keep their original per-skill palette, and their overall average stays neutral. Only the non-record device preference `cf-accent` is stored beside `cf-theme`. No center record or authentication data enters browser storage.
+
+Traffic and Reports reuse `WorkspacePeriodControls`: identical search geometry, native calendar input with Today in its own field, and Daily/Weekly/Monthly/Yearly navigation outside the card. Reports adds a dated document heading. Yearly is a read-only `ReportView`; `Report` archive kinds, scheduled jobs, existing snapshots and monthly-only Excel rules remain unchanged. The server uses the existing authorization, revision and no-store protections.
+
+Reception uses original full-screen contours and a restrained accent glow, without a central logo illustration. Pointer response moves only the decorative background. Arrival contracts the contour field; departure expands it and softens the glow. Text explicitly confirms check-in/out. Reduced motion keeps static geometry and a brief opacity fade. The planar geometric brand and SVG/PNG/PWA assets are consistent, with aligned 44px sidebar controls in expanded/collapsed layouts. No dependency, schema migration or data rewrite is introduced.

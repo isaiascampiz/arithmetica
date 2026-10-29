@@ -3,7 +3,7 @@ import { sameOrigin, staffSession } from '@/lib/auth';
 import { repository } from '@/lib/repository';
 import { archiveReport, buildReport, reportBounds } from '@/lib/reports';
 import { monthlyReportWorkbook } from '@/lib/report-workbook';
-import type { Report } from '@/lib/v2-model';
+import type { ReportView } from '@/lib/v2-model';
 import { dateInput } from '@/lib/v2-domain';
 import { DomainError } from '@/lib/domain';
 import { failure, json } from '@/lib/http';
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
       throw new DomainError('Reports require instructor access.', 403);
     const url = new URL(req.url),
       db = await repository.read();
-    let report: Report | undefined;
+    let report: ReportView | undefined;
     if (url.searchParams.get('preview') === 'true') {
       const revision = url.searchParams.get('revision');
       if (revision !== null && z.coerce.number().int().min(0).parse(revision) !== db.revision)
@@ -53,9 +53,16 @@ export async function GET(req: Request) {
           'Records changed. Refresh the report before exporting, or export an archived snapshot.',
           409,
         );
-      const kind = z.enum(['daily', 'weekly', 'monthly']).parse(url.searchParams.get('kind'));
+      const kind = z
+        .enum(['daily', 'weekly', 'monthly', 'yearly'])
+        .parse(url.searchParams.get('kind'));
       const date = dateInput.parse(url.searchParams.get('period'));
-      const period = kind === 'monthly' ? date.slice(0, 7) : reportBounds(kind, date).start;
+      const period =
+        kind === 'yearly'
+          ? date.slice(0, 4)
+          : kind === 'monthly'
+            ? date.slice(0, 7)
+            : reportBounds(kind, date).start;
       const asOf = url.searchParams.get('asOf');
       const now = asOf ? new Date(z.iso.datetime().parse(asOf)) : new Date();
       if (now.getTime() > Date.now())
@@ -75,7 +82,7 @@ export async function GET(req: Request) {
     if (url.searchParams.get('format') === 'xlsx') {
       if (report.kind !== 'monthly')
         throw new DomainError('Excel exports are available for monthly reports.');
-      const bytes = await monthlyReportWorkbook(report);
+      const bytes = await monthlyReportWorkbook({ ...report, kind: 'monthly' });
       return new Response(bytes, {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

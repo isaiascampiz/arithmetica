@@ -3,7 +3,7 @@ import { addDays, datesBetween, expectedOn, nextOperating, weekday, localClock }
 import { rangeLabel } from './homework';
 import { buildReportDetail } from './report-detail';
 import { DomainError } from './domain';
-import type { Appointment, Report, ReportPayload, Subject } from './v2-model';
+import type { Appointment, Report, ReportView, ReportPayload, Subject } from './v2-model';
 export function staffingWarnings(db: Database, appointment: Appointment) {
   const op = db.operations!,
     date = dayKey(appointment.startsAt, op.center.timezone),
@@ -54,8 +54,10 @@ export function staffingWarnings(db: Database, appointment: Appointment) {
     );
   return warnings;
 }
-export function reportBounds(kind: Report['kind'], period: string) {
+export function reportBounds(kind: ReportView['kind'], period: string) {
   if (kind === 'daily') return { start: period, end: period };
+  if (kind === 'yearly')
+    return { start: period.slice(0, 4) + '-01-01', end: period.slice(0, 4) + '-12-31' };
   if (kind === 'monthly') {
     const start = period.slice(0, 7) + '-01';
     const end = addDays(
@@ -71,7 +73,7 @@ export function reportBounds(kind: Report['kind'], period: string) {
 }
 export function buildReport(
   db: Database,
-  kind: Report['kind'],
+  kind: ReportView['kind'],
   period: string,
   now = new Date(),
 ): ReportPayload {

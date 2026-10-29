@@ -184,6 +184,15 @@ for (const viewport of [
       await card.click();
       const dialog = page.getByRole('dialog', { name: 'Skill ratings', exact: true });
       await expect(dialog).toBeVisible();
+      // Measure the settled dialog, rather than a frame in its entrance scale.
+      await dialog.evaluate(async (el) => {
+        await Promise.all(
+          el
+            .getAnimations({ subtree: true })
+            .filter((a) => Number.isFinite(a.effect?.getTiming().iterations))
+            .map((a) => a.finished.catch(() => {})),
+        );
+      });
       const heightBeforePins = (await dialog.boundingBox())!.height;
       const period = dialog.getByRole('combobox', { name: 'Skills period' });
       const summary = dialog.locator('.skill-scatter-summary-panel');

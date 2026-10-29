@@ -1,5 +1,7 @@
 # Arithmetica: refined operational workspace
 
+Latest follow-up: [appearance, shared headers and immersive reception](arithmetica-appearance-header-spec.md). The new brief supersedes the fixed accent, inner Traffic rail and earlier reception artwork below.
+
 Current implementation brief, 28 October 2026. The latest user direction supersedes earlier isolated punch-history screens and packet-count fields.
 
 ## Visual direction

@@ -1,23 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { dayKey, type Snapshot } from '@/lib/model';
-import type { Report } from '@/lib/v2-model';
+import type { ReportView } from '@/lib/v2-model';
 import type { WorksheetSummary } from '@/lib/report-detail';
 import { reportVisitGroups, reportWorksheets } from '@/lib/report-view';
 import { addDays } from '@/lib/schedule';
 import { request } from '@/lib/client';
-import { date, time, Avatar } from './shared-ui';
-import { SearchField } from './list-controls';
+import { date, time, Avatar, useCenterDay } from './shared-ui';
+import { WorkspacePeriodControls } from './workspace-period-controls';
+import type { AttendancePeriod } from '@/lib/center-attendance';
 import { Modal } from './v3-shared';
 import { SessionHistory } from './v3-session-history';
 import './v3-reports.css';
 
 type Metric = 'visits' | 'recorded' | 'unrecorded' | 'worksheets';
 export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: string) => void }) {
-  const [kind, setKind] = useState<Report['kind']>('daily');
-  const [period, setPeriod] = useState(dayKey(new Date(), db.timezone));
-  const [preview, setPreview] = useState<Report | null>(null),
+  const today = useCenterDay(db.timezone);
+  const [query, setQuery] = useState('');
+  const [kind, setKind] = useState<ReportView['kind']>('daily');
+  const [period, setPeriod] = useState(today);
+  const [preview, setPreview] = useState<ReportView | null>(null),
     [loading, setLoading] = useState(false),
     [error, setError] = useState('');
   const params = `preview=true&kind=${kind}&period=${period}`;
@@ -25,7 +28,7 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
     let disposed = false;
     setLoading(true);
     setError('');
-    void request<Report>('/api/reports?' + params)
+    void request<ReportView>('/api/reports?' + params)
       .then((r) => {
         if (!disposed) setPreview(r);
       })
@@ -43,11 +46,13 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
     };
   }, [params, db.revision]);
   const key =
-    kind === 'monthly'
-      ? period.slice(0, 7)
-      : kind === 'weekly'
-        ? addDays(period, -((new Date(period + 'T12:00:00Z').getUTCDay() + 6) % 7))
-        : period;
+    kind === 'yearly'
+      ? period.slice(0, 4)
+      : kind === 'monthly'
+        ? period.slice(0, 7)
+        : kind === 'weekly'
+          ? addDays(period, -((new Date(period + 'T12:00:00Z').getUTCDay() + 6) % 7))
+          : period;
   const archived = db
     .operations!.reports.filter(
       (r) =>
@@ -64,53 +69,23 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
       setPreview(null);
     }
   };
-  const move = (n: number) =>
-    changePeriod(
-      kind === 'monthly'
-        ? new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1 + n, 1))
-            .toISOString()
-            .slice(0, 10)
-        : addDays(period, n * (kind === 'weekly' ? 7 : 1)),
-    );
   return (
     <div className="reports-v3 reports-workspace">
-      <div className="report-controls">
-        <div className="segmented" aria-label="Report period">
-          {(['daily', 'weekly', 'monthly'] as const).map((k) => (
-            <button
-              key={k}
-              aria-pressed={kind === k}
-              className={kind === k ? 'selected' : ''}
-              onClick={() => {
-                setKind(k);
-                setPreview(null);
-              }}
-            >
-              {k[0].toUpperCase() + k.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="report-date-controls">
-          <button
-            className="icon-button"
-            aria-label="Previous report period"
-            onClick={() => move(-1)}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <input
-            aria-label="Period date"
-            type={kind === 'monthly' ? 'month' : 'date'}
-            value={kind === 'monthly' ? period.slice(0, 7) : period}
-            onChange={(e) =>
-              changePeriod(kind === 'monthly' ? e.target.value + '-01' : e.target.value)
-            }
-          />
-          <button className="icon-button" aria-label="Next report period" onClick={() => move(1)}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
+      <WorkspacePeriodControls
+        period={(kind[0].toUpperCase() + kind.slice(1)) as AttendancePeriod}
+        date={period}
+        today={today}
+        query={query}
+        searchLabel="Search report students"
+        dateLabel="Period date"
+        periodLabel="Report period"
+        changeDate={changePeriod}
+        changePeriod={(p) => {
+          setKind(p.toLowerCase() as ReportView['kind']);
+          setPreview(null);
+        }}
+        changeQuery={setQuery}
+      />
       {error && (
         <p className="error" role="alert">
           {error}
@@ -125,6 +100,7 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
             db={db}
             report={report}
             profile={profile}
+            query={query}
             exportParams={
               archived
                 ? `id=${archived.id}`
@@ -143,17 +119,19 @@ function ReportBody({
   report,
   exportParams,
   profile,
+  query,
 }: {
   db: Snapshot;
-  report: Report;
+  report: ReportView;
   exportParams: string;
   profile: (id: string) => void;
+  query: string;
 }) {
   const [metric, setMetric] = useState<Metric>('visits'),
-    [query, setQuery] = useState(''),
     [page, setPage] = useState(0);
   const [session, setSession] = useState<string | null>(null),
     [completion, setCompletion] = useState<WorksheetSummary | null>(null);
+  useEffect(() => setPage(0), [query]);
   const detail = report.payload.detail;
   if (!detail)
     return (
@@ -161,6 +139,13 @@ function ReportBody({
         <p>This older report has no saved visit detail.</p>
       </section>
     );
+  const reportDate = (value: string) =>
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(value + 'T12:00:00Z'));
   const groups = reportVisitGroups(detail),
     worksheets = reportWorksheets(detail).filter((r) => r.worksheets > 0);
   const metrics: { id: Metric; label: string; value: number }[] = [
@@ -228,6 +213,24 @@ function ReportBody({
   };
   return (
     <section className="panel report-continuous">
+      <header className="report-document-heading">
+        <div>
+          <h2>{report.kind[0].toUpperCase() + report.kind.slice(1)} report</h2>
+          <p>
+            {detail.centerName} {'\u00b7'} {reportDate(detail.start)}
+            {detail.end !== detail.start ? ' \u2013 ' + reportDate(detail.end) : ''}
+          </p>
+        </div>{' '}
+        {report.kind === 'monthly' && (
+          <a
+            className="secondary report-export-link"
+            href={'/api/reports?' + exportParams + '&format=xlsx'}
+          >
+            <Download size={16} />
+            Export Excel
+          </a>
+        )}
+      </header>
       <div className="report-metric-tabs" aria-label="Report sections">
         {metrics.map((m) => (
           <button
@@ -235,7 +238,6 @@ function ReportBody({
             aria-pressed={metric === m.id}
             onClick={() => {
               setMetric(m.id);
-              setQuery('');
               setPage(0);
             }}
           >
@@ -249,27 +251,7 @@ function ReportBody({
           className="report-drilldown"
           aria-label={metrics.find((m) => m.id === metric)!.label}
         >
-          <header className="report-list-heading">
-            <h2 className="sr-only">{metrics.find((m) => m.id === metric)!.label}</h2>
-            <SearchField
-              label="Search report students"
-              placeholder="Find a student"
-              value={query}
-              onChange={(q) => {
-                setQuery(q);
-                setPage(0);
-              }}
-            />
-            {report.kind === 'monthly' && (
-              <a
-                className="secondary report-export-link"
-                href={'/api/reports?' + exportParams + '&format=xlsx'}
-              >
-                <Download size={16} />
-                Export Excel
-              </a>
-            )}
-          </header>
+          <h2 className="sr-only">{metrics.find((m) => m.id === metric)!.label}</h2>
           {metric === 'worksheets'
             ? completed.slice(current * pageSize, (current + 1) * pageSize).map((r) => (
                 <article className="report-student-row" key={r.studentId + r.subject}>

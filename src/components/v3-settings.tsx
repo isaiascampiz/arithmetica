@@ -7,7 +7,7 @@ import type { Subject } from '@/lib/v2-model';
 import { centerFeatures } from '@/lib/center-features';
 import { APP_NAME, APP_VERSION, centerName } from '@/lib/brand';
 import { Modal, type V3Act } from './v3-shared';
-import { ThemeControl } from './theme';
+import { ThemeControl, AccentControl } from './theme';
 import { InfoTip, SettingRow, Switch } from './ui-primitives';
 import { AccountSettings } from './account-settings';
 import './v3-settings.css';
@@ -91,6 +91,9 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
           <div className="settings-row-group">
             <SettingRow label="Theme">
               <ThemeControl />
+            </SettingRow>
+            <SettingRow label="Accent color">
+              <AccentControl />
             </SettingRow>
             {db.staff.role !== 'assistant' && (
               <SettingRow label="Observation shortcuts" detail={shortcuts.slice(0, 2).join(' · ')}>
