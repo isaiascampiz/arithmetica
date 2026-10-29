@@ -338,6 +338,17 @@ function HistoricalObservation({
             <button
               className="secondary"
               disabled={busy}
+              onClick={() => {
+                setText(current.text);
+                setRatings(current.skillRatings || []);
+                setEditing(false);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="primary"
+              disabled={busy}
               onClick={async () => {
                 if (
                   await act({
@@ -352,17 +363,6 @@ function HistoricalObservation({
               }}
             >
               Update observation
-            </button>
-            <button
-              className="text-button"
-              disabled={busy}
-              onClick={() => {
-                setText(current.text);
-                setRatings(current.skillRatings || []);
-                setEditing(false);
-              }}
-            >
-              Reset
             </button>
           </div>
         </>

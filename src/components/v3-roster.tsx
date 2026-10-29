@@ -109,21 +109,27 @@ export function RosterV3({
       </section>
       {add && (
         <Modal
+          variant="form"
           title="Add fictional student"
           close={() => setAdd(false)}
           footer={
-            <button
-              className="primary"
-              disabled={busy || name.trim().length < 2}
-              onClick={async () => {
-                if (await legacyAct({ action: 'student-add', name, earlyLearner: early })) {
-                  setAdd(false);
-                  setF({ ...initial, query: name });
-                }
-              }}
-            >
-              Create student
-            </button>
+            <>
+              <button className="secondary" disabled={busy} onClick={() => setAdd(false)}>
+                Cancel
+              </button>
+              <button
+                className="primary"
+                disabled={busy || name.trim().length < 2}
+                onClick={async () => {
+                  if (await legacyAct({ action: 'student-add', name, earlyLearner: early })) {
+                    setAdd(false);
+                    setF({ ...initial, query: name });
+                  }
+                }}
+              >
+                Create student
+              </button>
+            </>
           }
         >
           <label>

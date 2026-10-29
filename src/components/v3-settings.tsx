@@ -240,6 +240,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
       </div>
       {editor === 'shortcuts' && (
         <Modal
+          variant="form"
           title="Observation shortcuts"
           className="settings-edit-dialog"
           close={() => setEditor('')}
@@ -306,6 +307,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
       )}
       {editor === 'homework' && (
         <Modal
+          variant="form"
           title="Turn on homework"
           close={() => setEditor('')}
           footer={
@@ -351,6 +353,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
       )}
       {editor === 'center' && (
         <Modal
+          variant="form"
           title="Center details"
           className="settings-edit-dialog"
           close={() => setEditor('')}
@@ -431,7 +434,9 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
       )}
       {editor === 'curriculum' && (
         <Modal
+          variant="form"
           title="Curriculum boundaries"
+          className="curriculum-editor-dialog"
           close={() => setEditor('')}
           footer={
             <>
@@ -457,7 +462,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
             Use center-approved bounds. The demonstration catalog is fictional.
           </p>
           <div className="form-grid">
-            <label>
+            <label className="full-width-field">
               Subject
               <select value={subject} onChange={(e) => setSubject(e.target.value as Subject)}>
                 <option>Math</option>
@@ -467,6 +472,14 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
             <label>
               Level
               <input value={level} onChange={(e) => setLevel(e.target.value)} />
+            </label>
+            <label>
+              Sequence order
+              <input
+                type="number"
+                value={order}
+                onChange={(e) => setOrder(Number(e.target.value))}
+              />
             </label>
             <label>
               First worksheet
@@ -486,15 +499,7 @@ export function V3Settings({ db, act, legacyAct, busy, error, initialSection = '
                 onChange={(e) => setLast(Number(e.target.value))}
               />
             </label>
-            <label>
-              Sequence order
-              <input
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
-              />
-            </label>
-            <label>
+            <label className="full-width-field">
               Verification source
               <input value={source} onChange={(e) => setSource(e.target.value)} />
             </label>

@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-location-assign-relative-destination -- Locking a shared reception device clears staff state. */
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Camera, Check, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, Camera, Check, LogOut, ShieldCheck, X } from 'lucide-react';
 import type { IScannerControls } from '@zxing/browser';
 import { clientId, request } from '@/lib/client';
 import './kiosk.css';
@@ -206,7 +206,10 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
     };
   }, [camera]);
   return (
-    <main className="kiosk-page v2-kiosk reception-kiosk immersive-reception">
+    <main
+      className="kiosk-page v2-kiosk reception-kiosk immersive-reception"
+      data-reception-state={message ? direction : 'idle'}
+    >
       <ReceptionBackdrop
         state={
           message ? (direction === 'in' ? 'in' : direction === 'out' ? 'out' : 'recorded') : 'idle'
@@ -242,7 +245,7 @@ export function Kiosk({ staffPreview = false }: { staffPreview?: boolean }) {
           {message ? (
             <div className="kiosk-success" role="status">
               <span className="receipt-mark" aria-hidden="true">
-                <Check size={34} />
+                {direction === 'out' ? <LogOut size={34} /> : <Check size={34} />}
               </span>
               <h1>
                 {direction === 'in'

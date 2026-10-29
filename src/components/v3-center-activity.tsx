@@ -1,7 +1,12 @@
 'use client';
-import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useId, useMemo, useState, type PointerEvent } from 'react';
 import { dayKey, type Snapshot } from '@/lib/model';
-import { centerAttendance, attendanceAxis, type AttendancePeriod } from '@/lib/center-attendance';
+import {
+  centerAttendance,
+  attendanceAxis,
+  dailyTrafficBins,
+  type AttendancePeriod,
+} from '@/lib/center-attendance';
 import { attendancePunches, type ArrivalBin } from '@/lib/center-arrivals';
 import { SessionHistory } from './v3-session-history';
 import type { V3Act } from './v3-shared';
@@ -34,11 +39,12 @@ export function CenterActivity({ db, ...actions }: ActivityProps) {
     () => centerAttendance(db, date, period, query, new Date(second * 1000)),
     [db, date, period, query, second],
   );
-  const selection = data.bins.findIndex((b) => b.key === selected),
-    initial = data.bins.findIndex((b) => b.partial),
-    fallback = data.bins.findIndex((b) => (b.actual || b.expected || 0) > 0);
+  const bins = period === 'Daily' ? dailyTrafficBins(data.bins) : data.bins;
+  const selection = bins.findIndex((b) => b.key === selected),
+    initial = bins.findIndex((b) => b.partial),
+    fallback = bins.findIndex((b) => (b.actual || b.expected || 0) > 0);
   const index = selection >= 0 ? selection : initial >= 0 ? initial : Math.max(0, fallback),
-    bin = data.bins[index];
+    bin = bins[index];
   const changeDate = (value: string | null) => {
     setDate(value);
     setSelected(null);
@@ -85,7 +91,8 @@ export function CenterActivity({ db, ...actions }: ActivityProps) {
               <InfoTip label="About arrival comparisons">
                 Daily and weekly expected arrivals use up to eight earlier matching weekdays. They
                 estimate arrivals, not occupancy. Monthly and yearly views show recorded check-ins
-                only. The daily chart shows seven hours at a time; scroll to inspect other hours.
+                only. The daily chart shows noon to 7 PM. Day totals and punches include all
+                recorded hours.
               </InfoTip>
             </h2>
             <dl>
@@ -126,11 +133,12 @@ export function CenterActivity({ db, ...actions }: ActivityProps) {
         </div>
         <AttendancePlot
           key={period + date + query}
-          bins={data.bins}
+          bins={bins}
+          allBins={data.bins}
           compare={data.compare}
           daily={period === 'Daily'}
           index={index}
-          select={(i) => setSelected(data.bins[i].key)}
+          select={(i) => setSelected(bins[i].key)}
         />
         <details className="attendance-punches" onToggle={(e) => setShow(e.currentTarget.open)}>
           <summary>
@@ -163,36 +171,23 @@ export function CenterActivity({ db, ...actions }: ActivityProps) {
 }
 function AttendancePlot({
   bins,
+  allBins,
   compare,
   daily,
   index,
   select,
 }: {
   bins: ArrivalBin[];
+  allBins: ArrivalBin[];
   compare: boolean;
   daily: boolean;
   index: number;
   select: (i: number) => void;
 }) {
-  const initialized = useRef(false);
   const id = useId(),
-    viewport = useRef<HTMLDivElement>(null),
     [inspect, setInspect] = useState(false),
     axis = attendanceAxis(bins),
     selected = bins[index];
-  useEffect(() => {
-    if (daily && viewport.current) {
-      const node = viewport.current;
-      const step = node.clientWidth / 7,
-        left = index * step;
-      if (!initialized.current) {
-        node.scrollLeft = Math.max(0, Math.min(17, index - 3)) * step;
-        initialized.current = true;
-      } else if (left < node.scrollLeft) node.scrollLeft = left;
-      else if (left + step > node.scrollLeft + node.clientWidth + 1)
-        node.scrollLeft = left + step - node.clientWidth;
-    }
-  }, [daily, index]);
   const description = (b: ArrivalBin) =>
     b.label +
     ': ' +
@@ -229,10 +224,9 @@ function AttendancePlot({
             <span key={n}>{number(n)}</span>
           ))}
         </div>
-        <div className="attendance-chart-viewport" ref={viewport}>
+        <div className="attendance-chart-viewport">
           <div
             className="attendance-chart"
-            style={daily ? { width: (bins.length / 7) * 100 + '%' } : undefined}
             role="slider"
             tabIndex={bins.length ? 0 : -1}
             aria-label="Inspect check-ins by period"
@@ -297,7 +291,16 @@ function AttendancePlot({
                       />
                     )}
                   </span>
-                  <span className="attendance-column-label">{i % stride === 0 ? b.label : ''}</span>
+                  <span className="attendance-column-label">
+                    {i % stride === 0 && (
+                      <>
+                        <span className="hour-full">{b.label}</span>
+                        <span className="hour-compact">
+                          {daily ? b.label.replace(' PM', 'p') : b.label}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -326,25 +329,27 @@ function AttendancePlot({
           </div>
         </div>
       </div>
-      <table className="sr-only">
-        <caption>Recorded check-ins for selected period</caption>
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Check-ins</th>
-            {compare && <th>Typical check-ins</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {bins.map((b) => (
-            <tr key={b.key}>
-              <th>{b.label}</th>
-              <td>{b.actual ?? 'Not yet recorded'}</td>
-              {compare && <td>{b.expected ?? 'Unavailable'}</td>}
+      <div className="sr-only">
+        <table>
+          <caption>Recorded check-ins for selected period</caption>
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Check-ins</th>
+              {compare && <th>Typical check-ins</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {allBins.map((b) => (
+              <tr key={b.key}>
+                <th>{b.label}</th>
+                <td>{b.actual ?? 'Not yet recorded'}</td>
+                {compare && <td>{b.expected ?? 'Unavailable'}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

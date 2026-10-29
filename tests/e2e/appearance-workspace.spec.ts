@@ -121,6 +121,9 @@ test('accent setting survives reload and leaves distinct skill identities unchan
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
   await settings.getByRole('button', { name: 'Accent color', exact: true }).click();
+  await expect(
+    page.getByRole('menu', { name: 'Accent color', exact: true }).getByRole('menuitemradio'),
+  ).toHaveCount(12);
   await page.getByRole('menuitemradio', { name: 'Violet', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'violet');
   await page.screenshot({ path: 'test-results/accent-settings.png', animations: 'disabled' });
@@ -210,6 +213,24 @@ for (const reduced of [false, true])
           d === 'in' ? "You're checked in." : "You're checked out.",
         );
         await expect(page.locator('.reception-backdrop')).toHaveAttribute('data-state', d);
+        expect(
+          await page.locator('.receipt-mark').evaluate((el) => getComputedStyle(el).color),
+        ).toBe(d === 'in' ? 'rgb(128, 223, 172)' : 'rgb(243, 160, 164)');
+        if (!reduced) {
+          await page.locator('.reception-confirmation-wave').evaluate((el) =>
+            el.getAnimations().forEach((a) => {
+              a.pause();
+              a.currentTime = 280;
+            }),
+          );
+          await page.screenshot({
+            path: 'test-results/kiosk-wave-' + d + '.png',
+            animations: 'allow',
+          });
+          await page
+            .locator('.reception-confirmation-wave')
+            .evaluate((el) => el.getAnimations().forEach((a) => a.finish()));
+        } else await expect(page.locator('.reception-confirmation-wave')).not.toBeVisible();
         await expect(page.getByRole('status')).toContainText(
           d === 'in' ? 'Arrival recorded' : 'Departure recorded',
         );

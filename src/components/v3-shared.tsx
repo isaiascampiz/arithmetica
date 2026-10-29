@@ -15,6 +15,7 @@ export function Modal({
   className = '',
   dismissOnBackdrop = false,
   footerInBody = false,
+  variant = 'default',
 }: {
   title: ReactNode;
   titleLabel?: string;
@@ -24,6 +25,7 @@ export function Modal({
   className?: string;
   dismissOnBackdrop?: boolean;
   footerInBody?: boolean;
+  variant?: 'default' | 'form';
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const closing = useRef(false);
@@ -70,7 +72,7 @@ export function Modal({
   }
   return (
     <dialog
-      className={'v3-modal ' + className}
+      className={'v3-modal ' + (variant === 'form' ? 'edit-dialog ' : '') + className}
       ref={ref}
       aria-labelledby={titleId}
       onClick={(event) => {

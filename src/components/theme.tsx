@@ -104,6 +104,7 @@ export function AccentControl() {
     <Popover
       label="Accent color"
       buttonClass="secondary accent-select"
+      className="accent-menu"
       trigger={
         <>
           <i className="accent-swatch" style={{ background: 'var(--chart-primary)' }} />
@@ -113,7 +114,7 @@ export function AccentControl() {
       }
     >
       {(close) => (
-        <div role="menu" aria-label="Accent color">
+        <div role="menu" aria-label="Accent color" className="accent-options">
           <p className="menu-caption">Accent color</p>
           {accents.map((a) => (
             <button

@@ -148,13 +148,24 @@ function ReportBody({
     }).format(new Date(value + 'T12:00:00Z'));
   const groups = reportVisitGroups(detail),
     worksheets = reportWorksheets(detail).filter((r) => r.worksheets > 0);
-  const metrics: { id: Metric; label: string; value: number }[] = [
-    { id: 'visits', label: 'Visits', value: detail.visits.length },
-    { id: 'recorded', label: 'Observations recorded', value: groups.recorded.length },
-    { id: 'unrecorded', label: 'Observations not recorded', value: groups.unrecorded.length },
+  const metrics: { id: Metric; label: string; title: string; value: number }[] = [
+    { id: 'visits', label: 'Visits', title: 'Visits', value: detail.visits.length },
+    {
+      id: 'recorded',
+      label: 'With notes',
+      title: 'Observations recorded',
+      value: groups.recorded.length,
+    },
+    {
+      id: 'unrecorded',
+      label: 'No notes',
+      title: 'Observations not recorded',
+      value: groups.unrecorded.length,
+    },
     {
       id: 'worksheets',
-      label: 'Verified completed worksheets',
+      label: 'Worksheets',
+      title: 'Verified completed worksheets',
       value: detail.completions.reduce((n, c) => n + c.physicalSheets, 0),
     },
   ];
@@ -235,6 +246,8 @@ function ReportBody({
         {metrics.map((m) => (
           <button
             key={m.id}
+            aria-label={m.title + ' ' + m.value}
+            title={m.title}
             aria-pressed={metric === m.id}
             onClick={() => {
               setMetric(m.id);
@@ -249,7 +262,7 @@ function ReportBody({
       {metric && (
         <section
           className="report-drilldown"
-          aria-label={metrics.find((m) => m.id === metric)!.label}
+          aria-label={metrics.find((m) => m.id === metric)!.title}
         >
           <h2 className="sr-only">{metrics.find((m) => m.id === metric)!.label}</h2>
           {metric === 'worksheets'

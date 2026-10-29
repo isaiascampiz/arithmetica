@@ -39,6 +39,9 @@ export function ReceptionBackdrop({ state }: { state: 'idle' | 'in' | 'out' | 'r
     <div className="reception-backdrop" data-state={state} aria-hidden="true">
       <div className="backdrop-plane" ref={plane}>
         <div className="reception-atmosphere" />
+        {(state === 'in' || state === 'out') && (
+          <div key={state} className="reception-confirmation-wave" />
+        )}
         <svg
           className="reception-contours"
           viewBox="0 0 1400 1000"

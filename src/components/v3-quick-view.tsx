@@ -855,13 +855,14 @@ export function QuickView({
                           <div className="packet-chips">
                             {proposal?.v3!.inCenter && (
                               <span className="packet-chip">
-                                In center: {packetLabel(proposal.v3!.inCenter)}
+                                <span>{packetLabel(proposal.v3!.inCenter)}</span>
+                                <small>In center</small>
                               </span>
                             )}
                             {proposal?.v3!.planned.map((p) => (
                               <span key={p.id} className="packet-chip">
-                                {packetLabel(p)}
-                                {reusedIds.has(p.id) && <small>Reuse existing packet</small>}
+                                <span>{packetLabel(p)}</span>
+                                <small>{reusedIds.has(p.id) ? 'Reuse packet' : 'Send home'}</small>
                               </span>
                             ))}
                           </div>
@@ -1009,6 +1010,7 @@ export function QuickView({
           ))}
           {addingSkill ? (
             <Modal
+              variant="form"
               title="Add skill"
               className="settings-edit-dialog"
               close={() => setAddingSkill(false)}

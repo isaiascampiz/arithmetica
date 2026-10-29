@@ -90,6 +90,10 @@ test('unenrolled subjects hide all saved values and reenroll through the same co
   await dialog.getByRole('button', { name: 'Save changes' }).click();
   await expect(dialog).toHaveCount(0);
   const subjects = page.getByRole('region', { name: 'Subjects', exact: true });
+  const header = subjects.locator('.profile-section-heading');
+  await expect(header.getByRole('button', { name: 'Edit Math', exact: true })).toHaveCount(0);
+  await expect(header.getByRole('button', { name: 'Add Math', exact: true })).toHaveText('Add');
+  await expect(subjects.getByRole('button', { name: 'Add Math', exact: true })).toHaveCount(1);
   await expect(subjects.locator('dd')).toHaveText(['\u2014', '\u2014', '\u2014', '\u2014']);
   await expect(subjects.locator('dt')).toHaveText([
     'Learning mode',
@@ -111,6 +115,7 @@ test('unenrolled subjects hide all saved values and reenroll through the same co
   );
   await add.getByRole('button', { name: 'Save changes' }).click();
   await expect(add).toHaveCount(0);
+  await expect(header.getByRole('button', { name: 'Edit Math', exact: true })).toHaveText('Edit');
   expect((await state(page)).operations!.students[student.id].subjects.Math).toEqual(
     cfg.subjects.Math,
   );

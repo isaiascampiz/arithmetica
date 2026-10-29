@@ -2,7 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { quickViewDemo } from './fixtures/quick-view-demo';
 import { addFictionalCenterActivity } from './fixtures/center-activity-demo';
-import { centerAttendance, attendanceAxis, moveAttendanceDate } from '../src/lib/center-attendance';
+import {
+  centerAttendance,
+  attendanceAxis,
+  moveAttendanceDate,
+  dailyTrafficBins,
+} from '../src/lib/center-attendance';
 import { homePreparation } from '../src/lib/home-preparation';
 import { dayKey, isOpenVisit } from '../src/lib/model';
 
@@ -87,4 +92,23 @@ test('Home readiness distinguishes unprepared, partly ready, prepared, issued an
   const before = JSON.stringify(db);
   assert.equal(homePreparation(db, student.id, today, visit)?.state, 'none');
   assert.equal(JSON.stringify(db), before);
+});
+
+test('fixed noon-to-seven plot preserves full-day data and never mutates hourly records', () => {
+  const db = quickViewDemo(now);
+  addFictionalCenterActivity(db, now);
+  const result = centerAttendance(db, '2026-10-19', 'Daily', '', now),
+    saved = JSON.stringify(result.bins),
+    plot = dailyTrafficBins(result.bins);
+  assert.equal(result.bins.length, 24);
+  assert.deepEqual(
+    plot.map((b) => Number(b.key)),
+    [12, 13, 14, 15, 16, 17, 18, 19],
+  );
+  assert.deepEqual(
+    plot.map((b) => b.label),
+    ['12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM'],
+  );
+  assert.equal(JSON.stringify(result.bins), saved);
+  assert.equal(result.total, result.rows.filter((p) => p.kind === 'Check-in').length);
 });

@@ -202,6 +202,7 @@ export function AccountSettings({ staff }: { staff: Staff }) {
       </div>
       {remove > 0 && (
         <Modal
+          variant="form"
           title="Delete account"
           close={() => setRemove(0)}
           className="settings-edit-dialog"

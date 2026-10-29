@@ -330,20 +330,20 @@
     transform: scale(0.94);
   }
   .reception-backdrop[data-state='in'] .reception-contours {
-    animation: arrival-contour 600ms var(--ease-out) both;
+    animation: arrival-contour 800ms var(--ease-out) both;
     transform-origin: 50% 50%;
   }
   .reception-backdrop[data-state='out'] .reception-contours {
-    animation: departure-contour 600ms var(--ease-out) both;
+    animation: departure-contour 800ms var(--ease-out) both;
     transform-origin: 50% 50%;
   }
   .immersive-reception .receipt-mark {
-    animation: receipt-entrance 240ms var(--ease-out) both;
+    animation: receipt-entrance 280ms var(--ease-out) both;
   }
   @keyframes arrival-contour {
     from {
       opacity: 0.55;
-      transform: scale(1.12);
+      transform: scale(1.2);
     }
     to {
       opacity: 0.22;
@@ -353,7 +353,7 @@
   @keyframes departure-contour {
     from {
       opacity: 0.55;
-      transform: scale(0.92);
+      transform: scale(0.8);
     }
     to {
       opacity: 0.22;
@@ -460,4 +460,578 @@
 .v3-shell .homework-unfinished,
 .v3-shell .homework-legend > span:last-child i {
   background: var(--chart-comparison);
+}
+
+/* Fixed operating-hour plot, compact reports and clearer attendance receipts. */
+:root[data-accent='emerald'] {
+  --accent: #247347;
+}
+:root[data-accent='cyan'] {
+  --accent: #096e85;
+}
+:root[data-accent='indigo'] {
+  --accent: #4f5bb4;
+}
+:root[data-accent='coral'] {
+  --accent: #a24638;
+}
+:root[data-accent='copper'] {
+  --accent: #8a593d;
+}
+:root[data-accent='olive'] {
+  --accent: #596b24;
+}
+:root[data-accent='slate'] {
+  --accent: #526777;
+}
+:root[data-theme='dark'][data-accent='emerald'] {
+  --accent: #94d4ab;
+}
+:root[data-theme='dark'][data-accent='cyan'] {
+  --accent: #8bd3e6;
+}
+:root[data-theme='dark'][data-accent='indigo'] {
+  --accent: #b1b8f3;
+}
+:root[data-theme='dark'][data-accent='coral'] {
+  --accent: #efa996;
+}
+:root[data-theme='dark'][data-accent='copper'] {
+  --accent: #dbb49a;
+}
+:root[data-theme='dark'][data-accent='olive'] {
+  --accent: #c0ce86;
+}
+:root[data-theme='dark'][data-accent='slate'] {
+  --accent: #b3c6d4;
+}
+.accent-menu .app-popover {
+  width: 320px;
+  max-width: calc(100vw - 24px);
+}
+.accent-menu .accent-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 6px;
+}
+.accent-options .menu-caption {
+  grid-column: 1 / -1;
+}
+.app-popover .accent-options > button {
+  position: relative;
+  padding: 10px 28px 10px 10px;
+  min-height: 44px;
+  gap: 8px;
+}
+.accent-options > button > svg {
+  position: absolute;
+  right: 7px;
+  width: 15px;
+}
+.traffic-workspace {
+  --traffic-bar-height: 216px;
+}
+.traffic-workspace .attendance-chart-viewport {
+  overflow: visible;
+  scrollbar-width: none;
+}
+.traffic-workspace .attendance-chart {
+  width: 100%;
+  height: calc(var(--traffic-bar-height) + 44px);
+  touch-action: pan-y;
+}
+.traffic-workspace .attendance-y-axis {
+  height: var(--traffic-bar-height);
+  width: 34px;
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1;
+}
+.traffic-workspace .attendance-gauge-track {
+  height: var(--traffic-bar-height);
+  max-width: 40px;
+  border-radius: 5px 5px 2px 2px;
+}
+.traffic-workspace .attendance-column-label {
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 450;
+}
+.attendance-column-label .hour-compact {
+  display: none;
+}
+.traffic-workspace .attendance-gauge-track .activity-actual-bar.partial {
+  border-top: 0;
+}
+.v3-shell .report-metric-tabs {
+  gap: 12px;
+}
+.v3-shell .report-metric-tabs button {
+  min-height: 58px;
+  padding-block: 12px;
+  gap: 7px;
+}
+.v3-shell .report-metric-tabs button > span {
+  white-space: nowrap;
+  font-size: 13px;
+}
+.v3-shell .report-metric-tabs button > b {
+  min-width: 22px;
+  min-height: 22px;
+  font-size: 12px;
+}
+.immersive-reception[data-reception-state='in'] {
+  --chart-primary: #187343;
+}
+.immersive-reception[data-reception-state='out'] {
+  --chart-primary: #a93841;
+}
+[data-theme='dark'] .immersive-reception[data-reception-state='in'] {
+  --chart-primary: #80dfac;
+}
+[data-theme='dark'] .immersive-reception[data-reception-state='out'] {
+  --chart-primary: #f3a0a4;
+}
+.immersive-reception .receipt-mark {
+  width: 80px;
+  height: 80px;
+}
+.reception-backdrop:is([data-state='in'], [data-state='out']) .reception-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(
+      ellipse at 50% 42%,
+      color-mix(in srgb, var(--chart-primary) 24%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse at 2% 70%,
+      color-mix(in srgb, var(--chart-primary) 20%, transparent),
+      transparent 60%
+    );
+}
+.reception-confirmation-wave {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 90vmax;
+  height: 90vmax;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, currentColor 16%, transparent),
+    transparent 65%
+  );
+  opacity: 0;
+}
+.reception-confirmation-wave::after {
+  content: '';
+  position: absolute;
+  inset: 11%;
+  border: 1px solid currentColor;
+  border-radius: inherit;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reception-confirmation-wave {
+    animation: attendance-confirmation-wave 900ms var(--ease-out) both;
+  }
+  @keyframes attendance-confirmation-wave {
+    from {
+      opacity: 0.75;
+      transform: translate(-50%, -50%) scale(0.45);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.45);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reception-confirmation-wave {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .v3-shell .report-metric-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+  }
+}
+@media (max-width: 430px) {
+  .traffic-workspace {
+    --traffic-bar-height: 192px;
+  }
+  .traffic-workspace .attendance-y-axis {
+    width: 28px;
+    font-size: 12px;
+  }
+  .traffic-workspace .attendance-column-label {
+    font-size: 11px;
+  }
+  .attendance-column-label .hour-full {
+    display: none;
+  }
+  .attendance-column-label .hour-compact {
+    display: inline;
+  }
+  .traffic-workspace .attendance-columns {
+    gap: 3px;
+  }
+}
+
+.immersive-reception .receipt-direction {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* One editing rhythm: reference-style forms with touch-sized controls. */
+.v3-modal.edit-dialog {
+  --editor-inset: 24px;
+  --editor-gap: 20px;
+  width: min(520px, calc(100vw - 32px));
+}
+.v3-modal.edit-dialog > header {
+  padding: 16px var(--editor-inset) 8px;
+  gap: 16px;
+}
+.v3-modal.edit-dialog > header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+}
+.v3-modal.edit-dialog > .v3-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 var(--editor-inset) 24px;
+}
+.v3-modal.edit-dialog .v3-modal-body > form,
+.v3-modal.edit-dialog .profile-edit-fields {
+  display: grid;
+  gap: var(--editor-gap);
+  padding: 0;
+}
+.v3-modal.edit-dialog label:not(.check-label) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.v3-modal.edit-dialog label :is(input, select, textarea) {
+  margin: 0;
+}
+.v3-modal.edit-dialog :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: 7px;
+}
+.v3-modal.edit-dialog .v3-modal-body > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.v3-modal.edit-dialog fieldset {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.v3-modal.edit-dialog legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.v3-modal.edit-dialog .form-grid,
+.v3-modal.edit-dialog .profile-edit-pair {
+  gap: 16px;
+  margin: 0;
+}
+.edit-dialog .full-width-field {
+  grid-column: 1 / -1;
+}
+.v3-modal.edit-dialog .v3-modal-body > .text-button {
+  align-self: flex-start;
+}
+.v3-modal.edit-dialog .setting-row {
+  gap: 16px;
+  min-height: 44px;
+  padding-block: 0;
+}
+.v3-modal.edit-dialog .setting-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+.v3-modal.edit-dialog .subject-editor-fields > .setting-row {
+  padding-bottom: 16px;
+}
+.v3-modal.edit-dialog .profile-subject-selector {
+  margin: 0;
+}
+.v3-modal.edit-dialog .shortcut-editor {
+  margin: 0;
+  gap: 12px;
+}
+.v3-modal.edit-dialog .shortcut-editor > div {
+  gap: 8px;
+}
+.v3-modal.edit-dialog .operating-days .setting-row {
+  min-height: 52px;
+}
+.v3-modal.edit-dialog > footer {
+  padding: 0 var(--editor-inset) 24px;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.v3-modal.edit-dialog :is(.primary, .secondary, .text-button) {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  min-height: 44px;
+}
+.v3-modal.edit-dialog > footer :is(.primary, .secondary) {
+  padding-inline: 16px;
+}
+.v3-shell .profile-section-heading .profile-edit-action {
+  min-width: 80px;
+  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.v3-modal.edit-dialog.roster-filter-dialog {
+  width: min(460px, calc(100vw - 32px));
+}
+.v3-modal.edit-dialog .roster-student-group .setting-row {
+  margin: 0;
+}
+.v3-modal.edit-dialog .roster-v3-filters {
+  gap: var(--editor-gap);
+}
+.v3-modal.edit-dialog .roster-filter-actions {
+  padding-top: 4px;
+  gap: 8px;
+}
+.v3-modal.quick-view .quick-plan-editor label {
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+}
+.v3-modal.quick-view .quick-plan-editor :is(h5, legend) {
+  font-size: 14px;
+  font-weight: 500;
+}
+.v3-modal.quick-view .quick-plan-editor p {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.v3-modal.quick-view .quick-editor-confirm {
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.past-session .history-note:has(.history-edit-actions) {
+  display: grid;
+  gap: 16px;
+}
+.past-session
+  .history-note:has(.history-edit-actions)
+  :is(h4, .history-rating-editor, .history-edit-actions) {
+  margin: 0;
+}
+.past-session .history-note:has(.history-edit-actions) label,
+.verify-completion form label {
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.past-session .history-edit-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.verify-completion form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+.verify-completion form > p {
+  margin: 0;
+  line-height: 1.5;
+}
+.verify-completion form > button {
+  justify-self: start;
+  max-width: 100%;
+  min-height: 44px;
+  white-space: normal;
+}
+@media (max-width: 600px) {
+  .v3-modal.edit-dialog {
+    --editor-inset: 20px;
+  }
+}
+@media (max-width: 360px) {
+  .v3-modal.edit-dialog {
+    --editor-inset: 16px;
+  }
+}
+@media (max-width: 430px) {
+  .curriculum-editor-dialog .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (pointer: coarse) {
+  .v3-modal.edit-dialog :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+.profile-achievement > form {
+  display: grid;
+  gap: 20px;
+  margin-top: 16px;
+}
+.profile-achievement .profile-medal-fields {
+  gap: 16px;
+  margin: 0;
+}
+.profile-achievement .profile-medal-fields :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.profile-achievement form label,
+.visit-entry details .form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.profile-achievement .profile-editor-actions {
+  padding: 0;
+  border: 0;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.profile-achievement .profile-editor-actions button {
+  font-size: 14px;
+}
+.visit-entry details .form-grid {
+  margin-top: 16px;
+  gap: 20px 16px;
+}
+.visit-filter-popover {
+  gap: 16px;
+}
+.visit-filter-popover h3 {
+  margin: 0;
+}
+.visit-filter-popover label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.visit-filter-popover :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+}
+.app-popover .visit-filter-popover > .text-button {
+  justify-self: start;
+  width: auto;
+}
+.app-popover .visit-filter-popover > .secondary {
+  justify-self: end;
+  width: auto;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 500;
+}
+@media (pointer: coarse) {
+  .profile-achievement .profile-medal-fields :is(input, select),
+  .visit-filter-popover :is(input, select) {
+    font-size: 16px;
+  }
+}
+
+/* Reset obsolete directory-grid placement inside the shared filter dialog. */
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-v3-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-v3-filters > div {
+  grid-column: auto;
+  grid-row: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  align-self: stretch;
+}
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-filter-fields > label,
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-visit-days {
+  grid-column: auto;
+  grid-row: auto;
+}
+.v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.v3-modal.edit-dialog .profile-edit-fields .day-options,
+.v3-modal.edit-dialog .roster-visit-days .day-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
+  max-width: 280px;
+  gap: 8px;
+  margin: 0;
+}
+.v3-modal.edit-dialog .day-options > button {
+  min-width: 0;
+  padding-inline: 4px;
+}
+@media (max-width: 430px) {
+  .v3-shell .v3-modal.edit-dialog.roster-filter-dialog .roster-filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 360px) {
+  .v3-modal.edit-dialog .profile-edit-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

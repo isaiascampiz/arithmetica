@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Edit3 } from 'lucide-react';
+import { Edit3, Plus } from 'lucide-react';
 import { isOpenVisit, type Snapshot, type Student } from '@/lib/model';
 import { recurring } from '@/lib/schedule';
 import { dailyWorksheets, dailyWork } from '@/lib/worksheet-allocation';
@@ -18,10 +18,12 @@ function EditButton({
   onClick,
   disabled,
   label,
+  add = false,
 }: {
   onClick: () => void;
   disabled: boolean;
   label: string;
+  add?: boolean;
 }) {
   return (
     <button
@@ -30,8 +32,8 @@ function EditButton({
       disabled={disabled}
       onClick={onClick}
     >
-      <Edit3 size={15} />
-      Edit
+      {add ? <Plus size={15} /> : <Edit3 size={15} />}
+      {add ? 'Add' : 'Edit'}
     </button>
   );
 }
@@ -182,9 +184,10 @@ export function OverviewSubjects({
         <h2>Subjects</h2>
         {db.staff.role !== 'assistant' && (
           <EditButton
-            onClick={() => setEditing('edit')}
+            onClick={() => setEditing(c.enrolled ? 'edit' : 'enroll')}
             disabled={busy}
-            label={'Edit ' + selected}
+            label={(c.enrolled ? 'Edit ' : 'Add ') + selected}
+            add={!c.enrolled}
           />
         )}
       </div>
@@ -216,13 +219,6 @@ export function OverviewSubjects({
             </dd>
           </div>
         </dl>
-        {!c.enrolled && (
-          <div className="subject-not-enrolled">
-            <button className="secondary" onClick={() => setEditing('enroll')}>
-              Add {selected}
-            </button>
-          </div>
-        )}
         {c.enrolled && centerFeatures(db).medals && (
           <SubjectAchievement
             db={db}
@@ -313,6 +309,7 @@ function ProfileEditor({
   }
   return (
     <Modal
+      variant="form"
       title={subject ? (enrollOnOpen ? 'Add ' : 'Edit ') + subject : 'Edit student information'}
       close={close}
       className="settings-edit-dialog profile-edit-dialog"

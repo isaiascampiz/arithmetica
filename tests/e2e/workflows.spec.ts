@@ -67,7 +67,7 @@ test('kiosk manual flow is idempotent and cannot read staff records', async ({ p
   await page.getByRole('button', { name: 'Submit pouch scan' }).click();
   await expect(page.locator('.kiosk-error')).toContainText('not recognized');
 });
-test('assistant instruction access denied; legacy packet transitions still persist and are retained in history', async ({
+test('assistant instruction access denied; legacy packet transitions remain preserved', async ({
   page,
 }) => {
   await login(page, 'assistant');
@@ -108,17 +108,23 @@ test('assistant instruction access denied; legacy packet transitions still persi
   await page.reload();
   await openProfile(page, db.students[1].name);
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
-  await page.getByText('Preserved V1/V2 worksheet and decision history', { exact: true }).click();
-  await expect(page.locator('.historical-v3').filter({ hasText: description })).toContainText(
-    'handed-off',
-  );
+  await expect(
+    page.getByText('Preserved V1/V2 worksheet and decision history', { exact: true }),
+  ).toHaveCount(0);
+  expect((await state(page)).homework.find((h) => h.id === packet.id)).toMatchObject({
+    id: packet.id,
+    description,
+    status: 'handed-off',
+  });
 });
 test('camera-denial fallback, tablet/phone layout and modal Escape remain usable', async ({
   page,
 }) => {
   await login(page);
-  const box = await page.getByRole('button', { name: 'Sign out' }).boundingBox();
+  await page.getByRole('button', { name: 'Account', exact: true }).click();
+  const box = await page.getByRole('menuitem', { name: 'Sign out', exact: true }).boundingBox();
   expect(box!.y + box!.height).toBeLessThanOrEqual(768);
+  await page.keyboard.press('Escape');
   await page.screenshot({ path: 'test-results/v3-ipad.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -206,7 +212,7 @@ for (const width of [1024, 390])
       await dialog
         .getByLabel('Instructional note', { exact: true })
         .fill('Amended fictional session note');
-      await dialog.getByRole('button', { name: 'Reset', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(dialog.getByRole('group', { name: 'Focus rating' })).toHaveCount(0);
       await expect(dialog).toContainText('Original fictional session note');
       await expect(dialog).not.toContainText('Amended fictional session note');
@@ -221,7 +227,7 @@ for (const width of [1024, 390])
       await dialog
         .getByLabel('Instructional note', { exact: true })
         .fill('Amended fictional session note');
-      await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
+      await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(1);
       await page.screenshot({ path: 'test-results/session-observation-editor-' + width + '.png' });
       await dialog.getByRole('button', { name: 'Update observation', exact: true }).click();
       await expect(dialog.locator('.history-skill-ratings')).toContainText('5/5');
@@ -294,10 +300,11 @@ test('visit history date lookup and duration sorting use recorded center-local v
   await page.getByRole('button', { name: 'Filter & sort' }).click();
   const dateControl = await page.getByLabel('Visit date', { exact: true }).boundingBox();
   const sortControl = await page.getByLabel('Sort visits').boundingBox();
-  expect(dateControl!.y).toBe(sortControl!.y);
+  expect(dateControl!.y + dateControl!.height).toBeLessThanOrEqual(sortControl!.y);
   const filterBox = (await page.locator('#visit-filters').boundingBox())!;
   const cardBox = (await cards.first().boundingBox())!;
-  expect(filterBox.width).toBe(cardBox.width);
+  expect(filterBox.width).toBeLessThanOrEqual(cardBox.width);
+  expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(page.viewportSize()!.width - 12);
   await page.screenshot({ path: 'test-results/visit-history-filters.png' });
   await page.getByLabel('Visit date', { exact: true }).fill('2026-10-17');
   await expect(cards).toHaveCount(1);

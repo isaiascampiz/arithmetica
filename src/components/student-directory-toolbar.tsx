@@ -52,6 +52,7 @@ export function StudentDirectoryToolbar({
       </div>
       {open && (
         <Modal
+          variant="form"
           title="Filter students"
           className="roster-filter-dialog"
           close={() => setOpen(false)}

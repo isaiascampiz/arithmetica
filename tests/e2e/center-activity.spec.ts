@@ -3,6 +3,7 @@ import { login, state } from './helpers';
 import { seed } from '../../src/lib/seed';
 import { migrateV3 } from '../../src/lib/v3-migrate';
 import { addFictionalCenterActivity } from '../fixtures/center-activity-demo';
+import { dailyTrafficBins } from '../../src/lib/center-attendance';
 import { arrivalComparison } from '../../src/lib/center-arrivals';
 import { activitySettings } from '../../src/lib/activity-settings';
 
@@ -50,7 +51,25 @@ for (const size of [
     await expect(panel.locator('.traffic-stat-group:first-child .recorded-stat dd')).toHaveText(
       String(result.total),
     );
-    await expect(panel.locator('.activity-expected-bar')).toHaveCount(result.bins.length);
+    const plotted = dailyTrafficBins(result.bins);
+    await expect(panel.locator('.activity-expected-bar')).toHaveCount(plotted.length);
+    await expect(panel.locator('.attendance-column')).toHaveCount(8);
+    expect(
+      await panel
+        .locator('.attendance-chart-viewport')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
+    await expect(panel.locator('.attendance-column-label .hour-full')).toHaveText([
+      '12 PM',
+      '1 PM',
+      '2 PM',
+      '3 PM',
+      '4 PM',
+      '5 PM',
+      '6 PM',
+      '7 PM',
+    ]);
+    await expect(panel.locator('table tbody tr')).toHaveCount(24);
     await expect(page.getByRole('button', { name: 'Punch history', exact: true })).toHaveCount(0);
     await expect(panel.locator('.attendance-y-axis span')).toHaveCount(5);
     const plot = panel.getByRole('slider', { name: 'Inspect check-ins by period' });
@@ -59,7 +78,7 @@ for (const size of [
     await page.keyboard.press('ArrowRight');
     await expect(plot).toHaveAttribute(
       'aria-valuenow',
-      String(Math.min(position + 1, result.bins.length - 1)),
+      String(Math.min(position + 1, plotted.length - 1)),
     );
     const column = panel
       .locator('.attendance-column')
@@ -71,6 +90,16 @@ for (const size of [
       expect(expectedBar.x).toBeCloseTo(actualBar.x, 0);
       expect(expectedBar.width).toBeCloseTo(actualBar.width, 0);
     }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await plot.blur();
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({
+      path: 'test-results/traffic-daily-' + size.width + '.png',
+      fullPage: true,
+      animations: 'disabled',
+    });
     await page.getByRole('button', { name: 'Weekly', exact: true }).click();
     await expect(panel.locator('.attendance-column')).toHaveCount(7);
     await expect(panel.locator('.traffic-summary')).toContainText('Selected week');
