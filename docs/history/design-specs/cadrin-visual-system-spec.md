@@ -1,6 +1,6 @@
 # Cadrin — complete visual system
 
-**Current direction:** superseded by the user’s request for a much closer Wispr Flow match. See the [direct desktop/website audit](../docs/wispr-ui-reference-audit.md). The implementation now uses Figtree/EB Garamond, observed neutral tokens, underlined tabs and modal settings. The earlier Geist/citron design below is retained as iteration history.
+**Current direction:** superseded by the user’s request for a much closer Wispr Flow match. See the [direct desktop/website audit](../../wispr-ui-reference-audit.md). The implementation now uses Figtree/EB Garamond, observed neutral tokens, underlined tabs and modal settings. The earlier Geist/citron design below is retained as iteration history.
 
 ## Direction and scope
 

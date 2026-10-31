@@ -26,6 +26,6 @@ These records describe checks performed at the stated time. They do not automati
 
 ## Historical material
 
-`history/` preserves previous release guides, validation, and the October 29 README/development/architecture snapshots. `branding/` contains earlier naming/logo explorations. `.plans/` at the repository root preserves design specifications. `screenshots/` contains fictional release evidence; older screenshots show the identity and interface of their original version.
+`history/` preserves previous release guides, validation, [design specifications](history/design-specs/), and the October 29 README/development/architecture snapshots. `branding/` contains earlier naming/logo explorations. `screenshots/` contains fictional release evidence; older screenshots show the identity and interface of their original version.
 
 Historical names and paths describe the original work. Current setup and source locations are documented in the guides above.

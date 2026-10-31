@@ -29,3 +29,17 @@ test('inline completion exposes one active name only and waits through shared fi
   db.operations!.students[a.id].active = false;
   assert.deepEqual(completeStudentName(db, 'Alex R'), { completion: null });
 });
+
+test('punctuation and digits do not satisfy the three-letter kiosk threshold', () => {
+  const db = quickViewDemo();
+  db.students[0].name = "O'Briar Stone";
+  assert.deepEqual(completeStudentName(db, "O'B"), { completion: null });
+  assert.deepEqual(completeStudentName(db, "O'Br"), { completion: "O'Briar Stone" });
+  db.students[0].name = 'O1Briar Stone';
+  assert.deepEqual(completeStudentName(db, 'O1B'), { completion: null });
+  assert.deepEqual(completeStudentName(db, 'O1Br'), { completion: 'O1Briar Stone' });
+
+  db.students[0].name = '\u00c9lise Long';
+  assert.deepEqual(completeStudentName(db, '\u00c9l'), { completion: null });
+  assert.deepEqual(completeStudentName(db, '\u00c9li'), { completion: '\u00c9lise Long' });
+});

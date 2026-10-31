@@ -18,6 +18,11 @@ test('inline name completion waits for a surname, confirms the matching student 
     name: second,
     earlyLearner: false,
   });
+  await command(page, 'v2', {
+    action: 'student-add',
+    name: "O'Briar Stone",
+    earlyLearner: false,
+  });
   await page.goto('/reception');
   await page.getByRole('button', { name: 'Lock for shared use' }).click();
   await expect(page).toHaveURL(/\/kiosk$/);
@@ -50,6 +55,16 @@ test('inline name completion waits for a surname, confirms the matching student 
   });
   expect(response.headers()['cache-control']).toContain('no-store');
   expect(await response.json()).toEqual({ completion: second });
+  for (const [prefix, completion] of [
+    ["O'B", null],
+    ["O'Br", "O'Briar Stone"],
+  ] as const) {
+    const nameResponse = await page.request.post('/api/kiosk/name', {
+      headers: { Origin: origin },
+      data: { prefix },
+    });
+    expect(await nameResponse.json()).toEqual({ completion });
+  }
   expect(
     (
       await page.request.post('/api/kiosk/name', {

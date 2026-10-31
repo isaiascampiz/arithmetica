@@ -18,7 +18,7 @@ Preserve the established navigation and operational structure. Use the existing 
 
 ## Implementation and preservation
 
-See [implementation details](../docs/arithmetica-refinement.md). The new optional dailyWork version 1 field is validated and changes only after explicit configuration edits; absent fields retain legacy sequencing. Unsupported versions fail closed. No bulk migration, reset or replacement of center data. The separate fictional showcase is constructed with an exclusive-create write and never opens an existing file. Server authorization, durable request IDs, stale version protection and packet identities remain enforced.
+See [implementation details](../../arithmetica-refinement.md). The new optional dailyWork version 1 field is validated and changes only after explicit configuration edits; absent fields retain legacy sequencing. Unsupported versions fail closed. No bulk migration, reset or replacement of center data. The separate fictional showcase is constructed with an exclusive-create write and never opens an existing file. Server authorization, durable request IDs, stale version protection and packet identities remain enforced.
 
 The user explicitly authorized the kiosk's narrow unique-name completion and named-receipt exception. AGENTS.md records that exception; the kiosk still receives no roster array, IDs, tokens, grade, observation or staff records. Authenticated same-origin endpoints are throttled and no-store. Real-student privacy and production-configuration gates remain unchanged.
 

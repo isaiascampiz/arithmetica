@@ -60,7 +60,7 @@
     "typescript": "~5.9.3",
     "wrangler": "4.155.0"
   },
-  "description": "A learning center workspace for attendance, instructor handoffs, homework preparation, and observations.",
+  "description": "Learning center operations for attendance, worksheet preparation, instructor handoffs, and reporting.",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
