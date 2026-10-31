@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { parse } from 'parse5';
 
 const workspace = process.cwd(),
   target = path.resolve('data/browser-build');
@@ -96,9 +97,20 @@ if (status === 0) {
       if (item.isDirectory()) await inspectHtml(filename);
       else if (item.name.endsWith('.html')) {
         const html = await readFile(filename, 'utf8');
-        for (const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
-          if (!/\bsrc\s*=/i.test(script[1]) && script[2])
-            hashes.add("'sha256-" + createHash('sha256').update(script[2]).digest('base64') + "'");
+        const visit = (node) => {
+          if (node.tagName === 'script' && !node.attrs.some((attr) => attr.name === 'src')) {
+            const location = node.sourceCodeLocation;
+            assert.ok(
+              location?.startTag && location.endTag,
+              `Unclosed inline script in ${filename}`,
+            );
+            const source = html.slice(location.startTag.endOffset, location.endTag.startOffset);
+            if (source)
+              hashes.add("'sha256-" + createHash('sha256').update(source).digest('base64') + "'");
+          }
+          for (const child of node.childNodes ?? []) visit(child);
+        };
+        visit(parse(html, { sourceCodeLocationInfo: true }));
       }
     }
   }
