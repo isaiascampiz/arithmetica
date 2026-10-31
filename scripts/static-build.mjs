@@ -11,15 +11,15 @@ await mkdir(path.join(target, 'app'), { recursive: true });
 // Generated browser entry points import the existing components; no copied business logic or server routes.
 const pages = {
   'page.tsx':
-    "import { StaffApp } from '@/components/staff-app'; export default function Page(){return <StaffApp/>;}",
+    "import { StaffApp } from '@/components/workspace/staff-app'; export default function Page(){return <StaffApp/>;}",
   'login/page.tsx':
-    "import { Login } from '@/components/login'; export default function Page(){return <Login cloud/>;}",
+    "import { Login } from '@/components/auth/login'; export default function Page(){return <Login cloud/>;}",
   'kiosk/page.tsx':
-    "import { Kiosk } from '@/components/kiosk'; export default function Page(){return <Kiosk/>;}",
+    "import { Kiosk } from '@/components/attendance/kiosk'; export default function Page(){return <Kiosk/>;}",
   'reception/page.tsx':
-    "import { Kiosk } from '@/components/kiosk'; export default function Page(){return <Kiosk staffPreview/>;}",
+    "import { Kiosk } from '@/components/attendance/kiosk'; export default function Page(){return <Kiosk staffPreview/>;}",
   'pouch/page.tsx':
-    "import { StaticPouch } from '@/components/static-pouch'; export default function Page(){return <StaticPouch/>;}",
+    "import { StaticPouch } from '@/components/pouch/static-pouch'; export default function Page(){return <StaticPouch/>;}",
 };
 for (const [name, source] of Object.entries(pages)) {
   const destination = path.join(target, 'app', name);
@@ -76,7 +76,11 @@ const child = spawn(
   {
     stdio: 'inherit',
     windowsHide: true,
-    env: { ...process.env, CENTERFLOW_BUILD: 'true', ENABLE_SCHEDULER: 'false' },
+    env: {
+      ...process.env,
+      ARITHMETICA_BUILD: 'true',
+      ENABLE_SCHEDULER: 'false',
+    },
   },
 );
 const status = await new Promise((resolve, reject) => {

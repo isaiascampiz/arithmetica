@@ -78,7 +78,13 @@ export type Correction = {
   createdAt: string;
   updatedAt: string;
   author: string;
-  events: { at: string; actor: string; state: string; remaining: number[]; reason: string }[];
+  events: {
+    at: string;
+    actor: string;
+    state: string;
+    remaining: number[];
+    reason: string;
+  }[];
 };
 export type Classwork = {
   id: string;
@@ -319,4 +325,6 @@ export type Operations = {
 };
 
 /** Read-only yearly views do not create a new archived report kind. */
-export type ReportView = Omit<Report, 'kind'> & { kind: Report['kind'] | 'yearly' };
+export type ReportView = Omit<Report, 'kind'> & {
+  kind: Report['kind'] | 'yearly';
+};

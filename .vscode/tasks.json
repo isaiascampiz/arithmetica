@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Centerflow: Start preview",
+      "label": "Arithmetica: Start preview",
       "type": "shell",
       "command": "pnpm",
       "args": ["dev"],
@@ -10,35 +10,35 @@
       "problemMatcher": []
     },
     {
-      "label": "Centerflow: Build",
+      "label": "Arithmetica: Build",
       "type": "shell",
       "command": "pnpm",
       "args": ["build"],
       "problemMatcher": []
     },
     {
-      "label": "Centerflow: Type check",
+      "label": "Arithmetica: Type check",
       "type": "shell",
       "command": "pnpm",
       "args": ["typecheck"],
       "problemMatcher": []
     },
     {
-      "label": "Centerflow: Lint",
+      "label": "Arithmetica: Lint",
       "type": "shell",
       "command": "pnpm",
       "args": ["lint"],
       "problemMatcher": []
     },
     {
-      "label": "Centerflow: Unit tests",
+      "label": "Arithmetica: Unit tests",
       "type": "shell",
       "command": "pnpm",
       "args": ["test"],
       "problemMatcher": []
     },
     {
-      "label": "Centerflow: Browser tests (build first)",
+      "label": "Arithmetica: Browser tests (build first)",
       "type": "shell",
       "command": "pnpm",
       "args": ["test:e2e"],

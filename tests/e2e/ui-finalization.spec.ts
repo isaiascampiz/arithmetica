@@ -68,7 +68,10 @@ test('verification, immutable monthly reports, retry-safe revisions and real Exc
   const reportSession = page.getByRole('dialog');
   await expect(reportSession).toContainText('Fictional report session observation');
   await expect(
-    reportSession.getByRole('button', { name: 'Edit observation', exact: true }),
+    reportSession.getByRole('button', {
+      name: 'Edit observation',
+      exact: true,
+    }),
   ).toHaveCount(0);
   await expect(reportSession.getByText('Verify completed sheets', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape');
@@ -169,7 +172,10 @@ test('settings expose only useful categories and locked reception never exposes 
   ])
     await expect(settings.getByText(text, { exact: true })).toHaveCount(0);
   await settings.getByRole('button', { name: 'Change', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: 'Observation shortcuts', exact: true });
+  const editor = page.getByRole('dialog', {
+    name: 'Observation shortcuts',
+    exact: true,
+  });
   await editor.getByRole('textbox').first().fill('Fictional focused work');
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(editor).toHaveCount(0);
@@ -210,7 +216,11 @@ for (const width of [390, 768, 1024, 1440])
         now = new Date('2026-10-19T23:35:00Z');
       const db = quickViewDemo(now);
       addFictionalCenterActivity(db, now);
-      const snapshot = { ...db, staff: session.staff, timezone: db.operations!.center.timezone };
+      const snapshot = {
+        ...db,
+        staff: session.staff,
+        timezone: db.operations!.center.timezone,
+      };
       await page.clock.install({ time: now });
       await page.route('**/api/state', (r) => r.fulfill({ json: snapshot }));
       await page.route('**/api/reports?*', (r) =>
@@ -231,7 +241,9 @@ for (const width of [390, 768, 1024, 1440])
       for (const view of ['settings', 'activity', 'reports']) {
         await page.goto('/?view=' + view);
         if (view === 'settings') {
-          const nav = page.getByRole('navigation', { name: 'Settings sections' });
+          const nav = page.getByRole('navigation', {
+            name: 'Settings sections',
+          });
           await expect(nav.getByRole('button', { name: 'General', exact: true })).toHaveAttribute(
             'aria-current',
             'page',
@@ -251,7 +263,10 @@ for (const width of [390, 768, 1024, 1440])
         if (view === 'reports') {
           await expect(page.locator('.report-metric-tabs button')).toHaveCount(4);
           const previous = (await page
-            .getByRole('button', { name: 'Previous report period', exact: true })
+            .getByRole('button', {
+              name: 'Previous report period',
+              exact: true,
+            })
             .boundingBox())!;
           const next = (await page
             .getByRole('button', { name: 'Next report period', exact: true })

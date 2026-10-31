@@ -36,7 +36,10 @@ async function main() {
   validateDatabase(db);
   const filename = path.resolve('data/ui-showcase-' + randomUUID() + '.json');
   await mkdir(path.dirname(filename), { recursive: true });
-  await writeFile(filename, JSON.stringify(db, null, 2), { flag: 'wx', mode: 0o600 });
+  await writeFile(filename, JSON.stringify(db, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   console.log(filename);
 }
 main().catch((e) => {

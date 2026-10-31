@@ -147,12 +147,18 @@ if (process.argv.includes('--auth')) {
     const login = await fetch(`${base}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: anonHeaders,
-      body: JSON.stringify({ email: fixture.email, password: fixture.password }),
+      body: JSON.stringify({
+        email: fixture.email,
+        password: fixture.password,
+      }),
       signal: AbortSignal.timeout(20000),
     });
     assert.equal(login.status, 200, 'Synthetic role login must succeed.');
     const session = await login.json();
-    const headers = { ...anonHeaders, Authorization: `Bearer ${session.access_token}` };
+    const headers = {
+      ...anonHeaders,
+      Authorization: `Bearer ${session.access_token}`,
+    };
     const membership = await fetch(
       `${base}/rest/v1/staff_memberships?center_id=eq.${plan.centerId}&user_id=eq.${fixture.id}&active=eq.true&select=role`,
       { headers, signal: AbortSignal.timeout(20000) },

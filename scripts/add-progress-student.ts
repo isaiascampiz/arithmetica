@@ -33,7 +33,10 @@ async function main() {
     'data/backups/progress-addition-' + new Date().toISOString().replaceAll(':', '-') + '.json',
   );
   await mkdir(path.dirname(backup), { recursive: true });
-  await writeFile(backup, JSON.stringify(current, null, 2), { flag: 'wx', mode: 0o600 });
+  await writeFile(backup, JSON.stringify(current, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   await repository.transaction((db) => {
     if (db.revision !== current.revision)
       throw Error('Center changed after backup; rerun to obtain a fresh backup.');

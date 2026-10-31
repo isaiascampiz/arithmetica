@@ -7,7 +7,9 @@ import {
 } from './scripts/e2e-settings.mjs';
 export default defineConfig({
   testDir: './tests/e2e',
-  outputDir: e2eOutputDirectory(process.env.CENTERFLOW_E2E_OUTPUT_DIR),
+  outputDir: e2eOutputDirectory(
+    process.env.ARITHMETICA_E2E_OUTPUT_DIR || process.env.CENTERFLOW_E2E_OUTPUT_DIR,
+  ),
   fullyParallel: false,
   workers: 1,
   timeout: 45000,

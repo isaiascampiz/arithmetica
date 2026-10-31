@@ -14,7 +14,11 @@ test('center midnight, live elapsed time and activity counts keep ticking after 
   fixture.visits = [];
   for (const s of fixture.students) fixture.operations!.students[s.id].active = s.id === student.id;
   fixture.operations!.students[student.id].visitDays = [1];
-  const snapshot: Snapshot = { ...fixture, staff: session.staff, timezone: 'America/Los_Angeles' };
+  const snapshot: Snapshot = {
+    ...fixture,
+    staff: session.staff,
+    timezone: 'America/Los_Angeles',
+  };
   await page.clock.install({ time: now });
   await page.clock.pauseAt(new Date(now.getTime() + 1000));
   await page.route('**/api/state', (route) => route.fulfill({ json: snapshot }));

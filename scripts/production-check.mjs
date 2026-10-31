@@ -76,7 +76,9 @@ for (const name of ['read_arithmetica_if_changed', 'read_centerflow', 'write_cen
   assert.ok([401, 403].includes(response.status));
   isolationChecks++;
 }
-const login = await fetch(config.APP_ORIGIN + '/login', { signal: AbortSignal.timeout(30000) });
+const login = await fetch(config.APP_ORIGIN + '/login', {
+  signal: AbortSignal.timeout(30000),
+});
 assert.equal(login.status, 200);
 assert.equal(login.headers.get('x-frame-options'), 'DENY');
 assert.equal(login.headers.get('x-content-type-options'), 'nosniff');

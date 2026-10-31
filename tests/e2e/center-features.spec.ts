@@ -27,7 +27,10 @@ for (const width of [1024, 390])
       });
       const visit = await arrive(page, s.id);
       await page.goto('/?view=settings');
-      const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
+      const settings = page.getByRole('dialog', {
+        name: 'Settings',
+        exact: true,
+      });
       await expect(settings.getByRole('switch', { name: 'Achievement medals' })).toHaveCount(0);
       await settings.getByRole('switch', { name: 'Homework', exact: true }).click();
       await expect(
@@ -57,7 +60,9 @@ for (const width of [1024, 390])
       await quick.getByRole('button', { name: 'Both', exact: true }).click();
       await quick.getByRole('button', { name: 'Focus: 5 out of 5', exact: true }).click();
       await quick.locator('textarea').fill('Fictional rollout activity note.');
-      await page.screenshot({ path: 'test-results/rollout-quick-' + width + '.png' });
+      await page.screenshot({
+        path: 'test-results/rollout-quick-' + width + '.png',
+      });
       await quick.getByRole('button', { name: 'Check in Math', exact: true }).click();
       await expect(quick).toHaveCount(0);
       const after = await state(page),
@@ -74,13 +79,19 @@ for (const width of [1024, 390])
       );
       await page.goto('/?view=students&student=' + s.id);
       await expect(
-        page.getByRole('img', { name: 'Current Math Silver achievement medal', exact: true }),
+        page.getByRole('img', {
+          name: 'Current Math Silver achievement medal',
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(page.getByText('Packets per homework day', { exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
       await expect(page.locator('.progress-grid > article')).toHaveCount(2);
       await expect(
-        page.getByRole('article', { name: 'Time spent at center', exact: true }),
+        page.getByRole('article', {
+          name: 'Time spent at center',
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(page.getByRole('article', { name: 'Skill ratings', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Visit History', exact: true }).click();
@@ -93,7 +104,10 @@ for (const width of [1024, 390])
       await expect(past.getByRole('heading', { name: 'Homework sent home' })).toHaveCount(0);
       await page.goto('/?view=settings');
       await settings.getByRole('switch', { name: 'Homework', exact: true }).click();
-      const resume = page.getByRole('dialog', { name: 'Turn on homework', exact: true });
+      const resume = page.getByRole('dialog', {
+        name: 'Turn on homework',
+        exact: true,
+      });
       await expect(resume.getByRole('button', { name: 'Turn on', exact: true })).toBeDisabled();
       await resume.getByRole('switch', { name: 'Levels and plans reviewed', exact: true }).click();
       await resume.getByRole('button', { name: 'Turn on', exact: true }).click();
@@ -101,7 +115,10 @@ for (const width of [1024, 390])
       await expect(page.getByRole('button', { name: /^Homework Preparation/ })).toHaveCount(1);
       await page.goto('/?view=students&student=' + s.id);
       await expect(
-        page.getByRole('img', { name: 'Current Math Silver achievement medal', exact: true }),
+        page.getByRole('img', {
+          name: 'Current Math Silver achievement medal',
+          exact: true,
+        }),
       ).toBeVisible();
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
       await expect(page.locator('.progress-grid > article')).toHaveCount(4);

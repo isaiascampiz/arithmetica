@@ -23,7 +23,12 @@ for (const name of [
       '--config',
       config,
     ],
-    { input: 'y\n', encoding: 'utf8', windowsHide: true, env: { ...process.env, CI: 'true' } },
+    {
+      input: 'y\n',
+      encoding: 'utf8',
+      windowsHide: true,
+      env: { ...process.env, CI: 'true' },
+    },
   );
   if (result.error || result.status !== 0 || !result.stdout.includes('Deleted secret')) {
     console.error('Proxy secret removal failed for ' + name);

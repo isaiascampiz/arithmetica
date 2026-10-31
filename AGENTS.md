@@ -1,4 +1,4 @@
-# Centerflow development rules
+# Arithmetica development rules
 
 V3 uses entirely fictional students in the original V1/V2 project. Local and server-mediated Supabase adapters exist; cloud policies/auth/recovery remain unvalidated live. Never import real minor records without corporate/privacy authorization and validated production configuration.
 

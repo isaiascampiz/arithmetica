@@ -16,7 +16,9 @@ export interface Repository {
   read(): Promise<Database>;
   transaction<T>(fn: (db: Database) => T): Promise<T>;
 }
-const runtime = globalThis as typeof globalThis & { centerQueue?: Promise<unknown> };
+const runtime = globalThis as typeof globalThis & {
+  centerQueue?: Promise<unknown>;
+};
 function serialize<T>(fn: () => Promise<T>) {
   const p = (runtime.centerQueue ?? Promise.resolve()).then(fn, fn);
   runtime.centerQueue = p.then(
@@ -101,7 +103,10 @@ async function localLoad() {
   validateDatabase(db);
   if (db.schemaVersion === 1) {
     try {
-      await writeFile(dataFilename() + '.v1-backup.json', raw, { flag: 'wx', mode: 0o600 });
+      await writeFile(dataFilename() + '.v1-backup.json', raw, {
+        flag: 'wx',
+        mode: 0o600,
+      });
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
     }
@@ -111,7 +116,10 @@ async function localLoad() {
   if (db.schemaVersion === 2) {
     const before = JSON.stringify(db, null, 2);
     try {
-      await writeFile(dataFilename() + '.v2-backup.json', before, { flag: 'wx', mode: 0o600 });
+      await writeFile(dataFilename() + '.v2-backup.json', before, {
+        flag: 'wx',
+        mode: 0o600,
+      });
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
     }
@@ -133,7 +141,11 @@ export async function supabaseRpc<T>(name: string, args: unknown): Promise<T> {
   const res = await fetch(url + '/rest/v1/rpc/' + name, {
     method: 'POST',
     cache: 'no-store',
-    headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    headers: {
+      apikey: key,
+      Authorization: 'Bearer ' + key,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(args),
   });
   if (!res.ok)
@@ -186,7 +198,11 @@ async function remoteLoad() {
   if (result.payload.schemaVersion !== 3)
     throw new Error('Cloud state needs a compatible explicit migration.');
   remoteCache = cacheable
-    ? { key, revision: result.revision, payload: structuredClone(result.payload) }
+    ? {
+        key,
+        revision: result.revision,
+        payload: structuredClone(result.payload),
+      }
     : undefined;
   return result;
 }

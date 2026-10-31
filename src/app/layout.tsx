@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import { APP_NAME } from '@/lib/brand';
 import './globals.css';
 import './v2.css';
 import './v3.css';
@@ -7,8 +8,8 @@ import './identity.css';
 import './refinement.css';
 import './iteration.css';
 import './workspace-refinement.css';
-import { Pwa } from '@/components/pwa';
-import { ThemeProvider } from '@/components/theme';
+import { Pwa } from '@/components/ui/pwa';
+import { ThemeProvider } from '@/components/ui/theme';
 const interfaceFont = localFont({
   src: '../../public/fonts/figtree-variable.ttf',
   variable: '--font-interface',
@@ -23,10 +24,14 @@ const editorialFont = localFont({
 });
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
-  title: 'Arithmetica · Learning center',
+  title: `${APP_NAME} · Learning center`,
   description: 'A calmer day at your learning center.',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Arithmetica' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: APP_NAME,
+  },
   icons: { icon: '/icon.svg?v=7', apple: '/icon-192.png?v=7' },
 };
 export const viewport: Viewport = {

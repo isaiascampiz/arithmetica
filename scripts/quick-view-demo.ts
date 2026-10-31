@@ -14,7 +14,10 @@ async function main() {
   const db = quickViewDemo();
   validateDatabase(db);
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, JSON.stringify(db, null, 2), { flag: 'wx', mode: 0o600 });
+  await writeFile(target, JSON.stringify(db, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   console.log('Created separate FICTIONAL Quick View demo:', target);
   console.log(
     'Use DEMO_DATA_PATH=data/quick-view-demo.json with ENABLE_SCHEDULER=false on a separate local app process.',

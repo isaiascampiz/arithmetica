@@ -48,17 +48,29 @@ function packetState(db: Database) {
 test('existing centers default to both features enabled; settings round-trip without rewriting records', () => {
   const db = quickViewDemo(now),
     before = packetState(db);
-  assert.deepEqual(centerFeatures(db), { homework: true, medals: true, version: 0 });
+  assert.deepEqual(centerFeatures(db), {
+    homework: true,
+    medals: true,
+    version: 0,
+  });
   applyV3(db, flags(db, false), owner, now);
   synchronizePreparation(db, '2027-03-01');
   assert.deepEqual(packetState(db), before);
   const restored = JSON.parse(JSON.stringify(db));
   validateDatabase(restored);
-  assert.deepEqual(centerFeatures(restored), { homework: false, medals: false, version: 1 });
+  assert.deepEqual(centerFeatures(restored), {
+    homework: false,
+    medals: false,
+    version: 1,
+  });
   assert.throws(() => applyV3(db, flags(db, true), owner, now), /Review current/);
   applyV3(db, flags(db, true, true, true), owner, now);
   assert.deepEqual(packetState(db), before);
-  assert.deepEqual(centerFeatures(db), { homework: true, medals: true, version: 2 });
+  assert.deepEqual(centerFeatures(db), {
+    homework: true,
+    medals: true,
+    version: 2,
+  });
 });
 
 test('feature settings enforce owner role and expected version', () => {
@@ -211,7 +223,11 @@ test('disabled packet and medal commands are rejected on V1, V2 and V3 paths', (
     () =>
       applyCommand(
         db,
-        { kind: 'homework', studentId: a.studentId, description: 'Fictional paper packet' },
+        {
+          kind: 'homework',
+          studentId: a.studentId,
+          description: 'Fictional paper packet',
+        },
         owner,
         now,
       ),
@@ -239,7 +255,11 @@ test('activity-only revisions do not erase prior packet review evidence', () => 
 
 test('malformed feature flags fail closed rather than restoring defaults', () => {
   const db = quickViewDemo(now);
-  db.operations!.v3!.features = { homework: 'no', medals: false, version: 1 } as never;
+  db.operations!.v3!.features = {
+    homework: 'no',
+    medals: false,
+    version: 1,
+  } as never;
   assert.throws(() => validateDatabase(db), /Invalid center feature/);
 });
 

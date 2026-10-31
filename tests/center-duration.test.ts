@@ -22,7 +22,10 @@ test('duration keeps separate repeat visits and legacy physical departures, excl
   db.visits = [
     visit('first', '2026-10-05T21:00:00Z', 30),
     visit('repeat', '2026-10-05T23:00:00Z', 60),
-    { ...visit('legacy', '2026-10-06T21:00:00Z', 45), departureVerified: undefined },
+    {
+      ...visit('legacy', '2026-10-06T21:00:00Z', 45),
+      departureVerified: undefined,
+    },
     { ...visit('open', '2026-10-07T21:00:00Z', 15), departedAt: null },
     {
       ...visit('automatic', '2026-10-08T21:00:00Z', 120),
@@ -30,7 +33,10 @@ test('duration keeps separate repeat visits and legacy physical departures, excl
       closedAt: '2026-10-09T05:00:00Z',
       departureVerified: false,
     },
-    { ...visit('unverified', '2026-10-09T21:00:00Z', 80), departureVerified: false },
+    {
+      ...visit('unverified', '2026-10-09T21:00:00Z', 80),
+      departureVerified: false,
+    },
     { ...visit('other', '2026-10-05T21:00:00Z', 30), studentId: 'other' },
     visit('backwards', '2026-10-10T21:00:00Z', -30),
     { ...visit('bad-date', '2026-10-10T21:00:00Z', 30), departedAt: 'invalid' },
@@ -41,7 +47,11 @@ test('duration keeps separate repeat visits and legacy physical departures, excl
     records.map((r) => r.id),
     ['first', 'repeat', 'legacy'],
   );
-  assert.deepEqual(durationTotals(records), { total: 135, count: 3, average: 45 });
+  assert.deepEqual(durationTotals(records), {
+    total: 135,
+    count: 3,
+    average: 45,
+  });
   assert.equal(JSON.stringify(db), before);
 });
 

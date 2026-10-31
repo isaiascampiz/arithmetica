@@ -33,7 +33,10 @@ test('scheduled jobs use scoped server authorization, fail visibly and never sen
     globalThis.fetch = async () => new Response('Unavailable', { status: 503 });
     await assert.rejects(worker.scheduled({}, environment), /status 503/);
     globalThis.fetch = async () =>
-      new Response(null, { status: 302, headers: { Location: 'https://unapproved.invalid' } });
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://unapproved.invalid' },
+      });
     await assert.rejects(worker.scheduled({}, environment), /status 302/);
   } finally {
     globalThis.fetch = previous;
@@ -71,7 +74,11 @@ test('static proxy sends gateway credentials only upstream, keeps session cookie
         headers: { Cookie: 'cf-cloud=FictionalSession', Host: 'app.invalid' },
         body: '{}',
       }),
-      { ASSETS: assets, API_ORIGIN: origin, NEXT_PUBLIC_SUPABASE_ANON_KEY: 'FictionalGatewayKey' },
+      {
+        ASSETS: assets,
+        API_ORIGIN: origin,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'FictionalGatewayKey',
+      },
     );
     assert.equal(response.status, 200);
     assert.match(response.headers.get('set-cookie')!, /HttpOnly/);

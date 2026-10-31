@@ -49,10 +49,17 @@ async function main() {
   const members = await response.json();
   assert.equal(members.length, 1);
   assert.equal(members[0].role, 'owner');
-  const staff: Staff = { id: members[0].user_id, role: 'owner', name: members[0].display_name };
+  const staff: Staff = {
+    id: members[0].user_id,
+    role: 'owner',
+    name: members[0].display_name,
+  };
   Object.assign(process.env, config);
   const before = await repository.read();
-  const prepared = prepareRosterImport({ expectedRevision: before.revision, roster });
+  const prepared = prepareRosterImport({
+    expectedRevision: before.revision,
+    roster,
+  });
   assertRosterDestination(prepared.roster, config.DEPLOYMENT_ENV);
   const result = await repository.transaction((db) => applyRosterImport(db, prepared, staff));
   const saved = await repository.read();

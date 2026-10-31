@@ -14,7 +14,10 @@ async function main() {
   await mkdir(directory, { recursive: true });
   const destination = resolve(directory, `${staged.sourceSha256}.pending.json`);
   // Exclusive creation: repeated commands never overwrite reviewed data or replace IDs.
-  await writeFile(destination, JSON.stringify(staged, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+  await writeFile(destination, JSON.stringify(staged, null, 2) + '\n', {
+    flag: 'wx',
+    mode: 0o600,
+  });
   console.log(
     JSON.stringify(
       {

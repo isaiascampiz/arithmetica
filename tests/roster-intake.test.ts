@@ -90,8 +90,12 @@ test('roster preview preserves uncertainty around EFL, enrollment dates and work
 test('roster preview never evaluates formulas or accepts cached formula results as student data', async () => {
   const report = await previewRoster(
     await fixture([
-      row({ 2: { formula: '"private cached name"', result: 'private cached name' } }),
-      row({ 2: { text: 'private link', hyperlink: 'https://example.invalid' } }),
+      row({
+        2: { formula: '"private cached name"', result: 'private cached name' },
+      }),
+      row({
+        2: { text: 'private link', hyperlink: 'https://example.invalid' },
+      }),
     ]),
     '2026-10-28',
   );

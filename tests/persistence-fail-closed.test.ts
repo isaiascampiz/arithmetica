@@ -44,7 +44,9 @@ for (const version of [1, 2] as const) {
       const raw = JSON.stringify(db, null, 2);
       await fs.writeFile(filename, raw);
 
-      const error = Object.assign(new Error(`Injected ${failure} failure`), { code: 'ENOENT' });
+      const error = Object.assign(new Error(`Injected ${failure} failure`), {
+        code: 'ENOENT',
+      });
       let injected = false;
       if (failure === 'rename') {
         const rename = fs.rename;
@@ -106,7 +108,9 @@ test('an initial database read permission error propagates without writing data'
   const filename = await isolatedFile(t);
   const raw = JSON.stringify(seed());
   await fs.writeFile(filename, raw);
-  const error = Object.assign(new Error('Injected read permission failure'), { code: 'EACCES' });
+  const error = Object.assign(new Error('Injected read permission failure'), {
+    code: 'EACCES',
+  });
   const readFile = fs.readFile;
   t.mock.method(fs, 'readFile', async (...args: Parameters<typeof fs.readFile>) => {
     if (args[0] === filename) throw error;

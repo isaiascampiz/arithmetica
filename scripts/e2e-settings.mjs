@@ -1,6 +1,9 @@
 import path from 'node:path';
 
-export const testPort = Number(process.env.CENTERFLOW_E2E_PORT || 3100);
+// Keep the previous names as aliases for existing local and cloud test environments.
+export const testPort = Number(
+  process.env.ARITHMETICA_E2E_PORT || process.env.CENTERFLOW_E2E_PORT || 3100,
+);
 if (!Number.isInteger(testPort) || testPort < 1024 || testPort > 65535)
   throw Error('Invalid fictional test server port.');
 export const testOrigin = `http://127.0.0.1:${testPort}`;
@@ -21,7 +24,9 @@ export function e2eOutputDirectory(value) {
 }
 
 export function e2eEnvironment(
-  dataPath = process.env.CENTERFLOW_E2E_DATA_PATH || 'data/e2e-v3.json',
+  dataPath = process.env.ARITHMETICA_E2E_DATA_PATH ||
+    process.env.CENTERFLOW_E2E_DATA_PATH ||
+    'data/e2e-v3.json',
 ) {
   return {
     DEMO_DATA_PATH: dataPath,

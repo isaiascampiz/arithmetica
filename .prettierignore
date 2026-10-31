@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.open-next/
+.wrangler/
+.pnpm-store/
+data/
+test-results/
+playwright-report/
+coverage/
+next-env.d.ts
+pnpm-lock.yaml
+public/fonts/
+supabase/migrations/
+docs/history/
+docs/branding/
+.agents/
+skills-lock.json

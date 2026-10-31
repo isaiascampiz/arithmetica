@@ -27,7 +27,13 @@ export type Visit = {
   closedAt?: string;
   departureVerified?: boolean;
   closureReason?: string;
-  events?: { at: string; kind: string; actor: string; reason?: string; value?: string }[];
+  events?: {
+    at: string;
+    kind: string;
+    actor: string;
+    reason?: string;
+    value?: string;
+  }[];
   handoff?: import('./v3-model').Handoff;
   subjectCheckIns?: Partial<Record<import('./v2-model').Subject, import('./v3-model').Handoff>>;
   sessionRecords?: import('./v3-model').SessionRecord[];
@@ -62,7 +68,13 @@ export type Homework = {
   createdAt: string;
   updatedAt: string;
 };
-export type Audit = { id: string; action: string; actor: string; at: string; entityId: string };
+export type Audit = {
+  id: string;
+  action: string;
+  actor: string;
+  at: string;
+  entityId: string;
+};
 export type Database = {
   schemaVersion: 1 | 2 | 3;
   revision: number;

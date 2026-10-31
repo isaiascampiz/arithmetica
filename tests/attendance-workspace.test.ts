@@ -49,7 +49,14 @@ test('attendance navigation uses calendar boundaries and integer zero-based axes
   assert.equal(moveAttendanceDate('2026-10-19', 'Weekly', -1), '2026-10-12');
   for (const value of [0, 0.25, 3, 9, 25, 100, 1097]) {
     const axis = attendanceAxis([
-      { key: '0', label: '0', actual: value, expected: value + 0.5, samples: 1, partial: false },
+      {
+        key: '0',
+        label: '0',
+        actual: value,
+        expected: value + 0.5,
+        samples: 1,
+        partial: false,
+      },
     ]);
     assert.ok(axis.ceiling >= value + 0.5);
     assert.equal(axis.ticks.at(-1), 0);

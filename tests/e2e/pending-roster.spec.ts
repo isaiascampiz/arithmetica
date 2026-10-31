@@ -53,7 +53,10 @@ test('pending profile saves known names and grade, then enables Math without inv
       db.revision++;
       await route.fulfill({ json: { ok: true } });
     } catch (error) {
-      await route.fulfill({ status: 409, json: { error: (error as Error).message } });
+      await route.fulfill({
+        status: 409,
+        json: { error: (error as Error).message },
+      });
     }
   });
   const student = db.students[0];
@@ -69,7 +72,10 @@ test('pending profile saves known names and grade, then enables Math without inv
   await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole('heading', { name: 'Fictional Updated Import Student', exact: true }),
+    page.getByRole('heading', {
+      name: 'Fictional Updated Import Student',
+      exact: true,
+    }),
   ).toBeVisible();
   expect(student.firstName).toBe('Fictional Updated');
   await subjects.getByRole('button', { name: 'Edit Math', exact: true }).click();
@@ -78,7 +84,10 @@ test('pending profile saves known names and grade, then enables Math without inv
   await dialog.getByLabel('Current worksheet', { exact: true }).fill('21');
   await dialog.getByLabel('Worksheets per day', { exact: true }).fill('10');
   await dialog
-    .getByRole('switch', { name: 'Enable homework for this subject', exact: true })
+    .getByRole('switch', {
+      name: 'Enable homework for this subject',
+      exact: true,
+    })
     .click();
   await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -86,7 +95,10 @@ test('pending profile saves known names and grade, then enables Math without inv
   await subjects.getByRole('tab', { name: 'Reading', exact: true }).click();
   await expect(subjects).toContainText('Not set');
   expect(db.operations!.students[student.id].subjects.Reading.currentStart).toBe(0);
-  await page.screenshot({ path: 'test-results/pending-roster-profile.png', fullPage: true });
+  await page.screenshot({
+    path: 'test-results/pending-roster-profile.png',
+    fullPage: true,
+  });
 });
 
 test('a student with no selected subject can save visit observations without a homework handoff', async ({
@@ -113,7 +125,9 @@ test('a student with no selected subject can save visit observations without a h
   attendance(db, db.students[0].id, 'in', now, session.staff.name);
   db.revision = session.revision + 1000;
   await page.route('**/api/state', (route) =>
-    route.fulfill({ json: { ...db, staff: session.staff, timezone: 'America/Los_Angeles' } }),
+    route.fulfill({
+      json: { ...db, staff: session.staff, timezone: 'America/Los_Angeles' },
+    }),
   );
   await page.route('**/api/commands', async (route) => {
     const body = route.request().postDataJSON();

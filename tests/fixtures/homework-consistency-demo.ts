@@ -30,7 +30,10 @@ export function addFictionalHomeworkReviews(db: Database, now = new Date()) {
     )
     .toSorted((a, b) => a.arrivedAt.localeCompare(b.arrivedAt));
   const carry: Partial<Record<Subject, Packet>> = {};
-  const completed: Record<Subject, Set<string>> = { Math: new Set(), Reading: new Set() };
+  const completed: Record<Subject, Set<string>> = {
+    Math: new Set(),
+    Reading: new Set(),
+  };
   let added = 0;
   for (const [index, visit] of visits.entries()) {
     if (Math.floor(index / 2) % 9 === 3) continue; // Explicit gaps, not invented 0% weeks.
@@ -60,7 +63,10 @@ export function addFictionalHomeworkReviews(db: Database, now = new Date()) {
       });
       const incoming: SessionRecord['incoming'] = [];
       if (carry[subject])
-        incoming.push({ packet: structuredClone(carry[subject]!), outcome: 'assumed completed' });
+        incoming.push({
+          packet: structuredClone(carry[subject]!),
+          outcome: 'assumed completed',
+        });
       for (const assignment of assignments.toReversed()) {
         const p = packet(assignment);
         if (incoming.length >= 3) break;

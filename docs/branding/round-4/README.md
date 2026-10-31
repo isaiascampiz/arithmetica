@@ -15,7 +15,7 @@ The code gives this premise concrete meaning:
 - Visit History, skill ratings, academic charts and reviewed observations retain context across visits. Center Activity and reports give staff a broader view.
 - Homework can be disabled while activity check-ins, attendance, skill ratings and duration/history remain useful. The identity should cover both configurations.
 
-Reviewed sources: [architecture](../../architecture.md), [center features](../../../src/lib/center-features.ts), [domain commands](../../../src/lib/v3-domain.ts), [progress views](../../../src/components/v3-progress.tsx), [staff workspace](../../../src/components/staff-app.tsx).
+Reviewed sources: [architecture](../../architecture.md), [center features](../../../src/lib/center-features.ts), [domain commands](../../../src/lib/v3-domain.ts), [progress views](../../../src/components/progress/progress.tsx), [staff workspace](../../../src/components/workspace/staff-app.tsx).
 
 ## Ranked concepts
 

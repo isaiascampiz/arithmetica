@@ -1,0 +1,50 @@
+name: Arithmetica CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arithmetica-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Source and fictional-data checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEMO_MODE: 'true'
+      DATA_ADAPTER: local
+      PRODUCTION_DATA_APPROVED: 'false'
+      ENABLE_SCHEDULER: 'false'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check publishable source
+        run: pnpm repo:check
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Build
+        run: pnpm build
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit and regression tests
+        run: pnpm test
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser workflows
+        run: pnpm test:e2e

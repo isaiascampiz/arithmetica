@@ -15,7 +15,11 @@ for (const width of [1024, 768, 390])
       await page.clock.install({ time: now });
       await page.route('**/api/state', (route) =>
         route.fulfill({
-          json: { ...fixture, staff: session.staff, timezone: fixture.operations!.center.timezone },
+          json: {
+            ...fixture,
+            staff: session.staff,
+            timezone: fixture.operations!.center.timezone,
+          },
         }),
       );
       const positions: { sort: number; filter: number }[] = [],
@@ -23,8 +27,14 @@ for (const width of [1024, 768, 390])
       for (const view of ['students', 'homework']) {
         await page.goto('/?view=' + view);
         const toolbar = page.locator('.student-directory-toolbar');
-        const sort = toolbar.getByRole('button', { name: 'Sort by', exact: true }),
-          filter = toolbar.getByRole('button', { name: 'Filters', exact: true });
+        const sort = toolbar.getByRole('button', {
+            name: 'Sort by',
+            exact: true,
+          }),
+          filter = toolbar.getByRole('button', {
+            name: 'Filters',
+            exact: true,
+          });
         positions.push({
           sort: (await sort.boundingBox())!.x,
           filter: (await filter.boundingBox())!.x,
@@ -33,7 +43,10 @@ for (const width of [1024, 768, 390])
         options.push(await page.getByRole('menuitemradio').allTextContents());
         await page.keyboard.press('Escape');
         await filter.click();
-        const dialog = page.getByRole('dialog', { name: 'Filter students', exact: true });
+        const dialog = page.getByRole('dialog', {
+          name: 'Filter students',
+          exact: true,
+        });
         await expect(dialog.getByRole('combobox')).toHaveCount(2);
         await expect(
           dialog.getByRole('switch', { name: 'Early learner', exact: true }),
@@ -46,7 +59,10 @@ for (const width of [1024, 768, 390])
           ).toHaveCount(0);
           const student = fixture.students.find((s) => s.subjects.length === 1)!;
           await page
-            .getByRole('button', { name: 'Open profile for ' + student.name, exact: true })
+            .getByRole('button', {
+              name: 'Open profile for ' + student.name,
+              exact: true,
+            })
             .click();
           await expect(
             page.getByRole('heading', { name: student.name, exact: true }),
@@ -73,7 +89,10 @@ for (const width of [1024, 768, 390])
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByText(/Checking in confirms/)).toHaveCount(0);
       await expect(dialog.locator('footer')).toHaveCount(0);
-      const action = dialog.getByRole('button', { name: 'Check in Math', exact: true });
+      const action = dialog.getByRole('button', {
+        name: 'Check in Math',
+        exact: true,
+      });
       const actionTop = await action.evaluate((el) => el.getBoundingClientRect().top),
         bodyBottom = await dialog
           .locator('.v3-modal-body')

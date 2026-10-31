@@ -6,9 +6,17 @@ import { repository } from '@/lib/repository';
 import { failure, json } from '@/lib/http';
 const receptionInput = z.union([
   z
-    .object({ token: z.string().trim().min(1).max(100), requestId: z.string().uuid().optional() })
+    .object({
+      token: z.string().trim().min(1).max(100),
+      requestId: z.string().uuid().optional(),
+    })
     .strict(),
-  z.object({ name: z.string().trim().min(2).max(120), requestId: z.string().uuid() }).strict(),
+  z
+    .object({
+      name: z.string().trim().min(2).max(120),
+      requestId: z.string().uuid(),
+    })
+    .strict(),
 ]);
 export async function GET() {
   try {

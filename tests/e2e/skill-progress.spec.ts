@@ -88,7 +88,10 @@ for (const viewport of [
       await page.goto('/?view=students&student=' + progressStudentId);
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
 
-      const card = page.getByRole('article', { name: 'Skill ratings', exact: true });
+      const card = page.getByRole('article', {
+        name: 'Skill ratings',
+        exact: true,
+      });
       await expect(card.locator('.skill-scatter-chart')).toHaveCount(1);
       await expect(card.locator('.skill-scatter-y span')).toHaveText(['1', '2', '3', '4', '5']);
       expect((await card.locator('.skill-scatter-chart').boundingBox())!.height).toBe(
@@ -182,7 +185,10 @@ for (const viewport of [
         fullPage: true,
       });
       await card.click();
-      const dialog = page.getByRole('dialog', { name: 'Skill ratings', exact: true });
+      const dialog = page.getByRole('dialog', {
+        name: 'Skill ratings',
+        exact: true,
+      });
       await expect(dialog).toBeVisible();
       // Measure the settled dialog, rather than a frame in its entrance scale.
       await dialog.evaluate(async (el) => {
@@ -202,7 +208,10 @@ for (const viewport of [
       expect(await summary.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
         'rgba(0, 0, 0, 0)',
       );
-      const viewTrigger = dialog.getByRole('button', { name: 'Skills view', exact: true });
+      const viewTrigger = dialog.getByRole('button', {
+        name: 'Skills view',
+        exact: true,
+      });
       await expect(viewTrigger).toContainText('All skills average');
       const triggerBox = (await viewTrigger.boundingBox())!;
       await viewTrigger.click({ position: { x: 3, y: triggerBox.height - 3 } });
@@ -263,7 +272,12 @@ for (const viewport of [
       expect(await editor.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe('1px');
       await expect(editor).toContainText('3 of 3 pinned');
       await expect(
-        dialog.getByRole('button', { name: 'Pin Confidence to preview', exact: true }).first(),
+        dialog
+          .getByRole('button', {
+            name: 'Pin Confidence to preview',
+            exact: true,
+          })
+          .first(),
       ).toBeDisabled();
       expect((await dialog.boundingBox())!.height).toBe(heightBeforePins);
       const marker = dialog.locator('.skill-view-option i').first();
@@ -274,10 +288,16 @@ for (const viewport of [
         .evaluateAll((els) => els.map((el) => getComputedStyle(el).color));
       expect(new Set(pinColors).size).toBe(1);
       await dialog
-        .getByRole('button', { name: 'Pin Concentration to preview', exact: true })
+        .getByRole('button', {
+          name: 'Pin Concentration to preview',
+          exact: true,
+        })
         .click();
       await expect(
-        dialog.getByRole('button', { name: 'Pin Concentration to preview', exact: true }),
+        dialog.getByRole('button', {
+          name: 'Pin Concentration to preview',
+          exact: true,
+        }),
       ).toHaveAttribute('aria-pressed', 'false');
       await page.keyboard.press('Escape');
       await expect(dialog).toBeVisible();
@@ -293,14 +313,24 @@ for (const viewport of [
       await expectCenteredPins();
       await card.click();
       await viewTrigger.click();
-      await dialog.getByRole('button', { name: 'Pin Handwriting to preview', exact: true }).click();
+      await dialog
+        .getByRole('button', {
+          name: 'Pin Handwriting to preview',
+          exact: true,
+        })
+        .click();
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
       await expect(card.locator('.skill-scatter-average')).toHaveCount(1);
       await expectCenteredPins();
       await card.click();
       await viewTrigger.click();
-      await dialog.getByRole('button', { name: 'Pin Handwriting to preview', exact: true }).click();
+      await dialog
+        .getByRole('button', {
+          name: 'Pin Handwriting to preview',
+          exact: true,
+        })
+        .click();
       await page.keyboard.press('Escape');
       await page.keyboard.press('Escape');
       await expect(card.locator('.skill-scatter-line')).toHaveAttribute('points', previewAverage!);
@@ -309,10 +339,16 @@ for (const viewport of [
       await expect(dialog.locator('.skill-scatter-pin')).toHaveCount(0);
       await viewTrigger.click();
       await expect(
-        dialog.getByRole('button', { name: 'Pin Concentration to preview', exact: true }),
+        dialog.getByRole('button', {
+          name: 'Pin Concentration to preview',
+          exact: true,
+        }),
       ).toHaveAttribute('aria-pressed', 'false');
       await dialog
-        .getByRole('button', { name: 'Pin Concentration to preview', exact: true })
+        .getByRole('button', {
+          name: 'Pin Concentration to preview',
+          exact: true,
+        })
         .click();
       await page.keyboard.press('Escape');
       await expect(dialog.locator('.skill-scatter-pin')).toHaveCount(0);
@@ -323,7 +359,10 @@ for (const viewport of [
       await expect(dialog).toContainText('No skill ratings recorded in this period.');
       await dialog.getByRole('button', { name: 'Previous skills period' }).click();
       await expect(
-        dialog.getByRole('meter', { name: 'Concentration average', exact: true }),
+        dialog.getByRole('meter', {
+          name: 'Concentration average',
+          exact: true,
+        }),
       ).toHaveAttribute('aria-valuenow', '3');
       const focusDots = dialog.locator(
         '.skill-scatter-series[data-skill="focus"] .skill-scatter-dot',
@@ -335,7 +374,9 @@ for (const viewport of [
       });
       await point.focus();
       await page.keyboard.press('Enter');
-      const popup = dialog.getByRole('tooltip', { name: 'Skill rating snapshot' });
+      const popup = dialog.getByRole('tooltip', {
+        name: 'Skill rating snapshot',
+      });
       await expect(popup).toBeVisible();
       await expect(popup).toContainText('Oct 5, 2026');
       await expect(popup).toContainText('Focus');
@@ -352,7 +393,10 @@ for (const viewport of [
       await expect(popup).toHaveCount(0);
       await period.selectOption('1 month');
       await expect(
-        dialog.getByRole('meter', { name: 'Concentration average', exact: true }),
+        dialog.getByRole('meter', {
+          name: 'Concentration average',
+          exact: true,
+        }),
       ).toHaveAttribute('aria-valuenow', '3');
       await expect(dialog.locator('.skill-scatter-series[data-skill="focus"]')).toHaveAttribute(
         'data-color',
@@ -363,7 +407,9 @@ for (const viewport of [
       await expect(paths).toHaveAttribute('data-skill', 'overall-average');
       if (viewport.width > 760)
         expect((await dialog.locator('.skill-scatter-chart').boundingBox())!.height).toBe(310);
-      await page.screenshot({ path: 'test-results/skills-detail-' + viewport.width + '.png' });
+      await page.screenshot({
+        path: 'test-results/skills-detail-' + viewport.width + '.png',
+      });
       if (viewport.width > 760)
         expect(
           await dialog
@@ -391,7 +437,9 @@ for (const viewport of [
       ).toHaveCount(1);
       await skillView.selectOption('');
       await dialog.getByRole('button', { name: 'Skill record history', exact: true }).click();
-      const history = dialog.getByRole('list', { name: 'Recorded skill history' });
+      const history = dialog.getByRole('list', {
+        name: 'Recorded skill history',
+      });
       await expect(history).toContainText('Fictional Reviewer');
       await expect(history).toContainText('Focus');
       const day = history
@@ -417,7 +465,10 @@ for (const viewport of [
       const extraPin = rows.nth(rowIndex).locator('.skill-scatter-pin');
       await expect(extraPin).toBeDisabled();
       await dialog
-        .getByRole('button', { name: 'Pin Concentration to preview', exact: true })
+        .getByRole('button', {
+          name: 'Pin Concentration to preview',
+          exact: true,
+        })
         .click();
       await expect(extraPin).toBeEnabled();
       await extraPin.click();

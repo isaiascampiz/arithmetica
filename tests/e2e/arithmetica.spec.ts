@@ -13,7 +13,11 @@ test('Quick View keeps held packet geometry, unboxed subject rails and readable 
   await page.clock.install({ time: now });
   await page.route('**/api/state', (route) =>
     route.fulfill({
-      json: { ...fixture, staff: session.staff, timezone: fixture.operations!.center.timezone },
+      json: {
+        ...fixture,
+        staff: session.staff,
+        timezone: fixture.operations!.center.timezone,
+      },
     }),
   );
   await page.goto('/');
@@ -30,7 +34,10 @@ test('Quick View keeps held packet geometry, unboxed subject rails and readable 
   for (const theme of ['dark', 'light']) {
     await page.getByRole('button', { name: 'Theme', exact: true }).click();
     await page
-      .getByRole('menuitemradio', { name: theme === 'dark' ? 'Dark' : 'Light', exact: true })
+      .getByRole('menuitemradio', {
+        name: theme === 'dark' ? 'Dark' : 'Light',
+        exact: true,
+      })
       .click();
     await page.locator('[data-visit-id="' + visit.id + '"]').click();
     const dialog = page.getByRole('dialog');
@@ -42,7 +49,10 @@ test('Quick View keeps held packet geometry, unboxed subject rails and readable 
     const background = await dialog.evaluate((el) => getComputedStyle(el).backgroundColor);
     await expect(dialog.locator('.quick-pinned-context')).toHaveCSS('background-color', background);
     await dialog.getByRole('button', { name: 'Corrections', exact: true }).click();
-    const selected = dialog.getByRole('button', { name: 'Corrections', exact: true });
+    const selected = dialog.getByRole('button', {
+      name: 'Corrections',
+      exact: true,
+    });
     await expect(selected).toHaveAttribute('aria-pressed', 'true');
     expect(
       await selected.evaluate(

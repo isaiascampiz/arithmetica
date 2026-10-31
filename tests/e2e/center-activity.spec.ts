@@ -40,7 +40,11 @@ for (const size of [
     const db = seed(now);
     migrateV3(db, now);
     addFictionalCenterActivity(db, now);
-    const snapshot = { ...db, staff: session.staff, timezone: db.operations!.center.timezone };
+    const snapshot = {
+      ...db,
+      staff: session.staff,
+      timezone: db.operations!.center.timezone,
+    };
     await page.clock.install({ time: now });
     await page.route('**/api/state', (route) => route.fulfill({ json: snapshot }));
     await page.goto('/?view=activity');
@@ -72,7 +76,9 @@ for (const size of [
     await expect(panel.locator('table tbody tr')).toHaveCount(24);
     await expect(page.getByRole('button', { name: 'Punch history', exact: true })).toHaveCount(0);
     await expect(panel.locator('.attendance-y-axis span')).toHaveCount(5);
-    const plot = panel.getByRole('slider', { name: 'Inspect check-ins by period' });
+    const plot = panel.getByRole('slider', {
+      name: 'Inspect check-ins by period',
+    });
     await plot.focus();
     const position = Number(await plot.getAttribute('aria-valuenow'));
     await page.keyboard.press('ArrowRight');
@@ -129,7 +135,10 @@ for (const size of [
     );
     await expect(panel.locator('.activity-punch')).toHaveCount(0);
     await page.goto('/?view=settings');
-    const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
+    const settings = page.getByRole('dialog', {
+      name: 'Settings',
+      exact: true,
+    });
     await expect(settings.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
     await expect(settings.getByRole('switch', { name: 'Homework', exact: true })).toBeVisible();
     await expect(settings.getByText('Center Activity hours', { exact: true })).toHaveCount(0);
@@ -156,7 +165,10 @@ test('instructor saves per-day reporting hours durably and assistants cannot cha
     command: {
       action: 'activity-hours',
       expectedVersion: settings.version,
-      days: settings.days.map((d) => ({ ...d, start: d.day === 2 ? 10 : d.start })),
+      days: settings.days.map((d) => ({
+        ...d,
+        start: d.day === 2 ? 10 : d.start,
+      })),
     },
   };
   const post = () =>

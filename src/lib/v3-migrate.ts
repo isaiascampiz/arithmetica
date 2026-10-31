@@ -90,7 +90,11 @@ export function migrateV3(db: Database, now = new Date()): boolean {
     c.observationTiles = [];
     c.goals = '';
   }
-  op.v3 = { catalog: demoCatalog(), instructorTiles: {}, migratedAt: now.toISOString() };
+  op.v3 = {
+    catalog: demoCatalog(),
+    instructorTiles: {},
+    migratedAt: now.toISOString(),
+  };
   db.schemaVersion = 3;
   db.revision++;
   db.audit.push({

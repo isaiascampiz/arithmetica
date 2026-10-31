@@ -46,7 +46,10 @@ async function main() {
   if (db.students.length !== 96 || !expected.every((id) => db.students.some((s) => s.id === id)))
     throw new Error('Fictional roster verification failed.');
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, JSON.stringify(db, null, 2), { flag: 'wx', mode: 0o600 });
+  await writeFile(target, JSON.stringify(db, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   console.log(
     `Restored 96 fictional students at ${relative}; schema ${db.schemaVersion}. Existing files are never overwritten.`,
   );

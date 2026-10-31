@@ -40,7 +40,7 @@ Set a permanent random `SESSION_SECRET` of at least 32 characters and custom dem
 
 Corrections tracking and classwork carryover are separate existing workflows. Routine assumptions never become verified worksheet counts. Official monthly totals require explicit verified entries; missing figures remain visible. Charts distinguish physical paper sheets from CONNECT identities.
 
-See [V2 acceptance](docs/v2-acceptance.md). Reports are operational; the exact corporate format and corporate integrations remain unverified.
+See [V2 acceptance](../v2-acceptance.md). Reports are operational; the exact corporate format and corporate integrations remain unverified.
 
 ## Try it
 
@@ -91,6 +91,6 @@ pnpm test:e2e
 
 Build before E2E. Windows defaults to installed Chrome; `PLAYWRIGHT_CHANNEL` overrides it. Other systems can install Chromium with `pnpm exec playwright install chromium`. Tests use port 3100 and separate `data/e2e-v2.json`, appending fictional fixtures without resetting main data. If a restricted environment cannot stop Playwright's managed server, start the isolated server using the variables in `playwright.config.ts`, then set `E2E_EXTERNAL_SERVER=true`.
 
-See [validation](docs/validation.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md) and [screenshots](docs/screenshots). V1 validation is preserved in `docs/history/v1-validation.md`.
+See [validation](../validation.md), [architecture](../architecture.md), [roadmap](../roadmap.md) and [screenshots](../screenshots). V1 validation is preserved in `docs/history/v1-validation.md`.
 
 Before real use, resolve corporate/privacy authorization, attendance requirements, exact report fields, reception layout/supervision, actual device installation/camera/printed-code tests, dictation privacy and live cloud policy/recovery validation. No real audio, minors' records or hardware compatibility was validated or promised.

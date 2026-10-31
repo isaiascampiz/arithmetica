@@ -2,7 +2,7 @@
   "checkedUnchangedSourceFiles": 89,
   "portableTestFiles": [
     "tests/e2e/scanner-sync.spec.ts",
-    "tests/e2e/v2-workflows.spec.ts",
+    "tests/e2e/workspace.spec.ts",
     "tests/e2e/workflows.spec.ts"
   ],
   "portableTestChanges": "Screenshot output paths are project-local; scanner uses a fresh fictional identity. Assertions unchanged.",

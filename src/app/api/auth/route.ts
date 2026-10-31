@@ -9,7 +9,10 @@ export async function POST(req: Request) {
     sameOrigin(req);
     throttle('login', 20);
     const { email, password } = z
-      .object({ email: z.string().email().max(150), password: z.string().max(150) })
+      .object({
+        email: z.string().email().max(150),
+        password: z.string().max(150),
+      })
       .parse(await req.json());
     if (process.env.DEMO_MODE === 'false') {
       const { cloudLogin } = await import('@/lib/cloud-auth');

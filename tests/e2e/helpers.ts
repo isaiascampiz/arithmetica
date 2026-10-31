@@ -50,13 +50,22 @@ export async function command(page: Page, kind: 'v2' | 'v3', command: V2Command 
 export async function physical(page: Page, studentId: string, direction: 'in' | 'out') {
   const r = await page.request.post('/api/commands', {
     headers: { Origin: new URL(page.url()).origin },
-    data: { kind: 'attendance', studentId, direction, requestId: crypto.randomUUID() },
+    data: {
+      kind: 'attendance',
+      studentId,
+      direction,
+      requestId: crypto.randomUUID(),
+    },
   });
   expect(r.ok(), await r.text()).toBe(true);
 }
 export async function learner(page: Page, format: 'Paper' | 'CONNECT' = 'Paper') {
   const name = 'Fictional V3 Learner ' + Date.now() + ' ' + Math.random().toString(36).slice(2, 5),
-    id = await command(page, 'v2', { action: 'student-add', name, earlyLearner: true });
+    id = await command(page, 'v2', {
+      action: 'student-add',
+      name,
+      earlyLearner: true,
+    });
   const db = await state(page),
     cfg = structuredClone(db.operations!.students[id]);
   cfg.subjects.Math = {
@@ -161,7 +170,9 @@ export async function handoff(page: Page, visit: Visit) {
 export async function simulatedClosure(visitId: string, date: string) {
   const env = { ...process.env };
   process.env.DEMO_DATA_PATH = path.resolve(
-    process.env.CENTERFLOW_E2E_DATA_PATH || 'data/e2e-v3.json',
+    process.env.ARITHMETICA_E2E_DATA_PATH ||
+      process.env.CENTERFLOW_E2E_DATA_PATH ||
+      'data/e2e-v3.json',
   );
   process.env.DATA_ADAPTER = 'local';
   process.env.DEMO_MODE = 'true';

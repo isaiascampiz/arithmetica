@@ -32,8 +32,17 @@ export async function monthlyReportWorkbook(report: Report) {
       row.worksheets,
       row.packetEquivalents,
     ]);
-  sheet.getRow(1).font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-  sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF247872' } };
+  sheet.getRow(1).font = {
+    name: 'Calibri',
+    size: 11,
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+  };
+  sheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF247872' },
+  };
   sheet.getRow(1).height = 32;
   sheet.columns.forEach((c, i) => {
     c.width = i === 0 ? 30 : i > 2 ? 25 : 18;
@@ -47,7 +56,12 @@ export async function monthlyReportWorkbook(report: Report) {
     from: { row: 1, column: 1 },
     to: { row: Math.max(1, sheet.rowCount), column: 7 },
   };
-  sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  sheet.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  };
   return workbook.xlsx.writeBuffer();
 }
 
@@ -59,15 +73,26 @@ export async function reportWorkbook(report: Report) {
   const p = report.payload,
     d = p.detail;
   const sheet = (name: string, headers: string[], rows: (string | number | Date | null)[][]) => {
-    const ws = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+    const ws = workbook.addWorksheet(name, {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
     ws.addRow(headers);
     rows.forEach((row) => ws.addRow(row));
     ws.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: Math.max(1, rows.length + 1), column: headers.length },
     };
-    ws.getRow(1).font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF254E76' } };
+    ws.getRow(1).font = {
+      name: 'Calibri',
+      size: 11,
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+    };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF254E76' },
+    };
     ws.getRow(1).height = 30;
     ws.columns.forEach((column, index) => {
       column.width = Math.min(52, Math.max(18, headers[index].length + 3));
@@ -93,13 +118,22 @@ export async function reportWorkbook(report: Report) {
           ),
         );
         if (index % 2 === 0)
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF1F5F9' },
+          };
       }
       row.eachCell((cell) => {
         if (cell.value instanceof Date) cell.numFmt = 'yyyy-mm-dd hh:mm';
       });
     });
-    ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+    ws.pageSetup = {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    };
     ws.eachRow((row, index) => {
       if (index > 1)
         row.eachCell((cell, col) => {

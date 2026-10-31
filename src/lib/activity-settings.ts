@@ -15,7 +15,10 @@ export const activityHoursInput = z
   .length(7)
   .refine((days) => new Set(days.map((d) => d.day)).size === 7, 'Include each weekday once.');
 export type ActivityHours = z.infer<typeof activityHoursInput>;
-const settingsInput = z.object({ version: z.number().int().min(0), days: activityHoursInput });
+const settingsInput = z.object({
+  version: z.number().int().min(0),
+  days: activityHoursInput,
+});
 
 /** Reporting hours only; never changes student schedules or attendance. */
 export function activitySettings(db: Pick<Database, 'operations'>) {

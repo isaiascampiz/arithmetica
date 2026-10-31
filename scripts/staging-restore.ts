@@ -27,7 +27,12 @@ async function main() {
       centerId: string;
       state: { payload: import('../src/lib/model').Database; revision: number };
       history: { revision: number; payload: unknown; saved_at: string }[];
-      memberships: { user_id: string; role: string; display_name: string; active: boolean }[];
+      memberships: {
+        user_id: string;
+        role: string;
+        display_name: string;
+        active: boolean;
+      }[];
     };
     assert.equal(archive.format, 'arithmetica-recovery');
     assert.equal(archive.version, 1);
@@ -53,7 +58,10 @@ async function main() {
       'commit;',
       `select name from public.centers where id=${quote(centerId)};`,
     ].join('\n');
-    await writeFile(`${directory}/staging-restore.sql`, sql, { flag: 'wx', mode: 0o600 });
+    await writeFile(`${directory}/staging-restore.sql`, sql, {
+      flag: 'wx',
+      mode: 0o600,
+    });
     await writeFile(
       `${directory}/staging-restore-plan.json`,
       JSON.stringify(

@@ -11,7 +11,10 @@ let sessionRefresh: Promise<boolean> | null = null;
 function refreshSession() {
   // Mounted screens can discover an expired session together. Rotate its
   // cookie once, then replay each request with its original payload.
-  return (sessionRefresh ??= fetch('/api/session', { method: 'POST', cache: 'no-store' })
+  return (sessionRefresh ??= fetch('/api/session', {
+    method: 'POST',
+    cache: 'no-store',
+  })
     .then((response) => response.ok)
     .catch(() => false)
     .finally(() => {

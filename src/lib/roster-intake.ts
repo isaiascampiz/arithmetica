@@ -90,7 +90,12 @@ export async function previewRoster(
     excelDate(value, workbook.properties.date1904 === true);
   const candidates = new Map<
     string,
-    { rows: number[]; grade: string; enrollments: Set<string>; subjects: Map<string, number> }
+    {
+      rows: number[];
+      grade: string;
+      enrollments: Set<string>;
+      subjects: Map<string, number>;
+    }
   >();
   const nameDates = new Map<string, { dates: Set<string>; rows: number[] }>();
   const subjectCounts: Record<string, number> = {};
@@ -131,7 +136,10 @@ export async function previewRoster(
     if (cells[10] === null || cells[10] === '') add('missing-worksheet-position', r);
     else add('worksheet-semantics-unconfirmed', r);
     const nameKey = JSON.stringify([last.toLocaleLowerCase('en'), first.toLocaleLowerCase('en')]);
-    const names = nameDates.get(nameKey) ?? { dates: new Set<string>(), rows: [] };
+    const names = nameDates.get(nameKey) ?? {
+      dates: new Set<string>(),
+      rows: [],
+    };
     names.dates.add(dob ?? `invalid-row-${r}`);
     names.rows.push(r);
     nameDates.set(nameKey, names);
@@ -223,7 +231,11 @@ export async function stageRoster(bytes: Buffer, asOf: string, sheetName?: strin
   const sheet = sheetName ? book.getWorksheet(sheetName)! : book.worksheets[0];
   const profiles = new Map<string, IntakeProfile>();
   const enrollmentDates = new Map<string, Set<string>>();
-  const excludedSubjectRows: { row: number; subject: 'EFL'; enrollmentDate: string }[] = [];
+  const excludedSubjectRows: {
+    row: number;
+    subject: 'EFL';
+    enrollmentDate: string;
+  }[] = [];
   for (let r = 2; r <= sheet.rowCount; r++) {
     const values = headers.map((_, c) => sheet.getCell(r, c + 1).value);
     if (values.every((v) => v === null || v === undefined || v === '')) continue;

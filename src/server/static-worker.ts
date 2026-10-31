@@ -85,14 +85,20 @@ const worker = {
             headers.append('set-cookie', cookie);
         headers.set('Cache-Control', 'no-store');
         for (const [key, value] of Object.entries(secureHeaders)) headers.set(key, value);
-        return new Response(response.body, { status: response.status, headers });
+        return new Response(response.body, {
+          status: response.status,
+          headers,
+        });
       } catch {
         return Response.json(
           {
             error:
               'Unable to reach the shared server. Retry with the same request; no success has been recorded.',
           },
-          { status: 503, headers: { ...secureHeaders, 'Cache-Control': 'no-store' } },
+          {
+            status: 503,
+            headers: { ...secureHeaders, 'Cache-Control': 'no-store' },
+          },
         );
       }
     }

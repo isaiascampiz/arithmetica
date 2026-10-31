@@ -2,7 +2,11 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": false,
   "typescript.tsdk": "node_modules/typescript/lib",
-  "files.exclude": { "**/node_modules": true, "**/.next": true, "**/.pnpm-store": true },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/.pnpm-store": true
+  },
   "search.exclude": {
     "**/data/**": true,
     "**/test-results/**": true,

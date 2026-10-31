@@ -98,8 +98,14 @@ try {
     const fixture = users.find((user) => user.role === 'owner');
     const login = await fetch(config.APP_ORIGIN + '/api/auth', {
       method: 'POST',
-      headers: { Origin: config.APP_ORIGIN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: fixture.email, password: fixture.password }),
+      headers: {
+        Origin: config.APP_ORIGIN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: fixture.email,
+        password: fixture.password,
+      }),
     });
     assert.equal(login.status, 200);
     const cookie = login.headers
@@ -114,7 +120,9 @@ try {
       '/api/reports?preview=true&kind=monthly&period=2026-10-01&format=xlsx',
       '/api/export',
     ]) {
-      const response = await fetch(config.APP_ORIGIN + resource, { headers: { Cookie: cookie } });
+      const response = await fetch(config.APP_ORIGIN + resource, {
+        headers: { Cookie: cookie },
+      });
       assert.equal(response.status, 200);
       await response.arrayBuffer();
     }

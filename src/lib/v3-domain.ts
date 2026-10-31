@@ -40,7 +40,10 @@ const packet = z.object({
   status: z.enum(['planned', 'issued', 'held', 'finished', 'unfinished', 'missing', 'routine']),
 });
 const tiles = z.array(z.string().trim().min(1).max(48)).max(6);
-const skill = z.object({ id: z.string().min(1).max(100), label: z.string().trim().min(1).max(48) });
+const skill = z.object({
+  id: z.string().min(1).max(100),
+  label: z.string().trim().min(1).max(48),
+});
 const observations = {
   skillRatings: z
     .array(skill.extend({ score: z.number().int().min(1).max(5) }))
@@ -117,7 +120,11 @@ export const v3CommandInput = z.discriminatedUnion('action', [
     goals: z.string().trim().max(400),
     arrivalWindow: z.string().max(40).default(''),
   }),
-  z.object({ action: z.literal('away'), studentId: z.string(), until: dateInput.nullable() }),
+  z.object({
+    action: z.literal('away'),
+    studentId: z.string(),
+    until: dateInput.nullable(),
+  }),
   z.object({ action: z.literal('shortcuts'), tiles }),
   z.object({
     action: z.literal('catalog'),
@@ -156,7 +163,10 @@ export const v3CommandInput = z.discriminatedUnion('action', [
           exception: z.boolean(),
           incoming: z
             .array(
-              z.object({ id: z.string(), state: z.enum(['finished', 'unfinished', 'missing']) }),
+              z.object({
+                id: z.string(),
+                state: z.enum(['finished', 'unfinished', 'missing']),
+              }),
             )
             .max(100),
           actual: z.array(packet).max(100).nullable(),
@@ -182,7 +192,12 @@ export const v3CommandInput = z.discriminatedUnion('action', [
     followUp: z.boolean().default(false),
     correctionReason: z.string().trim().max(400).default(''),
   }),
-  z.object({ action: z.literal('temporary-paper'), visitId: z.string(), subject, range }),
+  z.object({
+    action: z.literal('temporary-paper'),
+    visitId: z.string(),
+    subject,
+    range,
+  }),
 ]);
 export type V3Command = z.infer<typeof v3CommandInput>;
 export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date()) {
@@ -314,7 +329,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError('Only the owner can change kiosk settings.', 403);
     if (c.expectedVersion !== kioskSettings(db).version)
       throw new DomainError('Kiosk settings changed. Reload Settings before saving.', 409);
-    op.v3!.kiosk = { version: c.expectedVersion + 1, confirmationSeconds: c.confirmationSeconds };
+    op.v3!.kiosk = {
+      version: c.expectedVersion + 1,
+      confirmationSeconds: c.confirmationSeconds,
+    };
     id = 'kiosk-settings';
   } else if (c.action === 'activity-hours') {
     teacher();
@@ -334,7 +352,11 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError(
         'Review current levels and saved packet plans before resuming homework.',
       );
-    op.v3!.features = { homework: c.homework, medals: c.medals, version: features.version + 1 };
+    op.v3!.features = {
+      homework: c.homework,
+      medals: c.medals,
+      version: features.version + 1,
+    };
     id = 'center-features';
   } else if (c.action === 'activity-check-in') {
     const visit = db.visits.find((v) => v.id === c.visitId)!;
@@ -343,7 +365,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       (features.homework && !subjectNeedsSetup(cfg.subjects[c.subject])) ||
       features.version !== c.expectedFeaturesVersion
     )
-      throw new DomainError('Center features changed or subject setup completed. Reopen Quick View.', 409);
+      throw new DomainError(
+        'Center features changed or subject setup completed. Reopen Quick View.',
+        409,
+      );
     if (!cfg.subjects[c.subject].enrolled) throw new DomainError('Subject is not enrolled.', 409);
     const recorded =
       visit.subjectCheckIns?.[c.subject] ||
@@ -363,7 +388,11 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       incoming: 'unknown',
       events: [
         ...(recorded?.events || []),
-        { at, actor: staff.name, reason: c.correctionReason || 'Activity recorded' },
+        {
+          at,
+          actor: staff.name,
+          reason: c.correctionReason || 'Activity recorded',
+        },
       ],
     };
     (visit.sessionRecords ??= []).push({
@@ -549,7 +578,11 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
           studentId: s.id,
           subject: sub,
           kind: next.level !== prior.level ? 'advance' : 'repeat-from',
-          range: { level: next.level, start: next.nextStart, end: next.nextStart },
+          range: {
+            level: next.level,
+            start: next.nextStart,
+            end: next.nextStart,
+          },
           note: 'Explicit permanent position set in Edit Student',
           createdAt: at,
           author: staff.name,
@@ -642,7 +675,10 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
       throw new DomainError('Additional notes require a dictated transcript without ratings.');
     observe(c.visitId, c.choices, c.text, c.followUp, c.skillRatings);
     if (c.context === 'additional')
-      Object.assign(db.observations.at(-1)!, { context: 'additional', inputMethod: 'dictation' });
+      Object.assign(db.observations.at(-1)!, {
+        context: 'additional',
+        inputMethod: 'dictation',
+      });
     id = c.visitId;
   } else if (c.action === 'temporary-paper') {
     teacher();
@@ -1075,7 +1111,11 @@ export function applyV3(db: Database, c: V3Command, staff: Staff, now = new Date
         : ('routine-no-exception' as const),
       events: [
         ...(recorded?.events || []),
-        { at, actor: staff.name, reason: c.correctionReason || 'Instructor check-in completed' },
+        {
+          at,
+          actor: staff.name,
+          reason: c.correctionReason || 'Instructor check-in completed',
+        },
       ],
     };
     if (c.subject) {

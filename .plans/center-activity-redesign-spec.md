@@ -112,7 +112,7 @@ The implementation extends the existing tokens; this is a compact extract:
 Lint, TypeScript checking, the production build and all 210 unit tests passed using the existing Corepack pnpm 11.25.0 runner. The Center Activity browser suite passed seven checks covering default/saved theme, keyboard inspection, separate bars, 44px button heights, no page overflow, daily/weekly periods, history search/details, settings and authorization across five viewport sizes (320–1366px). Desktop and phone screenshots were inspected. Browser coverage uses isolated fictional data.
 
 Computed dark contrast ratios: main text 15.39:1 and secondary text 7.68:1 against the card surface; blue bars 8.73:1 and slate bars 4.79:1 against the plot; input boundaries 3.78:1 against their surface. Motion is limited to reduced-motion-gated date-button press feedback. Physical-device feel testing is not verified.
+
 # Current implementation
 
 The latest user-directed design is documented in [Arithmetica continuous workspace refinement](arithmetica-continuous-ui-spec.md). It combines the attendance summary, chart, period navigation and punch disclosure on one page. The earlier specification below is retained as design history.
-

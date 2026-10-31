@@ -132,7 +132,11 @@ test('punch history keeps repeated visits and correction events; administrative 
       arrivedAt: '2026-10-18T22:05:00Z',
       departedAt: null,
       events: [
-        { at: '2026-10-18T23:00:00Z', kind: 'staff-departure', actor: 'Fictional Instructor' },
+        {
+          at: '2026-10-18T23:00:00Z',
+          kind: 'staff-departure',
+          actor: 'Fictional Instructor',
+        },
         {
           at: '2026-10-19T19:00:00Z',
           kind: 'reopened',
@@ -185,7 +189,10 @@ test('reporting hours require instructor authorization, reject stale versions an
   );
   validateDatabase(JSON.parse(JSON.stringify(db)));
   assert.equal(
-    v3CommandInput.safeParse({ ...command, days: [...saved.days.slice(1), saved.days[1]] }).success,
+    v3CommandInput.safeParse({
+      ...command,
+      days: [...saved.days.slice(1), saved.days[1]],
+    }).success,
     false,
   );
   db.operations!.v3!.activityHours!.days[0].end = 1;

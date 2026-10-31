@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffSession } from '@/lib/auth';
-import { StaffApp } from '@/components/staff-app';
+import { StaffApp } from '@/components/workspace/staff-app';
 import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 export default async function Page() {

@@ -95,14 +95,20 @@ for (const surface of ['toolbar', 'settings'])
       await fictionalWorkspace(page);
       await page.goto('/');
       await page.route('**/api/auth', (route) =>
-        route.fulfill({ status: 503, json: { error: 'Fictional sign-out unavailable. Retry.' } }),
+        route.fulfill({
+          status: 503,
+          json: { error: 'Fictional sign-out unavailable. Retry.' },
+        }),
       );
       if (surface === 'toolbar') {
         await page.getByRole('button', { name: 'Account', exact: true }).click();
         await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
       } else {
         await page.getByRole('button', { name: 'Settings', exact: true }).click();
-        const dialog = page.getByRole('dialog', { name: 'Settings', exact: true });
+        const dialog = page.getByRole('dialog', {
+          name: 'Settings',
+          exact: true,
+        });
         await dialog
           .getByRole('navigation', { name: 'Account settings', exact: true })
           .getByRole('button', { name: 'Account', exact: true })
@@ -217,9 +223,13 @@ test('dictation appends to the latest typed draft and releases its callbacks on 
   await note.fill('Edited fictional draft.');
   await page.evaluate(() => {
     const recognition = (
-      window as unknown as { fictionalRecognition: { onresult: (event: unknown) => void } }
+      window as unknown as {
+        fictionalRecognition: { onresult: (event: unknown) => void };
+      }
     ).fictionalRecognition;
-    recognition.onresult({ results: [{ isFinal: true, 0: { transcript: 'Fictional speech.' } }] });
+    recognition.onresult({
+      results: [{ isFinal: true, 0: { transcript: 'Fictional speech.' } }],
+    });
   });
   await expect(note).toHaveValue('Edited fictional draft. Fictional speech.');
   await dialog.getByRole('button', { name: 'Close panel', exact: true }).click();

@@ -17,3 +17,14 @@ playwright-report/
 *.pfx
 .DS_Store
 Thumbs.db
+next-env.d.ts
+coverage/
+*.sqlite
+*.sqlite3
+*.db
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.bak
+*.dpapi

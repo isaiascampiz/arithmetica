@@ -48,13 +48,31 @@ test('real QR decoder reads a synthetic camera stream and releases it', async ({
   try {
     await expect(page.getByRole('status')).toContainText(/checked (in|out)/);
   } catch (error) {
-    console.log('Synthetic camera diagnostic', await page.evaluate(() => {
-      const video = document.querySelector('video');
-      const stream = (window as unknown as { testStream?: MediaStream }).testStream;
-      return { video: video ? { width: video.videoWidth, height: video.videoHeight, readyState: video.readyState, paused: video.paused, currentTime: video.currentTime } : null,
-        tracks: stream?.getTracks().map((track) => ({ state: track.readyState, settings: track.getSettings() })) };
-    }));
-    await page.locator('video').screenshot({ path: 'test-results/synthetic-camera-diagnostic.png' });
+    console.log(
+      'Synthetic camera diagnostic',
+      await page.evaluate(() => {
+        const video = document.querySelector('video');
+        const stream = (window as unknown as { testStream?: MediaStream }).testStream;
+        return {
+          video: video
+            ? {
+                width: video.videoWidth,
+                height: video.videoHeight,
+                readyState: video.readyState,
+                paused: video.paused,
+                currentTime: video.currentTime,
+              }
+            : null,
+          tracks: stream?.getTracks().map((track) => ({
+            state: track.readyState,
+            settings: track.getSettings(),
+          })),
+        };
+      }),
+    );
+    await page
+      .locator('video')
+      .screenshot({ path: 'test-results/synthetic-camera-diagnostic.png' });
     throw error;
   }
   await expect
@@ -103,13 +121,19 @@ test('separate staff devices see shared persistent notes; themes and larger layo
     otherPage.getByRole('dialog').locator('.history-note').filter({ hasText: note }),
   ).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({ path: 'test-results/v3-desktop.png', fullPage: true });
+  await page.screenshot({
+    path: 'test-results/v3-desktop.png',
+    fullPage: true,
+  });
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.screenshot({ path: 'test-results/v3-dark.png', fullPage: true });
   await page.setViewportSize({ width: 768, height: 1024 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: 'test-results/v3-portrait.png', fullPage: true });
+  await page.screenshot({
+    path: 'test-results/v3-portrait.png',
+    fullPage: true,
+  });
   await other.close();
 });

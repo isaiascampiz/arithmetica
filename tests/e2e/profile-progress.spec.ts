@@ -81,8 +81,14 @@ for (const width of [1440, 1024, 390, 320])
         expect(boxes[0].x).toBe(boxes[2].x);
         expect(boxes[1].x).toBeGreaterThan(boxes[0].x);
       } else expect(boxes.every((box) => box.x === boxes[0].x)).toBe(true);
-      const duration = page.getByRole('article', { name: 'Time spent at center', exact: true });
-      const skills = page.getByRole('article', { name: 'Skill ratings', exact: true });
+      const duration = page.getByRole('article', {
+        name: 'Time spent at center',
+        exact: true,
+      });
+      const skills = page.getByRole('article', {
+        name: 'Skill ratings',
+        exact: true,
+      });
       await expect(
         skills.getByRole('meter', { name: 'Focus average', exact: true }),
       ).toHaveAttribute(
@@ -101,7 +107,10 @@ for (const width of [1440, 1024, 390, 320])
       ).toBeLessThanOrEqual(13);
       const previewGrid = page.locator('.progress-card-preview .academic-grid-horizontal');
       await expect(previewGrid).toHaveCount(5);
-      const academicCard = page.getByRole('article', { name: 'Academic progress', exact: true });
+      const academicCard = page.getByRole('article', {
+        name: 'Academic progress',
+        exact: true,
+      });
       await expect(academicCard).toContainText('Math \u00b7 Last 8 weeks');
       await expect(academicCard.locator('.academic-summary strong')).toHaveText(
         fixture.operations!.students[student.id].subjects.Math.level,
@@ -189,7 +198,10 @@ for (const width of [1440, 1024, 390, 320])
         'Time spent at center',
         'Skill ratings',
       ]) {
-        const expand = page.getByRole('button', { name: 'Open ' + title, exact: true });
+        const expand = page.getByRole('button', {
+          name: 'Open ' + title,
+          exact: true,
+        });
         await page.getByRole('article', { name: title, exact: true }).click();
         const dialog = page.getByRole('dialog', { name: title, exact: true });
         await settleDialog(dialog);
@@ -220,7 +232,10 @@ for (const width of [1440, 1024, 390, 320])
         }
         if (title === 'Academic progress') {
           if (width > 760) {
-            const action = dialog.getByRole('button', { name: 'View page history', exact: true });
+            const action = dialog.getByRole('button', {
+              name: 'View page history',
+              exact: true,
+            });
             expect(await action.locator('svg').evaluate((el) => getComputedStyle(el).color)).toBe(
               await action.evaluate((el) => getComputedStyle(el).color),
             );
@@ -242,7 +257,9 @@ for (const width of [1440, 1024, 390, 320])
           const point = dialog.getByRole('button', { name: /^View .* snapshot$/ }).first();
           await point.focus();
           await page.keyboard.press('Enter');
-          const popup = dialog.getByRole('tooltip', { name: 'Academic snapshot' });
+          const popup = dialog.getByRole('tooltip', {
+            name: 'Academic snapshot',
+          });
           await expect(popup).toBeVisible();
           await expect(popup).toContainText('Homework completion recorded');
           await expect(popup.locator('.academic-completed-packet')).toHaveCount(1);
@@ -253,14 +270,18 @@ for (const width of [1440, 1024, 390, 320])
             frame = (await dialog.boundingBox())!;
           expect(popupBox.y).toBeGreaterThanOrEqual(frame.y);
           expect(popupBox.y + popupBox.height).toBeLessThanOrEqual(frame.y + frame.height);
-          await page.screenshot({ path: 'test-results/progress-popup-' + width + '.png' });
+          await page.screenshot({
+            path: 'test-results/progress-popup-' + width + '.png',
+          });
           expect(await popup.evaluate((el) => el.getBoundingClientRect().right <= innerWidth)).toBe(
             true,
           );
           await page.keyboard.press('Escape');
           await expect(popup).toHaveCount(0);
           await expect(dialog).toBeVisible();
-          const pointButtons = dialog.getByRole('button', { name: /^View .* snapshot$/ });
+          const pointButtons = dialog.getByRole('button', {
+            name: /^View .* snapshot$/,
+          });
           const nearbyButton = pointButtons.nth((await pointButtons.count()) - 2);
           const expectedDate = (await nearbyButton.getAttribute('aria-label'))!
             .slice(5)
@@ -277,7 +298,9 @@ for (const width of [1440, 1024, 390, 320])
           await expect(
             dialog.getByRole('list', { name: 'Recorded academic history' }),
           ).toBeVisible();
-          const pages = dialog.getByRole('list', { name: 'Recorded academic history' });
+          const pages = dialog.getByRole('list', {
+            name: 'Recorded academic history',
+          });
           await expect(pages.locator('li')).toHaveCount(
             academicHistory(fixture, student.id, 'Math').filter((e) => e.kind === 'completion')
               .length,
@@ -335,7 +358,10 @@ for (const width of [1440, 1024, 390, 320])
         page.getByRole('article', { name: 'Academic progress', exact: true }),
       ).toContainText('Kumon CONNECT');
       await expect(
-        page.getByRole('article', { name: 'Homework consistency', exact: true }),
+        page.getByRole('article', {
+          name: 'Homework consistency',
+          exact: true,
+        }),
       ).toContainText('Kumon CONNECT');
       await expect(page.getByRole('article', { name: 'Skill ratings', exact: true })).toContainText(
         'No skill ratings recorded',
@@ -377,7 +403,10 @@ test('interactive Rowan has connected sampled history and navigable week, month 
   await page.goto('/?view=students&student=' + progressStudentId);
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
   await page.getByRole('button', { name: 'Open Academic progress' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Academic progress', exact: true });
+  const dialog = page.getByRole('dialog', {
+    name: 'Academic progress',
+    exact: true,
+  });
   await settleDialog(dialog);
   const period = dialog.getByRole('combobox', { name: 'Academic period' });
   await expect(dialog.locator('.academic-connection path')).toHaveAttribute('d', /L /);
@@ -454,7 +483,10 @@ test('academic controls and both history actions fit without scrolling on laptop
     await page.goto('/?view=students&student=' + progressStudentId);
     await page.getByRole('button', { name: 'Progress', exact: true }).click();
     await page.getByRole('button', { name: 'Open Academic progress' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Academic progress', exact: true });
+    const dialog = page.getByRole('dialog', {
+      name: 'Academic progress',
+      exact: true,
+    });
     await settleDialog(dialog);
     const body = dialog.locator('.v3-modal-body');
     const frame = (await body.boundingBox())!;

@@ -67,7 +67,9 @@ test('gateway HTML and malformed JSON produce actionable errors without leaking 
 test('JSON errors retain their server message and valid false bodies are serialized', async (t) => {
   t.mock.method(globalThis, 'fetch', async (_url: string, options?: RequestInit) => {
     assert.equal(options?.body, 'false');
-    assert.deepEqual(options?.headers, { 'Content-Type': 'application/json' });
+    assert.deepEqual(options?.headers, {
+      'Content-Type': 'application/json',
+    });
     return Response.json({ error: 'Fictional stale version.' }, { status: 409 });
   });
   await assert.rejects(request('/api/commands', 'POST', false), /Fictional stale version/);

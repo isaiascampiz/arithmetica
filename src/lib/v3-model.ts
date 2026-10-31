@@ -84,11 +84,19 @@ export type V3Settings = {
     string,
     {
       fingerprint: string;
-      result: { message: string; changed: boolean; direction?: 'in' | 'out'; studentName?: string };
+      result: {
+        message: string;
+        changed: boolean;
+        direction?: 'in' | 'out';
+        studentName?: string;
+      };
     }
   >;
   kiosk?: { version: number; confirmationSeconds: number };
-  activityHours?: { version: number; days: import('./activity-settings').ActivityHours };
+  activityHours?: {
+    version: number;
+    days: import('./activity-settings').ActivityHours;
+  };
   features?: { homework: boolean; medals: boolean; version: number };
   catalog: CatalogLevel[];
   instructorTiles: Record<string, string[]>;

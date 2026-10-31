@@ -11,7 +11,10 @@ export function reportVisitGroups(detail: ReportDetail) {
       }),
   );
   const ids = new Set(recorded.map((r) => r.visit.id));
-  return { recorded, unrecorded: detail.visits.filter((r) => !ids.has(r.visit.id)) };
+  return {
+    recorded,
+    unrecorded: detail.visits.filter((r) => !ids.has(r.visit.id)),
+  };
 }
 
 /** Older frozen reports remain exportable without filling historical gaps from live profiles. */

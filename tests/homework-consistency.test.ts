@@ -43,10 +43,16 @@ function scenario() {
 test('homework uses packet review outcomes, separate subjects and a weighted denominator without modifying evidence', () => {
   const { db, student, record } = scenario();
   record.incoming.push({
-    packet: { ...structuredClone(record.incoming[0].packet), id: 'missing-packet' },
+    packet: {
+      ...structuredClone(record.incoming[0].packet),
+      id: 'missing-packet',
+    },
     outcome: 'missing',
   });
-  db.visits[0].sessionRecords!.push({ ...structuredClone(record), subject: 'Reading' });
+  db.visits[0].sessionRecords!.push({
+    ...structuredClone(record),
+    subject: 'Reading',
+  });
   const before = JSON.stringify(db);
   const reviews = homeworkReviews(db, student.id, 'Math');
   assert.deepEqual(homeworkTotals(reviews), {

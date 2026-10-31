@@ -166,7 +166,10 @@ export function academicWindow(
   const month = period === '1 year' ? 0 : d.getUTCMonth() - months + 1;
   const start = new Date(Date.UTC(d.getUTCFullYear(), month + offset * months, 1, 12));
   const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 0, 12));
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
 }
 
 export function academicCheckpoints<T extends { at: string; id: string }>(
@@ -201,7 +204,10 @@ export function academicCheckpoints<T extends { at: string; id: string }>(
       nearest++;
     selected.add(nearest);
   }
-  return { daily: values, checkpoints: [...selected].map((index) => values[index]) };
+  return {
+    daily: values,
+    checkpoints: [...selected].map((index) => values[index]),
+  };
 }
 
 /** Calendar labels are independent of checkpoint density and use one consistent cadence. */

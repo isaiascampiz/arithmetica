@@ -83,7 +83,12 @@ export function quickViewDemo(now = new Date()) {
       a.createdAt = priorAt.toISOString();
       applyV3(
         db,
-        { action: 'prepare', ids: [a.id], versions: { [a.id]: a.v3!.version }, reprepare: false },
+        {
+          action: 'prepare',
+          ids: [a.id],
+          versions: { [a.id]: a.v3!.version },
+          reprepare: false,
+        },
         teacher,
         priorAt,
       );
@@ -122,7 +127,12 @@ export function quickViewDemo(now = new Date()) {
       for (const a of currentSets(db, db.visits.at(-1)!))
         applyV3(
           db,
-          { action: 'prepare', ids: [a.id], versions: { [a.id]: a.v3!.version }, reprepare: false },
+          {
+            action: 'prepare',
+            ids: [a.id],
+            versions: { [a.id]: a.v3!.version },
+            reprepare: false,
+          },
           teacher,
           arrival,
         );

@@ -33,7 +33,13 @@ export async function cookies() {
       current.values.has(name) ? { name, value: current.values.get(name)! } : undefined,
     set,
     delete: (name: string) => {
-      set(name, '', { path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 0 });
+      set(name, '', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        maxAge: 0,
+      });
       current.values.delete(name);
     },
   };

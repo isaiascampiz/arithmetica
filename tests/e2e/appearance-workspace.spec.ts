@@ -16,7 +16,11 @@ for (const width of [1024, 768, 390])
     await page.clock.install({ time: now });
     await page.route('**/api/state', (route) =>
       route.fulfill({
-        json: { ...db, staff: session.staff, timezone: db.operations!.center.timezone },
+        json: {
+          ...db,
+          staff: session.staff,
+          timezone: db.operations!.center.timezone,
+        },
       }),
     );
     const positions = [];
@@ -45,10 +49,21 @@ for (const width of [1024, 768, 390])
         ).toBe(false);
         const dateBox = (await controls.boundingBox())!;
         if (calendar)
-          expect({ x: dateBox.x, width: dateBox.width, height: dateBox.height }).toEqual(calendar);
-        else calendar = { x: dateBox.x, width: dateBox.width, height: dateBox.height };
+          expect({
+            x: dateBox.x,
+            width: dateBox.width,
+            height: dateBox.height,
+          }).toEqual(calendar);
+        else
+          calendar = {
+            x: dateBox.x,
+            width: dateBox.width,
+            height: dateBox.height,
+          };
         await page
-          .getByLabel(view === 'activity' ? 'Activity date' : 'Period date', { exact: true })
+          .getByLabel(view === 'activity' ? 'Activity date' : 'Period date', {
+            exact: true,
+          })
           .fill('2026-10-18');
         await expect(controls).not.toContainText('Today');
         await expect(controls).toContainText('Oct 18, 2026');
@@ -89,7 +104,10 @@ for (const width of [1024, 768, 390])
           }),
         );
       expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
-      await page.screenshot({ path: 'test-results/sidebar-alignment.png', animations: 'disabled' });
+      await page.screenshot({
+        path: 'test-results/sidebar-alignment.png',
+        animations: 'disabled',
+      });
       await page.setViewportSize({ width: 390, height: 1000 });
       await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
       const home = page.locator('.sidebar nav .nav-item').first();
@@ -108,12 +126,19 @@ test('accent setting survives reload and leaves distinct skill identities unchan
   await page.clock.install({ time: now });
   await page.route('**/api/state', (route) =>
     route.fulfill({
-      json: { ...fixture, staff: session.staff, timezone: fixture.operations!.center.timezone },
+      json: {
+        ...fixture,
+        staff: session.staff,
+        timezone: fixture.operations!.center.timezone,
+      },
     }),
   );
   await page.goto('/?view=students&student=' + progressStudentId);
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
-  const skill = page.getByRole('article', { name: 'Skill ratings', exact: true });
+  const skill = page.getByRole('article', {
+    name: 'Skill ratings',
+    exact: true,
+  });
   const colors = await skill
     .locator('.skill-scatter-average')
     .evaluateAll((els) => els.map((el) => getComputedStyle(el).getPropertyValue('--skill-color')));
@@ -126,7 +151,10 @@ test('accent setting survives reload and leaves distinct skill identities unchan
   ).toHaveCount(12);
   await page.getByRole('menuitemradio', { name: 'Violet', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'violet');
-  await page.screenshot({ path: 'test-results/accent-settings.png', animations: 'disabled' });
+  await page.screenshot({
+    path: 'test-results/accent-settings.png',
+    animations: 'disabled',
+  });
   await page.keyboard.press('Escape');
   expect(
     await skill
@@ -183,7 +211,9 @@ for (const reduced of [false, true])
   test(
     'kiosk background makes arrival and departure clear' + (reduced ? ' with reduced motion' : ''),
     async ({ page }) => {
-      await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
+      await page.emulateMedia({
+        reducedMotion: reduced ? 'reduce' : 'no-preference',
+      });
       await login(page);
       let direction = 'in';
       await page.route('**/api/reception', (route) =>

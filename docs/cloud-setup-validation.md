@@ -47,11 +47,11 @@ git merge --allow-unrelated-histories --no-edit import/original-main
 
 Merge commit `8b5566d` retains both histories. The following original commits are ancestors of `main`, verified individually with `git merge-base --is-ancestor <commit> HEAD`:
 
-| Original checkpoint | Exact commit |
-| --- | --- |
+| Original checkpoint                   | Exact commit                               |
+| ------------------------------------- | ------------------------------------------ |
 | V3 baseline and `v3.0.0-baseline` tag | `46162816c6b6b71e11076551b1f4c9e2e88a110b` |
-| Organized preserved application | `ed57c9c78097aa17f3c9b488951c710ff814b2c4` |
-| Prepared original main | `4a6464669382de28781db24bcb709c7dcda4dab8` |
+| Organized preserved application       | `ed57c9c78097aa17f3c9b488951c710ff814b2c4` |
+| Prepared original main                | `4a6464669382de28781db24bcb709c7dcda4dab8` |
 
 The bootstrap commit is also an ancestor. Source comparison against `import/original-main` passed with no differences for `src/`, `tests/`, `supabase/`, `scripts/`, `public/`, dependency declarations, lockfile, and application configuration. No application redesign or behavior changes were made. The temporary 48 parts and two import documents were removed in ordinary cleanup commit `73ba23032421cc47a46c2f6b741e23a1b43f57d2` after verification. Their presence in historical bootstrap commits is intentional; history was not rewritten.
 
@@ -68,14 +68,14 @@ bash scripts/setup-development.sh 2>&1 | tee /workspace/validation/setup-develop
 
 The checked-in setup script ran unchanged and exited 0:
 
-| Executed command | Result |
-| --- | --- |
-| `pnpm install --frozen-lockfile --store-dir .pnpm-store` | Passed; 380 packages; lockfile unchanged; supply-chain policy check passed for 464 entries |
-| `DEMO_MODE=true DATA_ADAPTER=local PRODUCTION_DATA_APPROVED=false pnpm demo:restore` | Restored 96 fictional students at schema 3 |
-| `pnpm build` | Passed; optimized Next production build completed, including route generation and TypeScript |
-| `pnpm typecheck` | Passed; `tsc --noEmit`, exit 0 |
-| `pnpm lint` | Passed; `eslint .`, exit 0 |
-| `pnpm test` | **94 passed, 0 failed, 0 skipped, 0 cancelled** |
+| Executed command                                                                     | Result                                                                                       |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile --store-dir .pnpm-store`                             | Passed; 380 packages; lockfile unchanged; supply-chain policy check passed for 464 entries   |
+| `DEMO_MODE=true DATA_ADAPTER=local PRODUCTION_DATA_APPROVED=false pnpm demo:restore` | Restored 96 fictional students at schema 3                                                   |
+| `pnpm build`                                                                         | Passed; optimized Next production build completed, including route generation and TypeScript |
+| `pnpm typecheck`                                                                     | Passed; `tsc --noEmit`, exit 0                                                               |
+| `pnpm lint`                                                                          | Passed; `eslint .`, exit 0                                                                   |
+| `pnpm test`                                                                          | **94 passed, 0 failed, 0 skipped, 0 cancelled**                                              |
 
 Logs remain outside Git under `/workspace/validation/`. Generated dependencies, data, builds, traces, and runtime configuration remain ignored or outside the checkout.
 
@@ -107,10 +107,13 @@ module.exports = defineConfig({
   testDir: '/workspace/centerflow/tests/e2e',
   outputDir: '/workspace/centerflow/test-results',
   webServer: { ...base.webServer, cwd: '/workspace/centerflow' },
-  projects: base.projects.map(project => ({
+  projects: base.projects.map((project) => ({
     ...project,
-    use: { ...project.use, channel: undefined,
-      launchOptions: { executablePath: '/usr/bin/chromium' } },
+    use: {
+      ...project.use,
+      channel: undefined,
+      launchOptions: { executablePath: '/usr/bin/chromium' },
+    },
   })),
 });
 ```
@@ -132,12 +135,12 @@ done
 
 All four invocations exited 0, with **21 passed, 0 failed, 0 skipped** in total:
 
-| Spec | Executed / passed | Runner duration |
-| --- | --- | --- |
-| `resilience.spec.ts` | 2 / 2 | 5.0 s |
-| `scanner-sync.spec.ts` | 2 / 2 | 6.0 s |
-| `v2-workflows.spec.ts` | 12 / 12 | 1.0 min |
-| `workflows.spec.ts` | 5 / 5 | 44.0 s |
+| Spec                   | Executed / passed | Runner duration |
+| ---------------------- | ----------------- | --------------- |
+| `resilience.spec.ts`   | 2 / 2             | 5.0 s           |
+| `scanner-sync.spec.ts` | 2 / 2             | 6.0 s           |
+| `v2-workflows.spec.ts` | 12 / 12           | 1.0 min         |
+| `workflows.spec.ts`    | 5 / 5             | 44.0 s          |
 
 Each current-run `test-results/cloud-<spec>/.last-run.json` independently reports `status: passed` and an empty `failedTests` list. The original kiosk case passed in 33.2 seconds, including its real debounce wait. These are all 21 discovered tests; none was filtered out or skipped.
 
@@ -198,15 +201,15 @@ The restored default JSON independently contained schema 3 and exactly 96 unique
 
 ### Actual checks and sandbox failures
 
-| Check executed in this new task | Final result |
-| --- | --- |
-| `pnpm build` | Passed; optimized build, TypeScript, route generation, exit 0 |
-| `pnpm typecheck` | Passed, exit 0 |
-| `pnpm lint` | Passed, exit 0 |
-| `pnpm test` | **94 passed, 0 failed, 0 skipped, 0 cancelled**, exit 0 |
-| Existing external Playwright config, `--list` | **21 cases in four files**, exit 0 |
-| Synthetic camera QR decoder case only | **1 passed**, 5.0 s overall, system Chromium, fresh Playwright-managed server on port 3100 |
-| Cloud-local optimized server on port 3000 | Started successfully; HTTP checks below passed |
+| Check executed in this new task               | Final result                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm build`                                  | Passed; optimized build, TypeScript, route generation, exit 0                              |
+| `pnpm typecheck`                              | Passed, exit 0                                                                             |
+| `pnpm lint`                                   | Passed, exit 0                                                                             |
+| `pnpm test`                                   | **94 passed, 0 failed, 0 skipped, 0 cancelled**, exit 0                                    |
+| Existing external Playwright config, `--list` | **21 cases in four files**, exit 0                                                         |
+| Synthetic camera QR decoder case only         | **1 passed**, 5.0 s overall, system Chromium, fresh Playwright-managed server on port 3100 |
+| Cloud-local optimized server on port 3000     | Started successfully; HTTP checks below passed                                             |
 
 Initial command-sandbox attempts failed: build compiled but could not parse TypeScript `--showConfig`; QR smoke could not start its web server; direct startup returned `listen EPERM` on `127.0.0.1:3000`. A child-process probe showed console output missing under that sandbox. The initial unit invocation reported only six file-level passes, so it was not accepted as evidence for 94 cases. An exploratory `pnpm test --test-isolation=none` also failed with unknown `.ts` extension; no test or loader was changed. The ordinary commands were rerun in the approved cloud-host execution context outside the command sandbox, and all final results above passed. No application, dependency or test changes were used to obtain success. Harmless Chromium runner warnings about `NO_COLOR`/`FORCE_COLOR` remained.
 

@@ -19,7 +19,10 @@ async function main() {
   );
   const origin = config.APP_ORIGIN;
   const apiOrigin = process.env.ARITHMETICA_STAGING_TEST_ORIGIN || origin;
-  assert.ok([origin, 'http://127.0.0.1:8788'].includes(apiOrigin), 'Only synthetic staging or its loopback runtime test is allowed.');
+  assert.ok(
+    [origin, 'http://127.0.0.1:8788'].includes(apiOrigin),
+    'Only synthetic staging or its loopback runtime test is allowed.',
+  );
   let checks = 0;
   class Client {
     cookies = new Map<string, string>();
@@ -63,7 +66,10 @@ async function main() {
     async login(role: string) {
       const user = fixtures.users.find((item: { role: string }) => item.role === role);
       assert.ok(user?.email.endsWith('@arithmetica.invalid'));
-      await this.json('/api/auth', { email: user.email, password: user.password });
+      await this.json('/api/auth', {
+        email: user.email,
+        password: user.password,
+      });
     }
     async state(): Promise<Snapshot> {
       const state = await this.json('/api/state');
@@ -118,7 +124,10 @@ async function main() {
     roster.sourceSha256 = createHash('sha256')
       .update(JSON.stringify(roster.profiles))
       .digest('hex');
-    await writeFile(rosterPath, JSON.stringify(roster, null, 2), { flag: 'wx', mode: 0o600 });
+    await writeFile(rosterPath, JSON.stringify(roster, null, 2), {
+      flag: 'wx',
+      mode: 0o600,
+    });
   }
   assert.equal(roster.sourceSheet, 'Fictional source');
   assert.ok(roster.profiles.every((profile) => profile.firstName === 'Fictional'));
@@ -191,8 +200,16 @@ async function main() {
     arrivalWindow: '',
   };
   const results = await Promise.all([
-    owner.request('/api/commands', { kind: 'v3', command: profile, requestId: randomUUID() }),
-    instructor.request('/api/commands', { kind: 'v3', command: profile, requestId: randomUUID() }),
+    owner.request('/api/commands', {
+      kind: 'v3',
+      command: profile,
+      requestId: randomUUID(),
+    }),
+    instructor.request('/api/commands', {
+      kind: 'v3',
+      command: profile,
+      requestId: randomUUID(),
+    }),
   ]);
   assert.deepEqual(results.map((response) => response.status).sort(), [200, 409]);
   await Promise.all(results.map((response) => response.body?.cancel()));
@@ -206,7 +223,9 @@ async function main() {
   await kiosk.json('/api/export', undefined, 401);
   const ready = await kiosk.json('/api/kiosk');
   assert.deepEqual(Object.keys(ready).sort(), ['confirmationSeconds', 'demo', 'ready']);
-  assert.deepEqual(await kiosk.json('/api/kiosk/name', { prefix: 'Fi' }), { completion: null });
+  assert.deepEqual(await kiosk.json('/api/kiosk/name', { prefix: 'Fi' }), {
+    completion: null,
+  });
   assert.deepEqual(await kiosk.json('/api/kiosk/name', { prefix: 'Fictional' }), {
     completion: null,
   });
@@ -214,7 +233,10 @@ async function main() {
   assert.deepEqual(await kiosk.json('/api/kiosk/name', { prefix: arrivalStudent.name }), {
     completion: arrivalStudent.name,
   });
-  const attendanceRequest = { token: arrivalStudent.token, requestId: randomUUID() };
+  const attendanceRequest = {
+    token: arrivalStudent.token,
+    requestId: randomUUID(),
+  };
   const receipt = await kiosk.json('/api/kiosk', attendanceRequest);
   assert.deepEqual(Object.keys(receipt).sort(), ['changed', 'direction', 'message', 'studentName']);
   assert.equal(receipt.studentName, arrivalStudent.name);

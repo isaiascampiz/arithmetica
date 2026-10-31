@@ -28,15 +28,23 @@ test('the browser runner refuses occupied ports without stopping or reusing thei
   });
   try {
     const port = (server.address() as AddressInfo).port;
-    const result = spawnSync(process.execPath, ['scripts/e2e.mjs', '--list'], {
-      env: { ...process.env, CENTERFLOW_E2E_PORT: String(port), E2E_EXTERNAL_SERVER: 'false' },
-      encoding: 'utf8',
-      windowsHide: true,
-      timeout: 15000,
-    });
-    assert.equal(result.status, 1, result.stderr);
-    assert.match(result.stderr, /already in use/);
-    assert.equal(server.listening, true);
+    for (const variable of ['ARITHMETICA_E2E_PORT', 'CENTERFLOW_E2E_PORT']) {
+      const result = spawnSync(process.execPath, ['scripts/e2e.mjs', '--list'], {
+        env: {
+          ...process.env,
+          ARITHMETICA_E2E_PORT: '',
+          CENTERFLOW_E2E_PORT: '',
+          [variable]: String(port),
+          E2E_EXTERNAL_SERVER: 'false',
+        },
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 15000,
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stderr, /already in use/);
+      assert.equal(server.listening, true);
+    }
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),

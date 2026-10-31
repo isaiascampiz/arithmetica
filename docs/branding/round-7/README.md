@@ -6,7 +6,7 @@
 
 Keep the identity compact, professional and legible in an adult staff workspace. It should suit attendance, observations, handoffs, activities and progress history, including configurations without homework. Avoid making the product look like a chatbot or implying it replaces tutors. The logo should remain recognizable when its surrounding interface changes.
 
-Each board requests a large identity plus two small context studies: warm charcoal/chalk/clay and cool near-black/silver/indigo. These are approximate styling comparisons, not copies or screenshots of Claude, Linear or this application's actual interface. The local [Claude theme experiment](../../../src/app/claude-theme.css) was read for context; it currently uses warm near-black, chalk text and a clay accent. No theme file was edited.
+Each board requests a large identity plus two small context studies: warm charcoal/chalk/clay and cool near-black/silver/indigo. These are approximate styling comparisons, not copies or screenshots of Claude, Linear or this application's actual interface. The local Claude theme experiment (src/app/claude-theme.css, since retired) was read for context; it currently uses warm near-black, chalk text and a clay accent. No theme file was edited.
 
 ## Name premises and different design methods
 

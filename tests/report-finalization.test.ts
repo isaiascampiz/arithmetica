@@ -229,14 +229,21 @@ test('live center counts deduplicate students and keep old unresolved visits sep
 test('kiosk configuration defaults, role/version checks and malformed persistence fail closed', () => {
   const { db } = setup();
   assert.equal(kioskSettings(db).confirmationSeconds, 4);
-  const command = { action: 'kiosk-settings' as const, expectedVersion: 0, confirmationSeconds: 7 };
+  const command = {
+    action: 'kiosk-settings' as const,
+    expectedVersion: 0,
+    confirmationSeconds: 7,
+  };
   assert.throws(() => applyV3(db, command, teacher, now), /owner/);
   applyV3(db, command, owner, now);
   assert.equal(kioskSettings(db).confirmationSeconds, 7);
   assert.throws(() => applyV3(db, command, owner, now), /changed/);
   db.operations!.v3!.kiosk!.confirmationSeconds = 999;
   assert.throws(() => validateDatabase(db), /Invalid kiosk/);
-  assert.deepEqual(reportBounds('monthly', '2028-02'), { start: '2028-02-01', end: '2028-02-29' });
+  assert.deepEqual(reportBounds('monthly', '2028-02'), {
+    start: '2028-02-01',
+    end: '2028-02-29',
+  });
 });
 
 test('duplicate physical completion evidence is excluded and center configuration rejects stale writes', () => {

@@ -75,7 +75,10 @@ for (const width of [1440, 1366, 1024, 768, 390, 320])
     await expect(connectCard).not.toContainText('Fictional catalog review needed.');
     await expect(connectCard.locator('.warning-line')).toHaveCount(0);
     await expect(
-      connectCard.getByRole('button', { name: 'Mark Math prepared', exact: true }),
+      connectCard.getByRole('button', {
+        name: 'Mark Math prepared',
+        exact: true,
+      }),
     ).toBeDisabled();
     await page.screenshot({
       path: 'test-results/preparation-layout-' + width + '.png',
@@ -116,7 +119,11 @@ test('preparation queues unfinished today, tomorrow and later returns in order',
   await page.clock.install({ time: now });
   await page.route('**/api/state', (route) =>
     route.fulfill({
-      json: { ...fixture, staff: session.staff, timezone: fixture.operations!.center.timezone },
+      json: {
+        ...fixture,
+        staff: session.staff,
+        timezone: fixture.operations!.center.timezone,
+      },
     }),
   );
   await page.goto('/?view=homework');

@@ -1,7 +1,9 @@
 import { build } from 'esbuild';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-await mkdir('data/edge-build/supabase/functions/arithmetica-api', { recursive: true });
+await mkdir('data/edge-build/supabase/functions/arithmetica-api', {
+  recursive: true,
+});
 await build({
   entryPoints: ['src/server/supabase-entry.ts'],
   outfile: 'data/edge-build/supabase/functions/arithmetica-api/index.ts',

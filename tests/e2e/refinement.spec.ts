@@ -6,7 +6,10 @@ test('Home checks in an expected student directly and the wordmark stays passive
   page,
 }) => {
   await page.addInitScript(() =>
-    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true }),
+    Object.defineProperty(crypto, 'randomUUID', {
+      value: undefined,
+      configurable: true,
+    }),
   );
   await login(page);
   const session = await state(page),
@@ -19,7 +22,11 @@ test('Home checks in an expected student directly and the wordmark stays passive
   await page.clock.install({ time: now });
   await page.route('**/api/state', (route) =>
     route.fulfill({
-      json: { ...fixture, staff: session.staff, timezone: fixture.operations!.center.timezone },
+      json: {
+        ...fixture,
+        staff: session.staff,
+        timezone: fixture.operations!.center.timezone,
+      },
     }),
   );
   let command: Record<string, unknown> | null = null;
@@ -43,7 +50,11 @@ test('Home checks in an expected student directly and the wordmark stays passive
   await expect(expected).toContainText('Not arrived');
   await expected.getByRole('button', { name: 'Check in ' + student.name, exact: true }).click();
   await expect(expected).toHaveCount(0);
-  expect(command).toMatchObject({ kind: 'attendance', studentId: student.id, direction: 'in' });
+  expect(command).toMatchObject({
+    kind: 'attendance',
+    studentId: student.id,
+    direction: 'in',
+  });
 });
 
 test('roster sorts through a menu and filters use only purposeful controls', async ({ page }) => {
@@ -54,7 +65,10 @@ test('roster sorts through a menu and filters use only purposeful controls', asy
   const names = await page.locator('.roster-v3-person b').allTextContents();
   expect(names).toEqual([...names].sort((a, b) => b.localeCompare(a)));
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
-  const filters = page.getByRole('dialog', { name: 'Filter students', exact: true });
+  const filters = page.getByRole('dialog', {
+    name: 'Filter students',
+    exact: true,
+  });
   await expect(filters.getByLabel('Enrollment status', { exact: true })).toHaveCount(0);
   await expect(filters.getByRole('combobox')).toHaveCount(2);
   await filters.getByRole('switch', { name: 'Early learner', exact: true }).click();
@@ -79,6 +93,13 @@ test('theme menus share one preference and System follows device appearance', as
   const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
   await expect(settings.getByRole('button', { name: 'Theme', exact: true })).toHaveText('System');
   await settings.getByRole('button', { name: 'Theme', exact: true }).click();
+  // Native popover toggle/focus happens asynchronously after the trigger click.
+  await expect(
+    page.getByRole('menu', { name: 'Theme', exact: true }).getByRole('menuitemradio', {
+      name: 'Light',
+      exact: true,
+    }),
+  ).toBeFocused();
   await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -122,7 +143,10 @@ test('account edits preserve attribution, reject stale updates and guard the onl
   expect(after.staff.name).toBe(before.staff.name);
   expect(after.operations!.v3!.staffProfiles).toBeUndefined();
   await settings.getByRole('button', { name: 'Delete account', exact: true }).click();
-  const removal = page.getByRole('dialog', { name: 'Delete account', exact: true });
+  const removal = page.getByRole('dialog', {
+    name: 'Delete account',
+    exact: true,
+  });
   await removal.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(
     removal.getByRole('button', { name: 'Delete my account', exact: true }),
@@ -144,7 +168,10 @@ test('name reception, stable student pouch labels and exact 2-inch printing work
   const token = db.students.find((s) => s.id === student.id)!.token;
   await page.goto('/?view=students&student=' + student.id);
   await page.getByRole('button', { name: 'Show pouch identifier', exact: true }).click();
-  const pouch = page.getByRole('dialog', { name: 'Pouch identifier', exact: true });
+  const pouch = page.getByRole('dialog', {
+    name: 'Pouch identifier',
+    exact: true,
+  });
   await expect(pouch).toContainText(student.name);
   await expect(pouch.getByText(token, { exact: true })).toHaveCount(0);
   await expect(pouch.getByText('Reissue QR identifier', { exact: true })).toHaveCount(0);

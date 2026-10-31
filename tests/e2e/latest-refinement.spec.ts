@@ -8,8 +8,16 @@ test('inline name completion waits for a surname, confirms the matching student 
   const stem = 'Ari' + Date.now(),
     first = stem + ' Rivera',
     second = stem + ' Brooks';
-  await command(page, 'v2', { action: 'student-add', name: first, earlyLearner: false });
-  await command(page, 'v2', { action: 'student-add', name: second, earlyLearner: false });
+  await command(page, 'v2', {
+    action: 'student-add',
+    name: first,
+    earlyLearner: false,
+  });
+  await command(page, 'v2', {
+    action: 'student-add',
+    name: second,
+    earlyLearner: false,
+  });
   await page.goto('/reception');
   await page.getByRole('button', { name: 'Lock for shared use' }).click();
   await expect(page).toHaveURL(/\/kiosk$/);

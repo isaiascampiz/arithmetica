@@ -5,7 +5,9 @@ import { cookies, withRequestCookies } from '../src/server/edge-cookies';
 test('parallel cloud requests keep session reads and outgoing cookies isolated', async () => {
   const run = (value: string) =>
     withRequestCookies(
-      new Request('https://app.invalid/api/auth', { headers: { Cookie: `cf-cloud=${value}` } }),
+      new Request('https://app.invalid/api/auth', {
+        headers: { Cookie: `cf-cloud=${value}` },
+      }),
       async () => {
         const jar = await cookies();
         await Promise.resolve();

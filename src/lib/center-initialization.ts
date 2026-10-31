@@ -33,7 +33,13 @@ export function emptyProductionCenter(input: unknown, actor: string, now = new D
     observations: [],
     homework: [],
     audit: [
-      { id: randomUUID(), actor, at, action: 'center-initialize:schema-3', entityId: 'schema-v3' },
+      {
+        id: randomUUID(),
+        actor,
+        at,
+        action: 'center-initialize:schema-3',
+        entityId: 'schema-v3',
+      },
     ],
     operations: {
       students: {},

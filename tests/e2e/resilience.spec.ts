@@ -24,7 +24,9 @@ test('failed observation save keeps the draft and displays its error inside Quic
     route.fulfill({
       status: 503,
       contentType: 'application/json',
-      body: JSON.stringify({ error: 'Fictional test server unavailable. Please retry.' }),
+      body: JSON.stringify({
+        error: 'Fictional test server unavailable. Please retry.',
+      }),
     }),
   );
   await dialog.getByRole('button', { name: 'Save observations', exact: true }).click();

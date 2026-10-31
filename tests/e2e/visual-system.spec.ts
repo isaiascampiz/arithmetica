@@ -13,10 +13,16 @@ test('settings keeps failed-save feedback inside its accessible dialog', async (
     .getByRole('button', { name: 'Center details' })
     .click();
   await settings.getByRole('button', { name: 'Change', exact: true }).first().click();
-  const editor = page.getByRole('dialog', { name: 'Center details', exact: true });
+  const editor = page.getByRole('dialog', {
+    name: 'Center details',
+    exact: true,
+  });
   await editor.getByLabel('Closing time').fill('19:30');
   await page.route('**/api/commands', (route) =>
-    route.fulfill({ status: 409, json: { error: 'Fictional stale settings. Refresh and retry.' } }),
+    route.fulfill({
+      status: 409,
+      json: { error: 'Fictional stale settings. Refresh and retry.' },
+    }),
   );
   await editor.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(editor.getByRole('alert')).toContainText('Fictional stale settings');
@@ -106,20 +112,29 @@ for (const size of [
     await expect(dialog).toHaveCount(0);
     await page.goto('/?view=students&student=' + fixture.students[0].id);
     await expect(
-      page.getByRole('heading', { name: fixture.students[0].name, exact: true }),
+      page.getByRole('heading', {
+        name: fixture.students[0].name,
+        exact: true,
+      }),
     ).toBeVisible();
     await page.screenshot({
       path: `test-results/arithmetica-profile-${size.width}.png`,
       fullPage: true,
     });
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
+    const settings = page.getByRole('dialog', {
+      name: 'Settings',
+      exact: true,
+    });
     await expect(settings).toBeVisible();
     await expect(settings.getByRole('navigation', { name: 'Settings sections' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(settings).toHaveCount(0);
     await expect(
-      page.getByRole('heading', { name: fixture.students[0].name, exact: true }),
+      page.getByRole('heading', {
+        name: fixture.students[0].name,
+        exact: true,
+      }),
     ).toBeVisible();
     for (const section of ['Progress', 'Visit History']) {
       await page.getByRole('button', { name: section, exact: true }).click();

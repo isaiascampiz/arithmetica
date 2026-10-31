@@ -79,7 +79,10 @@ export function assertRosterDestination(
 
 export function prepareRosterImport(input: unknown, now = new Date()) {
   const request = z
-    .object({ expectedRevision: z.number().int().min(0), roster: pendingRosterInput })
+    .object({
+      expectedRevision: z.number().int().min(0),
+      roster: pendingRosterInput,
+    })
     .strict()
     .parse(input);
   const ids = request.roster.profiles.map((profile) => profile.intakeId);

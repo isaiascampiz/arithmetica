@@ -26,7 +26,10 @@ if (projectRef) {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
     plan = { projectRef, centerId: randomUUID() };
-    await writeFile(planFile, JSON.stringify(plan, null, 2), { flag: 'wx', mode: 0o600 });
+    await writeFile(planFile, JSON.stringify(plan, null, 2), {
+      flag: 'wx',
+      mode: 0o600,
+    });
   }
   if (plan.projectRef !== projectRef)
     throw new Error('Project differs from the existing plan. Nothing was replaced.');
@@ -35,7 +38,10 @@ if (projectRef) {
 const directory = path.resolve('supabase/migrations');
 const files = (await readdir(directory)).filter((file) => /^\d+_[\w-]+\.sql$/.test(file)).sort();
 const migrations = await Promise.all(
-  files.map(async (name) => ({ name, sql: await readFile(path.join(directory, name), 'utf8') })),
+  files.map(async (name) => ({
+    name,
+    sql: await readFile(path.join(directory, name), 'utf8'),
+  })),
 );
 if (plan) {
   const bootstrapFile = path.join(privateDirectory, `${environment}-bootstrap.sql`);

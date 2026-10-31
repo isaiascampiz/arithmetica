@@ -72,7 +72,12 @@ export function kioskScan(
   db: Database,
   token: string,
   now = new Date(),
-): { message: string; changed: boolean; direction?: 'in' | 'out'; studentName?: string } {
+): {
+  message: string;
+  changed: boolean;
+  direction?: 'in' | 'out';
+  studentName?: string;
+} {
   const student = db.students.find((s) => s.token === token);
   if (!student || db.operations?.students[student.id].active === false)
     throw new DomainError('Code not recognized. Please ask a staff member.', 404);
@@ -80,7 +85,10 @@ export function kioskScan(
     .filter((a) => a.entityId === student.id && a.action.startsWith('kiosk-'))
     .at(-1);
   if (last && now.getTime() - Date.parse(last.at) < 30000)
-    return { message: 'Scan already recorded. Please wait before scanning again.', changed: false };
+    return {
+      message: 'Scan already recorded. Please wait before scanning again.',
+      changed: false,
+    };
   const open = db.visits.find((v) => v.studentId === student.id && isOpenVisit(v));
   const tz = db.operations?.center.timezone || 'America/Los_Angeles';
   if (open && dayKey(open.arrivedAt, tz) !== dayKey(now, tz))

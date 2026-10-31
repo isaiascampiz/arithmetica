@@ -25,7 +25,13 @@ async function capture(page: Page, dialog: Locator, name: string, suffix: string
       controls: [...body.querySelectorAll('input:not([type="file"]),select,textarea')].map(
         (input) => {
           const r = input.getBoundingClientRect();
-          return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, height: r.height };
+          return {
+            left: r.left,
+            right: r.right,
+            top: r.top,
+            bottom: r.bottom,
+            height: r.height,
+          };
         },
       ),
     };
@@ -62,7 +68,10 @@ for (const [width, theme] of [
     await login(page);
     await page.getByRole('button', { name: 'Theme', exact: true }).click();
     await page
-      .getByRole('menuitemradio', { name: theme === 'dark' ? 'Dark' : 'Light', exact: true })
+      .getByRole('menuitemradio', {
+        name: theme === 'dark' ? 'Dark' : 'Light',
+        exact: true,
+      })
       .click();
     const session = await state(page),
       now = new Date('2026-10-19T21:00:00Z'),
@@ -127,7 +136,10 @@ for (const [width, theme] of [
       .click();
     await inspect('Edit student information', 'enrollment');
     await cancel('Edit student information');
-    const subjects = page.getByRole('region', { name: 'Subjects', exact: true });
+    const subjects = page.getByRole('region', {
+      name: 'Subjects',
+      exact: true,
+    });
     await subjects.getByRole('button', { name: 'Edit Math', exact: true }).click();
     await inspect('Edit Math', 'math-paper');
     await dialog('Edit Math').getByLabel('Learning mode').selectOption('CONNECT');
@@ -149,7 +161,10 @@ for (const [width, theme] of [
     await subjects.getByRole('button', { name: 'Cancel', exact: true }).click();
     const editBounds = (await subjects.locator('.profile-edit-action').boundingBox())!;
     await subjects.getByRole('tab', { name: 'Reading', exact: true }).click();
-    const add = subjects.getByRole('button', { name: 'Add Reading', exact: true });
+    const add = subjects.getByRole('button', {
+      name: 'Add Reading',
+      exact: true,
+    });
     await expect(subjects.getByRole('button', { name: 'Edit Reading', exact: true })).toHaveCount(
       0,
     );
@@ -158,7 +173,10 @@ for (const [width, theme] of [
     expect(addBounds.x).toBeCloseTo(editBounds.x, 0);
     await add.click();
     await expect(
-      dialog('Add Reading').getByRole('switch', { name: 'Enrolled', exact: true }),
+      dialog('Add Reading').getByRole('switch', {
+        name: 'Enrolled',
+        exact: true,
+      }),
     ).toBeChecked();
     await inspect('Add Reading', 'subject-add');
     await cancel('Add Reading');
@@ -295,11 +313,18 @@ for (const [width, theme] of [
     await dialog('Delete account').getByRole('button', { name: 'Continue', exact: true }).click();
     await inspect('Delete account', 'delete-confirmation');
     await expect(
-      dialog('Delete account').getByRole('button', { name: 'Delete my account', exact: true }),
+      dialog('Delete account').getByRole('button', {
+        name: 'Delete my account',
+        exact: true,
+      }),
     ).toBeDisabled();
     await cancel('Delete account');
 
-    fixture.operations!.v3!.features = { homework: false, medals: true, version: 0 };
+    fixture.operations!.v3!.features = {
+      homework: false,
+      medals: true,
+      version: 0,
+    };
     await page.goto('/?view=settings');
     await settings.getByRole('switch', { name: 'Homework', exact: true }).click();
     await inspect('Turn on homework', 'homework-confirmation');

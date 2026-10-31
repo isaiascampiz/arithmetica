@@ -45,8 +45,14 @@ The approved name is **Arithmetica**. An original folded A replaces the prior ap
   --line: #30302f;
   --input-edge: #71716e;
 }
-.profile-edit-action { min-height: 44px; border-radius: 8px; }
-.profile-subject-selector { background: transparent; border-radius: 0; }
+.profile-edit-action {
+  min-height: 44px;
+  border-radius: 8px;
+}
+.profile-subject-selector {
+  background: transparent;
+  border-radius: 0;
+}
 .profile-subject-selector .selected {
   background: transparent;
   border-bottom: 2px solid var(--ink);
@@ -60,12 +66,12 @@ The installed Wispr reference inventory is documented in `docs/wispr-ui-referenc
 
 Lint, explicit TypeScript checking, the production build and all **220 unit tests** pass. **60 distinct Chromium browser checks** pass across the current screens and retained functional workflows. The final focused rerun additionally checks report-value baselines, one-row date controls, search-field borders, linked punch filtering, and actual session/worksheet drill-downs. All tests use isolated fictional data. Screenshots cover dark/light, tablet portrait/landscape and narrow layouts; existing reduced-motion checks pass. The preview login responds with Arithmetica branding on localhost and the current Wi-Fi address, and anonymous access to staff state remains rejected.
 
-| Principle / severity | Location | Before | After | Why |
-| --- | --- | --- | --- | --- |
-| Selected state, HIGH resolved | `src/app/refinement.css:1239` | The dark activity selection could show white text on white | Neutral selected fill and explicit readable foreground | Selection remains visible without relying on motion |
-| Surface consistency, MEDIUM resolved | `src/app/refinement.css:1235`; `src/app/refinement.css:1251` | A contrasting tab wrapper and nested input borders added visual clutter | Tab wrapper matches its dialog; shared search inputs have one outer boundary | One treatment works in either appearance and across lists |
-| Consistent editing, MEDIUM resolved | `src/components/profile-overview.tsx:75`; `src/components/profile-overview.tsx:252` | Inline edits changed card height and mismatched actions | Shared Edit action and native Settings-style dialogs; portrait cards stack | Labels, subject rails and controls stay readable |
-| Stable geometry, MEDIUM resolved | `src/app/refinement.css` packet rule; `src/components/v3-reports.css:20` | Held tiles shrank and report arrows could wrap | Fixed matching packet geometry and a three-column date group | Operational state changes do not disturb the layout |
+| Principle / severity                 | Location                                                                                              | Before                                                                  | After                                                                        | Why                                                       |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Selected state, HIGH resolved        | `src/app/refinement.css:1239`                                                                         | The dark activity selection could show white text on white              | Neutral selected fill and explicit readable foreground                       | Selection remains visible without relying on motion       |
+| Surface consistency, MEDIUM resolved | `src/app/refinement.css:1235`; `src/app/refinement.css:1251`                                          | A contrasting tab wrapper and nested input borders added visual clutter | Tab wrapper matches its dialog; shared search inputs have one outer boundary | One treatment works in either appearance and across lists |
+| Consistent editing, MEDIUM resolved  | `src/components/students/profile-overview.tsx:75`; `src/components/students/profile-overview.tsx:252` | Inline edits changed card height and mismatched actions                 | Shared Edit action and native Settings-style dialogs; portrait cards stack   | Labels, subject rails and controls stay readable          |
+| Stable geometry, MEDIUM resolved     | `src/app/refinement.css` packet rule; `src/components/reports/reports.css:20`                         | Held tiles shrank and report arrows could wrap                          | Fixed matching packet geometry and a three-column date group                 | Operational state changes do not disturb the layout       |
 
 Not verified: physical iPad/Safari, actual Bluetooth pairing/reader hardware, gated reference-app states and slow-motion DevTools replay of every animation. Keyboard-reader input and camera decoding/track release are emulated browser checks. Existing shared dialog motion and reduced-motion behavior are retained.
 

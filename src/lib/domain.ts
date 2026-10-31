@@ -134,5 +134,11 @@ export function applyCommand(db: Database, command: Command, staff: Staff, now =
     attendance(db, command.studentId, command.direction, now, staff.name);
     entityId = command.studentId;
   }
-  db.audit.push({ id: randomUUID(), action: command.kind, actor: staff.name, at, entityId });
+  db.audit.push({
+    id: randomUUID(),
+    action: command.kind,
+    actor: staff.name,
+    at,
+    entityId,
+  });
 }

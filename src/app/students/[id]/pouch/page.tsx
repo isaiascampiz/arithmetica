@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { staffSession } from '@/lib/auth';
 import { repository } from '@/lib/repository';
 import { centerName } from '@/lib/brand';
-import { PrintButton } from '@/components/print-button';
+import { PrintButton } from '@/components/pouch/print-button';
 export const dynamic = 'force-dynamic';
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   try {

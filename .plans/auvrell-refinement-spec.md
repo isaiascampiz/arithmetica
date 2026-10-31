@@ -36,7 +36,7 @@ Student Roster and Homework Preparation share icon-led search and a checked Sort
 
 ## Implementation examples
 
-The actual reusable components are in `src/components/ui-primitives.tsx`; tokens and styling live in `src/app/identity.css` and `src/app/refinement.css`.
+The actual reusable components are in `src/components/ui/ui-primitives.tsx`; tokens and styling live in `src/app/identity.css` and `src/app/refinement.css`.
 
 ```html
 <button type="button" role="switch" aria-checked="true" aria-label="Homework">

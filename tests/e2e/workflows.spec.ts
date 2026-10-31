@@ -110,7 +110,9 @@ test('assistant instruction access denied; legacy packet transitions remain pres
   await openProfile(page, db.students[1].name);
   await page.getByRole('button', { name: 'Visit History', exact: true }).click();
   await expect(
-    page.getByText('Preserved V1/V2 worksheet and decision history', { exact: true }),
+    page.getByText('Preserved V1/V2 worksheet and decision history', {
+      exact: true,
+    }),
   ).toHaveCount(0);
   expect((await state(page)).homework.find((h) => h.id === packet.id)).toMatchObject({
     id: packet.id,
@@ -135,7 +137,10 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.screenshot({ path: 'test-results/v3-phone-roster.png', fullPage: true });
+  await page.screenshot({
+    path: 'test-results/v3-phone-roster.png',
+    fullPage: true,
+  });
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('button', { name: 'Open kiosk', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Scan your pouch.' })).toBeVisible();
@@ -149,7 +154,10 @@ test('camera-denial fallback, tablet/phone layout and modal Escape remain usable
   await page.getByRole('button', { name: 'Use camera' }).click();
   await expect(page.locator('.kiosk-error')).toContainText('Camera could not start');
   await expect(page.getByLabel('Pouch code', { exact: true })).toBeEnabled();
-  await page.screenshot({ path: 'test-results/v3-phone-kiosk.png', fullPage: true });
+  await page.screenshot({
+    path: 'test-results/v3-phone-kiosk.png',
+    fullPage: true,
+  });
 });
 test('anonymous access and foreign-origin writes remain denied', async ({ page }) => {
   expect((await page.request.get('/api/state')).status()).toBe(401);
@@ -229,7 +237,9 @@ for (const width of [1024, 390])
         .getByLabel('Instructional note', { exact: true })
         .fill('Amended fictional session note');
       await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(1);
-      await page.screenshot({ path: 'test-results/session-observation-editor-' + width + '.png' });
+      await page.screenshot({
+        path: 'test-results/session-observation-editor-' + width + '.png',
+      });
       await dialog.getByRole('button', { name: 'Update observation', exact: true }).click();
       await expect(dialog.locator('.history-skill-ratings')).toContainText('5/5');
       await expect(dialog).toContainText('Amended fictional session note');
@@ -246,7 +256,9 @@ for (const width of [1024, 390])
       await expect(dialog.getByRole('button', { name: 'Mark reviewed' })).toHaveCount(0);
       await expect(dialog).not.toContainText('Fictional speech only');
       expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-      await page.screenshot({ path: 'test-results/session-history-' + width + '.png' });
+      await page.screenshot({
+        path: 'test-results/session-history-' + width + '.png',
+      });
       const after = await state(page);
       expect(after.visits).toEqual(before.visits);
       expect(after.operations!.assignments).toEqual(before.operations!.assignments);

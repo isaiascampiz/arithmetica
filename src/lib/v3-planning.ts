@@ -47,7 +47,10 @@ export function paperProposal(
     return null;
   // An absence is a pause, never an extended vacation assignment. Before a
   // pause, use the ordinary recurrence; resume from the actual return visit.
-  const routine = { ...op, students: { ...op.students, [studentId]: { ...cfg, awayUntil: null } } };
+  const routine = {
+    ...op,
+    students: { ...op.students, [studentId]: { ...cfg, awayUntil: null } },
+  };
   const next = nextExpected(routine, studentId, visitDate);
   const days = next ? datesBetween(addDays(visitDate, 1), addDays(next, -1)) : [];
   let count = days.length * s.packetsPerDay;
@@ -132,7 +135,11 @@ export function paperProposal(
           ),
       );
     if (held)
-      return { ...held, purpose: index === 0 ? 'in-center' : 'homework', status: 'planned' };
+      return {
+        ...held,
+        purpose: index === 0 ? 'in-center' : 'homework',
+        status: 'planned',
+      };
     return {
       id: `${id}:packet:${index}`,
       range,
@@ -185,7 +192,10 @@ export function paperProposal(
       review,
       adjustment: [],
       originalCursor: { level: s.level, start },
-      advanceCursor: { level: s.level, start: ranges.at(-1) ? ranges.at(-1)!.end + 1 : start },
+      advanceCursor: {
+        level: s.level,
+        start: ranges.at(-1) ? ranges.at(-1)!.end + 1 : start,
+      },
       preparedAt: null,
       preparedBy: null,
       issuedAt: null,
@@ -434,7 +444,9 @@ export function reuseSequence(
     const result = match || {
       ...p,
       ...(pool.some((q) => q.id === p.id)
-        ? { id: `${set.id}:adjust:${p.range.level}:${p.range.start}:${p.range.end}` }
+        ? {
+            id: `${set.id}:adjust:${p.range.level}:${p.range.start}:${p.range.end}`,
+          }
         : {}),
       sourceAssignmentId: set.id,
     };
@@ -605,13 +617,21 @@ export function homeRoster(db: Database, today: string, filter: HomeFilter | nul
       ),
     ),
     rows = (items: Visit[]): HomeRow[] =>
-      items.map((visit) => ({ student: students.get(visit.studentId)!, visit })),
+      items.map((visit) => ({
+        student: students.get(visit.studentId)!,
+        visit,
+      })),
     here = rows(present),
     early = here.filter((r) => r.student.earlyLearner),
     out = rows(checkedOut),
     groups = { expected, here, early, out };
   return {
     rows: filter ? groups[filter] : [...here, ...expected, ...rows(departed)],
-    counts: { expected: expected.length, here: here.length, early: early.length, out: out.length },
+    counts: {
+      expected: expected.length,
+      here: here.length,
+      early: early.length,
+      out: out.length,
+    },
   };
 }

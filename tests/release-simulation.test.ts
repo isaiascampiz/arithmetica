@@ -22,7 +22,10 @@ test('96 fictional paper/CONNECT visit cycles keep attendance, preparation, hand
   // This fixture is entirely in memory; no records repository is opened.
   db.visits = [];
   db.observations = [];
-  const actor = { name: 'Fictional Release Instructor', role: 'instructor' as const };
+  const actor = {
+    name: 'Fictional Release Instructor',
+    role: 'instructor' as const,
+  };
   const students = db.students.slice(0, 24);
   for (const [index, student] of students.entries()) {
     const config = db.operations!.students[student.id];

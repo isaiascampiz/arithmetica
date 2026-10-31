@@ -73,7 +73,10 @@ for (const viewport of [
       });
       await page.goto('/?view=students&student=' + progressStudentId);
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
-      const card = page.getByRole('article', { name: 'Time spent at center', exact: true });
+      const card = page.getByRole('article', {
+        name: 'Time spent at center',
+        exact: true,
+      });
       await expect(card.locator('.center-time-summary strong')).toHaveText(
         Math.round(expected.average!) + ' min',
       );
@@ -104,7 +107,10 @@ for (const viewport of [
         path: 'test-results/center-time-preview-' + viewport.width + '.png',
       });
       await card.click();
-      const dialog = page.getByRole('dialog', { name: 'Time spent at center', exact: true });
+      const dialog = page.getByRole('dialog', {
+        name: 'Time spent at center',
+        exact: true,
+      });
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('combobox', { name: 'Duration period' })).toHaveValue(
         '8 weeks',
@@ -117,7 +123,9 @@ for (const viewport of [
       const bar = dialog.getByRole('button', { name: /minutes average/ }).first();
       await bar.focus();
       await page.keyboard.press('Enter');
-      const popup = dialog.getByRole('tooltip', { name: 'Visit duration summary' });
+      const popup = dialog.getByRole('tooltip', {
+        name: 'Visit duration summary',
+      });
       await expect(popup).toBeVisible();
       await expect(dialog.locator('.progress-period > span')).not.toBeVisible();
       const firstTip = (await popup.boundingBox())!;
@@ -132,7 +140,9 @@ for (const viewport of [
       expect(await popup.evaluate((el) => el.getBoundingClientRect().right <= innerWidth)).toBe(
         true,
       );
-      await page.screenshot({ path: 'test-results/center-time-detail-' + viewport.width + '.png' });
+      await page.screenshot({
+        path: 'test-results/center-time-detail-' + viewport.width + '.png',
+      });
       await page.keyboard.press('Escape');
       await expect(popup).toHaveCount(0);
       await expect(dialog).toBeVisible();
@@ -169,7 +179,9 @@ for (const viewport of [
       await expect(dialog.locator('.center-time-column')).toHaveCount(10);
       await period.selectOption('All time');
       await dialog.getByRole('button', { name: 'Visit history', exact: true }).click();
-      const history = dialog.getByRole('list', { name: 'Recorded visit history' });
+      const history = dialog.getByRole('list', {
+        name: 'Recorded visit history',
+      });
       await expect(history).toBeVisible();
       await expect(history).toContainText('180 min');
       await expect(history).toContainText('Checked in');

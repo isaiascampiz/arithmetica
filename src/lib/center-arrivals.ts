@@ -155,9 +155,10 @@ export function arrivalComparison(
         !closed.has(d) && (selected.enabled || (historical || 0) > 0) ? historical : null;
       return {
         key: d,
-        label: new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' }).format(
-          new Date(d + 'T12:00:00Z'),
-        ),
+        label: new Intl.DateTimeFormat('en-US', {
+          weekday: 'short',
+          timeZone: 'UTC',
+        }).format(new Date(d + 'T12:00:00Z')),
         actual: d > today ? null : totals.get(d) || 0,
         expected,
         samples: expected === null ? 0 : prior.length,

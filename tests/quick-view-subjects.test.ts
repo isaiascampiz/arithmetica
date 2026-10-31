@@ -90,7 +90,10 @@ for (const startWith of ['today', 'homework'] as const) {
       prior[1].range = { level: 'D', start: 51, end: 55 };
       const c = command(db, v, 'Math'),
         cursor = db.operations!.students[v.studentId].subjects.Math.nextStart;
-      c.subjects[0].incoming = prior.map((p) => ({ id: p.id, state: 'unfinished' }));
+      c.subjects[0].incoming = prior.map((p) => ({
+        id: p.id,
+        state: 'unfinished',
+      }));
       c.subjects[0].exception = true;
       c.subjects[0].repeat = {
         level: 'D',
@@ -103,7 +106,10 @@ for (const startWith of ['today', 'homework'] as const) {
       };
       // Homework-only keeps the current center packet, avoiding any overlap with the rebuilt homework.
       if (startWith === 'homework')
-        c.subjects[0].center = { ...a.v3!.inCenter!, range: { level: 'D', start: 21, end: 25 } };
+        c.subjects[0].center = {
+          ...a.v3!.inCenter!,
+          range: { level: 'D', start: 21, end: 25 },
+        };
       applyV3(db, c, teacher, now);
       assert.equal(a.v3!.inCenter!.range.start, startWith === 'today' ? 31 : 21);
       assert.deepEqual(
@@ -128,7 +134,13 @@ for (const startWith of ['today', 'homework'] as const) {
       const future = repeatSequence(
         db,
         a,
-        { level: 'D', start: 46, packetsPerDay: 1, sheetsPerPacket: 5, startWith: 'today' },
+        {
+          level: 'D',
+          start: 46,
+          packetsPerDay: 1,
+          sheetsPerPacket: 5,
+          startWith: 'today',
+        },
         'Worksheets',
         a.v3!.inCenter,
       )!;
@@ -177,10 +189,16 @@ test('explicit center adjustment replaces unfinished priority without losing the
     a = currentSets(db, v).find((a) => a.subject === 'Math')!,
     prior = incomingPackets(db, v.studentId, 'Math'),
     c = command(db, v, 'Math');
-  c.subjects[0].incoming = prior.map((p) => ({ id: p.id, state: 'unfinished' }));
+  c.subjects[0].incoming = prior.map((p) => ({
+    id: p.id,
+    state: 'unfinished',
+  }));
   c.subjects[0].exception = true;
   c.subjects[0].reason = 'Fictional explicit change of today’s packet';
-  c.subjects[0].center = { ...a.v3!.inCenter!, range: { level: 'D', start: 61, end: 65 } };
+  c.subjects[0].center = {
+    ...a.v3!.inCenter!,
+    range: { level: 'D', start: 61, end: 65 },
+  };
   c.subjects[0].actual = a.v3!.planned.map((p, i) => ({
     ...p,
     range: { level: 'D', start: 66 + 5 * i, end: 70 + 5 * i },
@@ -204,7 +222,10 @@ test("confirmed homework-only adjustment keeps today's packet and retains remove
     a = currentSets(db, v).find((a) => a.subject === 'Math')!,
     prior = incomingPackets(db, v.studentId, 'Math'),
     c = command(db, v, 'Math');
-  c.subjects[0].incoming = prior.map((p) => ({ id: p.id, state: 'unfinished' }));
+  c.subjects[0].incoming = prior.map((p) => ({
+    id: p.id,
+    state: 'unfinished',
+  }));
   c.subjects[0].exception = true;
   const reviewed = subjectPlan(
     db,
@@ -241,7 +262,13 @@ test('rebuilt plans reject overlaps, unknown levels, missing work reuse and shar
     repeatSequence(
       db,
       a,
-      { level: 'Unknown', start: 1, packetsPerDay: 0, sheetsPerPacket: 5, startWith: 'homework' },
+      {
+        level: 'Unknown',
+        start: 1,
+        packetsPerDay: 0,
+        sheetsPerPacket: 5,
+        startWith: 'homework',
+      },
       'Corrections only',
       null,
     )!.v3!.review.join(' '),
@@ -250,7 +277,11 @@ test('rebuilt plans reject overlaps, unknown levels, missing work reuse and shar
   const c = command(db, v, 'Math');
   c.subjects[0].center = original;
   assert.throws(() => applyV3(db, c, teacher, now), /reason/);
-  const missing = { ...original, id: 'fictional-missing', status: 'missing' as const };
+  const missing = {
+    ...original,
+    id: 'fictional-missing',
+    status: 'missing' as const,
+  };
   const planned = reuseSequence(db, a, null, [{ ...original, id: 'fictional-new' }], [missing]);
   assert.notEqual(planned.out[0].id, missing.id);
   const held = {
@@ -373,8 +404,16 @@ test('unfinished packets follow catalog level order before worksheet number, ind
   // Explicit fictional test boundary, not an approval of the real curriculum.
   const catalog = db.operations!.v3!.catalog;
   const e = catalog.find((c) => c.subject === 'Math' && c.id === 'E')!;
-  Object.assign(e, { approved: true, first: 1, last: 200, source: 'Fictional test boundary' });
-  const returned = packets.map((p) => ({ ...p, status: 'unfinished' as const })),
+  Object.assign(e, {
+    approved: true,
+    first: 1,
+    last: 200,
+    source: 'Fictional test boundary',
+  });
+  const returned = packets.map((p) => ({
+      ...p,
+      status: 'unfinished' as const,
+    })),
     plan = subjectPlan(db, a, 'Worksheets', returned);
   assert.deepEqual(plan.review, []);
   assert.equal(plan.center!.id, packets[1].id);
@@ -389,7 +428,10 @@ test('editing a saved shifted plan retains returned packet identities and held m
     incoming = incomingPackets(db, v.studentId, 'Math'),
     c = command(db, v, 'Math');
   c.subjects[0].exception = true;
-  c.subjects[0].incoming = incoming.map((p) => ({ id: p.id, state: 'unfinished' }));
+  c.subjects[0].incoming = incoming.map((p) => ({
+    id: p.id,
+    state: 'unfinished',
+  }));
   applyV3(db, c, teacher, now);
   const issued = a.v3!.issued.map((p) => p.id),
     center = a.v3!.inCenter!.id;
@@ -422,7 +464,10 @@ test('overflow is flagged rather than silently dropping unfinished packets; expl
     a = currentSets(db, v).find((a) => a.subject === 'Math')!,
     packets = incomingPackets(db, v.studentId, 'Math');
   a.v3!.planned = a.v3!.planned.slice(0, 1);
-  const returned = packets.map((p) => ({ ...p, status: 'unfinished' as const }));
+  const returned = packets.map((p) => ({
+    ...p,
+    status: 'unfinished' as const,
+  }));
   assert.match(
     subjectPlan(db, a, 'Corrections only', returned).review.join(' '),
     /scheduled homework slots/,
@@ -442,7 +487,11 @@ test("unknown incoming curriculum and an outgoing duplicate of today's packet ar
     packets = incomingPackets(db, v.studentId, 'Math');
   assert.match(
     subjectPlan(db, a, 'Worksheets', [
-      { ...packets[0], status: 'unfinished', range: { level: 'Unknown', start: 1, end: 5 } },
+      {
+        ...packets[0],
+        status: 'unfinished',
+        range: { level: 'Unknown', start: 1, end: 5 },
+      },
     ]).review.join(' '),
     /approved worksheet boundary/,
   );
@@ -563,7 +612,13 @@ test('observational ratings are optional, bounded, attributed and preserve custo
   const db = quickViewDemo(now),
     v = visit(db),
     cfg = db.operations!.students[v.studentId];
-  const input = { action: 'observation', visitId: v.id, choices: [], text: '', followUp: false };
+  const input = {
+    action: 'observation',
+    visitId: v.id,
+    choices: [],
+    text: '',
+    followUp: false,
+  };
   const count = db.observations.length;
   applyV3(db, v3CommandInput.parse(input), teacher, now);
   assert.equal(db.observations.length, count);
@@ -588,15 +643,20 @@ test('observational ratings are optional, bounded, attributed and preserve custo
   assert.equal(recorded.visitId, v.id);
   for (const score of [0, 6, 1.5])
     assert.equal(
-      v3CommandInput.safeParse({ ...input, skillRatings: [{ id: 'focus', label: 'Focus', score }] })
-        .success,
+      v3CommandInput.safeParse({
+        ...input,
+        skillRatings: [{ id: 'focus', label: 'Focus', score }],
+      }).success,
       false,
     );
   assert.throws(
     () =>
       applyV3(
         db,
-        v3CommandInput.parse({ ...input, skillSettings: { version: cfg.version - 1, skills: [] } }),
+        v3CommandInput.parse({
+          ...input,
+          skillSettings: { version: cfg.version - 1, skills: [] },
+        }),
         teacher,
         now,
       ),
@@ -652,7 +712,10 @@ test('observation edits append versions, preserve original attribution and rejec
   const o = db.observations.at(-1)!;
   o.reviewedAt = now.toISOString();
   o.reviewedBy = 'Fictional reviewer';
-  const materials = JSON.stringify({ visits: db.visits, assignments: db.operations!.assignments });
+  const materials = JSON.stringify({
+    visits: db.visits,
+    assignments: db.operations!.assignments,
+  });
   const edit = v3CommandInput.parse({
     action: 'observation-edit',
     id: o.id,
@@ -673,7 +736,10 @@ test('observation edits append versions, preserve original attribution and rejec
   assert.equal(o.reviewedBy, 'Fictional reviewer');
   assert.equal(o.author, teacher.name);
   assert.equal(
-    JSON.stringify({ visits: db.visits, assignments: db.operations!.assignments }),
+    JSON.stringify({
+      visits: db.visits,
+      assignments: db.operations!.assignments,
+    }),
     materials,
   );
   assert.throws(() => applyV3(db, edit, teacher, now), /Observation changed/);

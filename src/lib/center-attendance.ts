@@ -101,12 +101,18 @@ export function attendanceAxis(bins: ArrivalBin[]) {
     Math.ceil(([1, 2, 2.5, 5, 10].find((n) => n * power >= raw) || 10) * power),
   );
   const ceiling = step * 4;
-  return { ceiling, ticks: [ceiling, ceiling - step, ceiling - step * 2, step, 0] };
+  return {
+    ceiling,
+    ticks: [ceiling, ceiling - step, ceiling - step * 2, step, 0],
+  };
 }
 
 /** Display window only; full-day totals, accessible data and punches retain every hour. */
 export function dailyTrafficBins(bins: ArrivalBin[]) {
   return bins
     .filter((b) => Number(b.key) >= 12 && Number(b.key) <= 19)
-    .map((b) => ({ ...b, label: b.label.replace('am', ' AM').replace('pm', ' PM') }));
+    .map((b) => ({
+      ...b,
+      label: b.label.replace('am', ' AM').replace('pm', ' PM'),
+    }));
 }

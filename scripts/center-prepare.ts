@@ -11,7 +11,10 @@ async function main() {
   validateDatabase(db);
   await mkdir(resolve('data/production-setup'), { recursive: true });
   const destination = resolve('data/production-setup/empty-center.json');
-  await writeFile(destination, JSON.stringify(db, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+  await writeFile(destination, JSON.stringify(db, null, 2) + '\n', {
+    flag: 'wx',
+    mode: 0o600,
+  });
   console.log(
     'Prepared a new empty production baseline. No existing records or cloud database were changed.',
   );

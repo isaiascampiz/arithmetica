@@ -52,14 +52,22 @@ export async function cloudStaff(token?: string): Promise<Staff> {
   const user = await userResponse.json();
   const response = await fetch(
     `${url}/rest/v1/staff_memberships?center_id=eq.${encodeURIComponent(process.env.CENTER_ID!)}&user_id=eq.${encodeURIComponent(user.id)}&active=eq.true&select=role,display_name`,
-    { headers: { apikey: key, Authorization: 'Bearer ' + access }, cache: 'no-store' },
+    {
+      headers: { apikey: key, Authorization: 'Bearer ' + access },
+      cache: 'no-store',
+    },
   );
   if (!response.ok) throw new DomainError('Staff membership could not be verified.', 403);
   const memberships = await response.json();
   const member = memberships[0];
   if (!member || !['owner', 'instructor', 'assistant'].includes(member.role))
     throw new DomainError('No active center membership.', 403);
-  return { name: member.display_name, role: member.role as Role, id: user.id, email: user.email };
+  return {
+    name: member.display_name,
+    role: member.role as Role,
+    id: user.id,
+    email: user.email,
+  };
 }
 export async function refreshCloudSession() {
   const { url, key } = config();

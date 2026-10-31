@@ -238,7 +238,11 @@ test('V1 migration preserves every student, code, visit, note, packet and stable
 });
 test('add/edit/withdraw/reactivate preserves identity/history; old QR revoked on reissue', () => {
   const db = fixture();
-  const id = run(db, { action: 'student-add', name: 'Fictional Sky Rowan', earlyLearner: true });
+  const id = run(db, {
+    action: 'student-add',
+    name: 'Fictional Sky Rowan',
+    earlyLearner: true,
+  });
   const s = db.students.find((s) => s.id === id)!;
   const token = s.token;
   run(db, {
@@ -251,7 +255,11 @@ test('add/edit/withdraw/reactivate preserves identity/history; old QR revoked on
   run(db, { action: 'student-active', studentId: id, active: false });
   assert.equal(db.operations!.students[id].active, false);
   run(db, { action: 'student-active', studentId: id, active: true });
-  run(db, { action: 'qr-reissue', studentId: id, reason: 'Replace fictional lost pouch' });
+  run(db, {
+    action: 'qr-reissue',
+    studentId: id,
+    reason: 'Replace fictional lost pouch',
+  });
   assert.notEqual(s.token, token);
   assert.throws(() => kioskScan(db, token, now), /not recognized/);
   assert.equal(s.id, id);
@@ -282,7 +290,12 @@ test('stale student profile versions are rejected after a competing edit', () =>
 test('withdrawal with an open visit requires attendance reconciliation', () => {
   const db = fixture();
   assert.throws(
-    () => run(db, { action: 'student-active', studentId: db.students[0].id, active: false }),
+    () =>
+      run(db, {
+        action: 'student-active',
+        studentId: db.students[0].id,
+        active: false,
+      }),
     /open attendance/,
   );
 });
@@ -412,7 +425,11 @@ test('make-up visits, center closures and absence cancellation recalculate atten
   assert.equal(nextExpected(db.operations!, id, '2026-10-12'), '2026-10-14');
   db.operations!.center.closedDates.push('2026-10-14');
   assert.equal(expectedOn(db.operations!, id, '2026-10-14'), false);
-  run(db, { action: 'schedule-cancel', id: e, reason: 'Family cancelled the exception' });
+  run(db, {
+    action: 'schedule-cancel',
+    id: e,
+    reason: 'Family cancelled the exception',
+  });
   assert.equal(expectedOn(db.operations!, id, '2026-10-15'), true);
 });
 test('advance vacation flags last visit and creates capped proposals for both subjects', () => {
@@ -815,7 +832,11 @@ test('assistant cannot alter instructional decisions, achievements, student iden
     () =>
       applyV2(
         db,
-        { action: 'student-add', name: 'Fictional Student', earlyLearner: false },
+        {
+          action: 'student-add',
+          name: 'Fictional Student',
+          earlyLearner: false,
+        },
         assistant,
         now,
       ),

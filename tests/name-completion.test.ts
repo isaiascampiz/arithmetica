@@ -11,9 +11,15 @@ test('inline completion exposes one active name only and waits through shared fi
   const before = JSON.stringify(db);
   assert.deepEqual(completeStudentName(db, 'Al'), { completion: null });
   assert.deepEqual(completeStudentName(db, 'Alex'), { completion: null });
-  assert.deepEqual(completeStudentName(db, 'Alex R'), { completion: 'Alex Rivera' });
-  assert.deepEqual(completeStudentName(db, ' ALEX   B'), { completion: 'Alex Brooks' });
-  assert.deepEqual(completeStudentName(db, 'Alexan'), { completion: 'Alexandra Stone' });
+  assert.deepEqual(completeStudentName(db, 'Alex R'), {
+    completion: 'Alex Rivera',
+  });
+  assert.deepEqual(completeStudentName(db, ' ALEX   B'), {
+    completion: 'Alex Brooks',
+  });
+  assert.deepEqual(completeStudentName(db, 'Alexan'), {
+    completion: 'Alexandra Stone',
+  });
   assert.deepEqual(completeStudentName(db, 'No match'), { completion: null });
   assert.equal(JSON.stringify(db), before);
   b.name = a.name;

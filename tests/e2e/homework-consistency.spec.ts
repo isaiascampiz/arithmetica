@@ -48,16 +48,24 @@ for (const viewport of [
       });
       await page.goto('/?view=students&student=' + progressStudentId);
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
-      const card = page.getByRole('article', { name: 'Homework consistency', exact: true });
+      const card = page.getByRole('article', {
+        name: 'Homework consistency',
+        exact: true,
+      });
       await expect(card.locator('.homework-summary strong')).toHaveText(
         Math.round(expected.percent!) + '%',
       );
       await expect(card).toContainText(expected.completed + ' of ' + expected.total + ' packets');
       await expect(card.locator('.homework-column')).toHaveCount(8);
       expect(await card.locator('.homework-no-review').count()).toBeGreaterThan(0);
-      await page.screenshot({ path: 'test-results/homework-preview-' + viewport.width + '.png' });
+      await page.screenshot({
+        path: 'test-results/homework-preview-' + viewport.width + '.png',
+      });
       await card.click();
-      const dialog = page.getByRole('dialog', { name: 'Homework consistency', exact: true });
+      const dialog = page.getByRole('dialog', {
+        name: 'Homework consistency',
+        exact: true,
+      });
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('combobox', { name: 'Homework period' })).toHaveValue(
         '8 weeks',
@@ -78,7 +86,9 @@ for (const viewport of [
       const bar = dialog.getByRole('button', { name: /% completed/ }).first();
       await bar.focus();
       await page.keyboard.press('Enter');
-      const popup = dialog.getByRole('tooltip', { name: 'Homework review summary' });
+      const popup = dialog.getByRole('tooltip', {
+        name: 'Homework review summary',
+      });
       await expect(popup).toBeVisible();
       await expect(dialog.locator('.progress-period > span')).not.toBeVisible();
       const firstTip = (await popup.boundingBox())!;
@@ -93,7 +103,9 @@ for (const viewport of [
       expect(await popup.evaluate((el) => el.getBoundingClientRect().right <= innerWidth)).toBe(
         true,
       );
-      await page.screenshot({ path: 'test-results/homework-detail-' + viewport.width + '.png' });
+      await page.screenshot({
+        path: 'test-results/homework-detail-' + viewport.width + '.png',
+      });
       await page.keyboard.press('Escape');
       await expect(popup).toHaveCount(0);
       await expect(dialog).toBeVisible();
@@ -126,7 +138,9 @@ for (const viewport of [
       await expect(dialog.locator('.homework-column')).toHaveCount(10);
       await period.selectOption('All time');
       await dialog.getByRole('button', { name: 'Homework history', exact: true }).click();
-      const history = dialog.getByRole('list', { name: 'Recorded homework history' });
+      const history = dialog.getByRole('list', {
+        name: 'Recorded homework history',
+      });
       await expect(history).toBeVisible();
       await expect(history).toContainText('Unfinished');
       await expect(history).toContainText('Completed');
@@ -137,7 +151,10 @@ for (const viewport of [
       await page.getByRole('button', { name: 'Progress', exact: true }).click();
       await page.getByRole('tab', { name: 'Reading', exact: true }).click();
       await expect(
-        page.getByRole('article', { name: 'Homework consistency', exact: true }),
+        page.getByRole('article', {
+          name: 'Homework consistency',
+          exact: true,
+        }),
       ).toContainText('Kumon CONNECT');
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,

@@ -23,7 +23,10 @@ for (const theme of ['Dark', 'Light'])
         json: { error: 'Fictional save unavailable. Retry.' },
       }),
     );
-    const save = dialog.getByRole('button', { name: 'Create student', exact: true });
+    const save = dialog.getByRole('button', {
+      name: 'Create student',
+      exact: true,
+    });
     const original = await save.evaluate((el) => getComputedStyle(el).backgroundColor);
     await save.tap();
     await expect(dialog.getByRole('alert')).toContainText('Fictional save unavailable');

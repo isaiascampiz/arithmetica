@@ -29,7 +29,10 @@
     "restore:test": "node scripts/run-ts.cjs scripts/restore-test.ts",
     "cloud:provision": "node scripts/run-ts.cjs scripts/cloud-provision.ts",
     "demo:skills:add": "node scripts/run-ts.cjs scripts/add-skill-ratings.ts",
-    "demo:activity:add": "node scripts/run-ts.cjs scripts/add-center-activity.ts"
+    "demo:activity:add": "node scripts/run-ts.cjs scripts/add-center-activity.ts",
+    "format": "node scripts/format.mjs --write",
+    "format:check": "node scripts/format.mjs",
+    "repo:check": "node scripts/repository-check.mjs"
   },
   "dependencies": {
     "@zxing/browser": "0.2.1",
@@ -56,5 +59,17 @@
     "tsx": "4.23.15",
     "typescript": "~5.9.3",
     "wrangler": "4.155.0"
+  },
+  "description": "A learning center workspace for attendance, instructor handoffs, homework preparation, and observations.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/isaiascampiz/arithmetica.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isaiascampiz/arithmetica/issues"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

@@ -97,7 +97,11 @@ export function centerActivity(
     arrival: Date.parse(visit.arrivedAt),
   }));
   const visits = source.filter((v) => selectedDates.has(v.date));
-  const bins = Array.from({ length: 24 }, (_, hour) => ({ hour, arrivals: 0, occupancy: 0 }));
+  const bins = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    arrivals: 0,
+    occupancy: 0,
+  }));
   const hourFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
     hour: 'numeric',

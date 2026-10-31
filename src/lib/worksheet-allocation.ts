@@ -14,7 +14,11 @@ export function dailyWorksheets(s: SubjectSettings) {
   return s.dailyWork?.worksheets ?? s.packetsPerDay * s.sheetsPerPacket;
 }
 export function dailyWork(worksheets: number) {
-  return dailyWorkInput.parse({ version: 1, worksheets, packetSheets: STANDARD_PACKET_SHEETS });
+  return dailyWorkInput.parse({
+    version: 1,
+    worksheets,
+    packetSheets: STANDARD_PACKET_SHEETS,
+  });
 }
 /** Older clients may omit the new policy, but cannot accidentally erase it. */
 export function preserveDailyWork(prior: SubjectSettings, next: SubjectSettings): SubjectSettings {

@@ -75,7 +75,10 @@ export const studentSettingsInput = z.object({
   individualSchedule: z.boolean(),
   expectedMinutes: z.number().int().min(5).max(240),
   expectedMinutesOverride: z.boolean().optional(),
-  subjects: z.object({ Math: subjectSettingsInput, Reading: subjectSettingsInput }),
+  subjects: z.object({
+    Math: subjectSettingsInput,
+    Reading: subjectSettingsInput,
+  }),
   updatedAt: z.string(),
 });
 export const v2CommandInput = z.discriminatedUnion('action', [
@@ -91,7 +94,11 @@ export const v2CommandInput = z.discriminatedUnion('action', [
     earlyLearner: z.boolean(),
     settings: studentSettingsInput,
   }),
-  z.object({ action: z.literal('student-active'), studentId: z.string(), active: z.boolean() }),
+  z.object({
+    action: z.literal('student-active'),
+    studentId: z.string(),
+    active: z.boolean(),
+  }),
   z.object({ action: z.literal('qr-reissue'), studentId: z.string(), reason }),
   z.object({
     action: z.literal('family-save'),
@@ -123,7 +130,13 @@ export const v2CommandInput = z.discriminatedUnion('action', [
     departedAt: z.string().optional(),
     reason,
   }),
-  z.object({ action: z.literal('correction-add'), studentId: z.string(), subject, range, reason }),
+  z.object({
+    action: z.literal('correction-add'),
+    studentId: z.string(),
+    subject,
+    range,
+    reason,
+  }),
   z.object({
     action: z.literal('correction-update'),
     id: z.string(),
@@ -425,7 +438,11 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
   } else if (c.action === 'family-save') {
     entityId = c.id || randomUUID();
     const f = op.families.find((f) => f.id === entityId);
-    if (f) Object.assign(f, { name: c.name, recurringDays: [...new Set(c.recurringDays)] });
+    if (f)
+      Object.assign(f, {
+        name: c.name,
+        recurringDays: [...new Set(c.recurringDays)],
+      });
     else
       op.families.push({
         id: entityId,
@@ -452,7 +469,12 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     )
       throw new DomainError('The requested visit is on a center closure day.');
     entityId = randomUUID();
-    op.scheduleEvents.push({ ...c, id: entityId, createdAt: at, author: staff.name });
+    op.scheduleEvents.push({
+      ...c,
+      id: entityId,
+      createdAt: at,
+      author: staff.name,
+    });
     if (features.homework && c.kind === 'vacation')
       for (const s of db.students.filter(
         (s) => s.id === c.studentId || (c.familyId && op.students[s.id].familyId === c.familyId),
@@ -516,7 +538,12 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
       delete v.closedAt;
       v.departureVerified = false;
       v.events ??= [];
-      v.events.push({ at, actor: staff.name, kind: 'reopened', reason: c.reason });
+      v.events.push({
+        at,
+        actor: staff.name,
+        kind: 'reopened',
+        reason: c.reason,
+      });
     } else {
       const departure = Date.parse(c.departedAt || '');
       if (
@@ -894,10 +921,20 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     });
     a.status = c.partial ? 'partial' : 'verified';
     a.updatedAt = at;
-    a.events.push({ at, actor: staff.name, status: a.status, reason: c.reason });
+    a.events.push({
+      at,
+      actor: staff.name,
+      status: a.status,
+      reason: c.reason,
+    });
   } else if (c.action === 'evaluation') {
     entityId = randomUUID();
-    op.evaluations.push({ ...c, id: entityId, createdAt: at, author: staff.name });
+    op.evaluations.push({
+      ...c,
+      id: entityId,
+      createdAt: at,
+      author: staff.name,
+    });
     if (c.followUp)
       db.observations.push({
         id: randomUUID(),
@@ -958,7 +995,12 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     entityId = d.id;
   } else if (c.action === 'achievement') {
     entityId = randomUUID();
-    op.achievements.push({ ...c, id: entityId, verifiedBy: staff.name, createdAt: at });
+    op.achievements.push({
+      ...c,
+      id: entityId,
+      verifiedBy: staff.name,
+      createdAt: at,
+    });
   } else if (c.action === 'appointment-save') {
     if (!op.coverage.some((s) => s.id === c.staffId && s.role === 'instructor'))
       throw new DomainError('Assign an instructor from staff coverage.');
@@ -1005,6 +1047,12 @@ export function applyV2(db: Database, c: V2Command, staff: Staff, now = new Date
     entityId = 'center';
   }
   if (features.homework) refreshProposals(db, now);
-  db.audit.push({ id: randomUUID(), action: c.action, actor: staff.name, at, entityId });
+  db.audit.push({
+    id: randomUUID(),
+    action: c.action,
+    actor: staff.name,
+    at,
+    entityId,
+  });
   return entityId;
 }

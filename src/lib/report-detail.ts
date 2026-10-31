@@ -25,7 +25,12 @@ export type ReportDetail = {
   end: string;
   asOf: string;
   provisional: boolean;
-  visits: { visit: Visit; studentName: string; minutes: number | null; notes: Observation[] }[];
+  visits: {
+    visit: Visit;
+    studentName: string;
+    minutes: number | null;
+    notes: Observation[];
+  }[];
   completions: (Completion & { studentName: string })[];
   events: ActivityRecord[];
   pendingNotes: (Observation & { studentName: string })[];
@@ -71,7 +76,10 @@ export function buildReportDetail(
   const days = new Map<string, { date: string; visits: number; sheets: number }>();
   const levels = new Map<string, { subject: string; level: string; sheets: number }>();
   const hours = new Map<string, number>();
-  const hour = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric' });
+  const hour = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+  });
   for (const visit of visits) {
     const date = dayKey(visit.arrivedAt, tz),
       day = days.get(date) || { date, visits: 0, sheets: 0 };

@@ -37,7 +37,11 @@ export function durationVisits(db: Database, studentId: string): DurationVisit[]
 
 export function durationTotals(visits: DurationVisit[]) {
   const total = visits.reduce((sum, v) => sum + v.minutes, 0);
-  return { total, count: visits.length, average: visits.length ? total / visits.length : null };
+  return {
+    total,
+    count: visits.length,
+    average: visits.length ? total / visits.length : null,
+  };
 }
 
 export function durationBuckets(

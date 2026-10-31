@@ -13,22 +13,29 @@ mkdirSync(temporary, { recursive: true });
 const runId = randomUUID();
 const runDirectory = path.resolve('data/e2e-runs', runId);
 const dataPath =
+  process.env.ARITHMETICA_E2E_DATA_PATH ||
   process.env.CENTERFLOW_E2E_DATA_PATH ||
   (process.env.E2E_EXTERNAL_SERVER === 'true'
     ? 'data/e2e-v3.json'
     : path.join(runDirectory, 'state.json'));
 const env = {
   ...process.env,
-  CENTERFLOW_E2E_DATA_PATH: dataPath,
-  CENTERFLOW_E2E_OUTPUT_DIR: e2eOutputDirectory(
-    process.env.CENTERFLOW_E2E_OUTPUT_DIR || path.resolve('test-results/runs', runId),
+  ARITHMETICA_E2E_DATA_PATH: dataPath,
+  ARITHMETICA_E2E_OUTPUT_DIR: e2eOutputDirectory(
+    process.env.ARITHMETICA_E2E_OUTPUT_DIR ||
+      process.env.CENTERFLOW_E2E_OUTPUT_DIR ||
+      path.resolve('test-results/runs', runId),
   ),
   TEMP: temporary,
   TMP: temporary,
 };
 let server, runner;
 function launch(args, environment) {
-  return spawn(process.execPath, args, { stdio: 'inherit', env: environment, windowsHide: true });
+  return spawn(process.execPath, args, {
+    stdio: 'inherit',
+    env: environment,
+    windowsHide: true,
+  });
 }
 function exitCode(child) {
   return new Promise((resolve, reject) => {
@@ -42,7 +49,7 @@ async function assertPortFree() {
     probe.once('error', () =>
       reject(
         Error(
-          `Fictional test port ${testPort} is already in use. Choose CENTERFLOW_E2E_PORT; existing servers are never reused.`,
+          `Fictional test port ${testPort} is already in use. Choose ARITHMETICA_E2E_PORT; existing servers are never reused.`,
         ),
       ),
     );
@@ -58,7 +65,9 @@ async function waitForServer() {
     if (server.exitCode !== null || server.signalCode !== null)
       throw Error('The fictional test server exited before becoming ready.');
     try {
-      const response = await fetch(testOrigin + '/login', { signal: AbortSignal.timeout(1000) });
+      const response = await fetch(testOrigin + '/login', {
+        signal: AbortSignal.timeout(1000),
+      });
       await response.body?.cancel();
       if (response.ok) return;
     } catch {

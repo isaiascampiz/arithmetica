@@ -33,7 +33,10 @@ async function main() {
     'data/backups/skill-ratings-' + new Date().toISOString().replaceAll(':', '-') + '.json',
   );
   await mkdir(path.dirname(backup), { recursive: true });
-  await writeFile(backup, JSON.stringify(before, null, 2), { flag: 'wx', mode: 0o600 });
+  await writeFile(backup, JSON.stringify(before, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
   const count = await repository.transaction((db) => {
     if (db.revision !== before.revision)
       throw Error('Center changed after backup; rerun to obtain a fresh backup.');

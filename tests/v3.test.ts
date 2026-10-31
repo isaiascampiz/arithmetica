@@ -65,7 +65,12 @@ function prepare(db: Database, v: Visit) {
   for (const a of sets)
     applyV3(
       db,
-      { action: 'prepare', ids: [a.id], versions: { [a.id]: a.v3!.version }, reprepare: false },
+      {
+        action: 'prepare',
+        ids: [a.id],
+        versions: { [a.id]: a.v3!.version },
+        reprepare: false,
+      },
       teacher,
       now,
     );
@@ -211,8 +216,16 @@ test('Home groups present, still expected and departed without changing visits o
         events: [],
       },
     },
-    { ...visit(2, 'left'), departedAt: '2026-10-12T21:00:00Z', departureVerified: true },
-    { ...visit(3, 'auto'), closedAt: '2026-10-12T22:00:00Z', departureVerified: false },
+    {
+      ...visit(2, 'left'),
+      departedAt: '2026-10-12T21:00:00Z',
+      departureVerified: true,
+    },
+    {
+      ...visit(3, 'auto'),
+      closedAt: '2026-10-12T22:00:00Z',
+      departureVerified: false,
+    },
     {
       ...visit(0, 'earlier-visit'),
       arrivedAt: '2026-10-12T16:00:00Z',
@@ -494,7 +507,10 @@ test('one-time repeat leaves permanent cursor unchanged; restart records approve
     const original = db.operations!.students[v.studentId].subjects.Math.nextStart;
     applyV3(
       db,
-      command(db, v, { repeat: { level: 'D', start: 1, restart }, physicalConfirmed: true }),
+      command(db, v, {
+        repeat: { level: 'D', start: 1, restart },
+        physicalConfirmed: true,
+      }),
       teacher,
       now,
     );
@@ -621,7 +637,12 @@ test('medals and combined format+subject filters match same subject (47,57,58)',
     createdAt: now.toISOString(),
   });
   assert.equal(
-    filterRoster(db, { ...filter, query: s.name, subject: 'Math', format: 'Paper' }).length,
+    filterRoster(db, {
+      ...filter,
+      query: s.name,
+      subject: 'Math',
+      format: 'Paper',
+    }).length,
     0,
   );
   assert.equal(
@@ -635,7 +656,12 @@ test('medals and combined format+subject filters match same subject (47,57,58)',
     1,
   );
   assert.equal(
-    filterRoster(db, { ...filter, query: s.name, subject: 'Math', medal: 'Gold' }).length,
+    filterRoster(db, {
+      ...filter,
+      query: s.name,
+      subject: 'Math',
+      medal: 'Gold',
+    }).length,
     0,
   );
   assert.equal(filterRoster(db, { ...filter, query: s.name, days: [2] }).length, 0);
@@ -718,7 +744,11 @@ for (const { name, subject, format, medal, expected } of [
       student = db.students[0],
       settings = db.operations!.students[student.id];
     settings.subjects.Math.format = 'CONNECT';
-    settings.subjects.Reading = { ...settings.subjects.Math, enrolled: true, format: 'Paper' };
+    settings.subjects.Reading = {
+      ...settings.subjects.Math,
+      enrolled: true,
+      format: 'Paper',
+    };
     db.operations!.achievements.push({
       id: 'reading-gold',
       studentId: student.id,
@@ -730,7 +760,13 @@ for (const { name, subject, format, medal, expected } of [
       createdAt: now.toISOString(),
     });
     assert.deepEqual(
-      filterRoster(db, { ...filter, query: student.name, subject, format, medal }).map((s) => s.id),
+      filterRoster(db, {
+        ...filter,
+        query: student.name,
+        subject,
+        format,
+        medal,
+      }).map((s) => s.id),
       expected ? [student.id] : [],
     );
   });
@@ -999,7 +1035,10 @@ test('returned unfinished versus missing packets persist through an actual next 
     const a = currentSets(db, second)[0];
     applyV3(
       db,
-      command(db, second, { exception: true, incoming: [{ id: old.id, state }] }),
+      command(db, second, {
+        exception: true,
+        incoming: [{ id: old.id, state }],
+      }),
       teacher,
       new Date('2026-10-14T20:05:00Z'),
     );

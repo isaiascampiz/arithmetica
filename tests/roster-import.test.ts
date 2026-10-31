@@ -107,7 +107,10 @@ test('a production baseline has no fictional students, staff, policies or histor
 });
 
 test('real source packages are refused on staging and unknown deployment environments', () => {
-  const prepared = prepareRosterImport({ expectedRevision: 0, roster: fictionalRoster() });
+  const prepared = prepareRosterImport({
+    expectedRevision: 0,
+    roster: fictionalRoster(),
+  });
   assert.doesNotThrow(() => assertRosterDestination(prepared.roster, 'staging'));
   prepared.roster.sourceSheet = 'Sheet1';
   assert.throws(() => assertRosterDestination(prepared.roster, 'staging'), /production workspace/);
@@ -159,7 +162,10 @@ test('owner import is atomic and exactly retryable with stable IDs, tokens, date
     { expectedRevision: 0, roster: prepared.roster },
     new Date('2026-10-29T20:00:00Z'),
   );
-  assert.deepEqual(applyRosterImport(db, retry, owner), { imported: 1, duplicate: true });
+  assert.deepEqual(applyRosterImport(db, retry, owner), {
+    imported: 1,
+    duplicate: true,
+  });
   assert.equal(JSON.stringify(db), saved);
   assert.equal(
     db.observations.length +
@@ -179,7 +185,11 @@ test('imports reject nonowners, stale revisions, occupied centers, duplicate sou
   const prepared = prepareRosterImport({ expectedRevision: 0, roster }, now);
   const before = JSON.stringify(db);
   assert.throws(
-    () => applyRosterImport(db, prepared, { name: 'Fictional Assistant', role: 'assistant' }),
+    () =>
+      applyRosterImport(db, prepared, {
+        name: 'Fictional Assistant',
+        role: 'assistant',
+      }),
     /Only the owner/,
   );
   db.revision = 1;

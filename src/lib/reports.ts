@@ -57,7 +57,10 @@ export function staffingWarnings(db: Database, appointment: Appointment) {
 export function reportBounds(kind: ReportView['kind'], period: string) {
   if (kind === 'daily') return { start: period, end: period };
   if (kind === 'yearly')
-    return { start: period.slice(0, 4) + '-01-01', end: period.slice(0, 4) + '-12-31' };
+    return {
+      start: period.slice(0, 4) + '-01-01',
+      end: period.slice(0, 4) + '-12-31',
+    };
   if (kind === 'monthly') {
     const start = period.slice(0, 7) + '-01';
     const end = addDays(
@@ -69,7 +72,10 @@ export function reportBounds(kind: ReportView['kind'], period: string) {
     return { start, end };
   }
   const d = weekday(period);
-  return { start: addDays(period, -((d + 6) % 7)), end: addDays(period, 6 - ((d + 6) % 7)) };
+  return {
+    start: addDays(period, -((d + 6) % 7)),
+    end: addDays(period, 6 - ((d + 6) % 7)),
+  };
 }
 export function buildReport(
   db: Database,
@@ -197,7 +203,11 @@ export function buildReport(
             range: cfg
               ? op.v3
                 ? `${cfg.level} · next planned sheet ${cfg.nextStart}`
-                : rangeLabel({ level: cfg.level, start: cfg.currentStart, end: cfg.currentEnd })
+                : rangeLabel({
+                    level: cfg.level,
+                    start: cfg.currentStart,
+                    end: cfg.currentEnd,
+                  })
               : lastCompletion
                 ? `${lastCompletion.level} verified sheets ${lastCompletion.worksheets.join(', ')}`
                 : 'Not recorded',

@@ -10,7 +10,11 @@ import { measuredMinutes } from '../src/lib/v3-analytics';
 import type { Staff } from '../src/lib/model';
 
 const now = new Date('2026-10-20T03:00:00Z'); // Monday, 8 PM in Yuba City.
-const staff: Staff = { role: 'instructor', name: 'Fictional instructor', id: 'test-instructor' };
+const staff: Staff = {
+  role: 'instructor',
+  name: 'Fictional instructor',
+  id: 'test-instructor',
+};
 test('reception retries retain their receipt after the scan debounce window without toggling attendance', () => {
   const db = quickViewDemo(now);
   db.visits = [];
@@ -31,7 +35,10 @@ test('reception retries retain their receipt after the scan debounce window with
 test('damaged reception receipts fail closed', () => {
   const db = quickViewDemo(now);
   db.operations!.v3!.receptionReceipts = {
-    [randomUUID()]: { fingerprint: 'invalid', result: { message: '', changed: true } },
+    [randomUUID()]: {
+      fingerprint: 'invalid',
+      result: { message: '', changed: true },
+    },
   };
   assert.throws(() => validateDatabase(db));
 });

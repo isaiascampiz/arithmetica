@@ -48,7 +48,7 @@ Read `AGENTS.md`, `README.md`, `docs/architecture.md`, and relevant installed `n
 
 | Area               | Start here                                                                                      | Finding / constraint                                                                                                            |
 | ------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace          | `src/components/staff-app.tsx`                                                                  | Existing role gates, dynamic screens, theme and kiosk launch                                                                    |
+| Workspace          | `src/components/workspace/staff-app.tsx`                                                        | Existing role gates, dynamic screens, theme and kiosk launch                                                                    |
 | Settings           | `v3-settings.tsx`, `calendar-reports.tsx`, `src/lib/activity-settings.ts`, `center-features.ts` | Personal shortcuts, shared display hours, owner feature flags, catalog, center policies and coverage already exist              |
 | Settings mutations | `src/lib/v3-domain.ts`, `v2-domain.ts`, `v3-model.ts`, `repository.ts`                          | Reuse durable command IDs; optional config requires validation and stale-write protection                                       |
 | Activity           | `v3-center-activity.tsx`, `src/lib/center-arrivals.ts`, `v3-analytics.ts`                       | Arrival bins/history already exist; arrival averages are not occupancy                                                          |
@@ -215,7 +215,7 @@ corepack pnpm lint
 corepack pnpm typecheck
 corepack pnpm test
 corepack pnpm build
-corepack pnpm test:e2e tests/e2e/center-activity.spec.ts tests/e2e/center-features.spec.ts tests/e2e/workflows.spec.ts tests/e2e/scanner-sync.spec.ts tests/e2e/v2-workflows.spec.ts tests/e2e/runtime-clock.spec.ts
+corepack pnpm test:e2e tests/e2e/center-activity.spec.ts tests/e2e/center-features.spec.ts tests/e2e/workflows.spec.ts tests/e2e/scanner-sync.spec.ts tests/e2e/workspace.spec.ts tests/e2e/runtime-clock.spec.ts
 ```
 
 Add new relevant specs to the browser invocation. Build before e2e because its server uses `next start`. Avoid typecheck racing Next-generated type rewrites. Browser script allocates unique fictional run directories; never redirect it to existing local records. If a fresh checkout lacks generated route types, build then rerun typecheck.

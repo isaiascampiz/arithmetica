@@ -48,7 +48,12 @@ export function addFictionalCenterActivity(db: Database, now = new Date()) {
         departedAt,
         departureVerified: true,
         events: [
-          { at: arrivedAt, kind: 'arrival', actor, reason: 'Explicit fictional chart sample.' },
+          {
+            at: arrivedAt,
+            kind: 'arrival',
+            actor,
+            reason: 'Explicit fictional chart sample.',
+          },
           {
             at: departedAt,
             kind: 'staff-departure',

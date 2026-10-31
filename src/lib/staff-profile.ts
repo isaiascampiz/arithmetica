@@ -44,7 +44,10 @@ export function validateStaffProfiles(db: Database) {
     z.record(
       z.string().uuid(),
       z
-        .object({ fingerprint: z.string().regex(/^[a-f0-9]{64}$/), owner: z.string().min(1) })
+        .object({
+          fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+          owner: z.string().min(1),
+        })
         .strict(),
     ).parse(v3.accountRequests);
 }

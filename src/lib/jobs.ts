@@ -1,6 +1,8 @@
 import { repository } from './repository';
 import { runDueJobs } from './reports';
-const runtime = globalThis as typeof globalThis & { centerJobs?: ReturnType<typeof setInterval> };
+const runtime = globalThis as typeof globalThis & {
+  centerJobs?: ReturnType<typeof setInterval>;
+};
 export function startJobs() {
   if (runtime.centerJobs) return;
   const tick = () =>
