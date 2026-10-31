@@ -207,7 +207,7 @@ test('reports reveal one metric list on demand and export Excel only monthly', a
   await expect(page.locator('.report-metric-tabs button')).toHaveCount(4);
   await expect(page.locator('.report-drilldown')).toHaveCount(1);
   await expect(page.getByText('Saved snapshots', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Export Excel', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Export Excel', exact: true })).toHaveCount(0);
   await page
     .locator('.report-metric-tabs')
     .getByRole('button', { name: /^Visits/ })
@@ -215,7 +215,7 @@ test('reports reveal one metric list on demand and export Excel only monthly', a
   await expect(page.getByRole('region', { name: 'Visits', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Summary', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Monthly', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Export Excel', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export Excel', exact: true })).toBeVisible();
   await page.screenshot({
     path: 'test-results/arithmetica-report.png',
     fullPage: true,

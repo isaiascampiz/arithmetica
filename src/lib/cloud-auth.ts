@@ -29,6 +29,7 @@ export async function cloudLogin(email: string, password: string) {
   });
   if (!res.ok) throw new DomainError('Email or password is incorrect.', 401);
   const data = await res.json();
+  await cloudStaff(data.access_token);
   const c = await cookies();
   const options = {
     httpOnly: true,
@@ -38,7 +39,6 @@ export async function cloudLogin(email: string, password: string) {
   };
   c.set('cf-cloud', data.access_token, { ...options, maxAge: data.expires_in });
   c.set('cf-refresh', data.refresh_token, { ...options, maxAge: 43200 });
-  await cloudStaff(data.access_token);
 }
 export async function cloudStaff(token?: string): Promise<Staff> {
   const { url, key } = config();

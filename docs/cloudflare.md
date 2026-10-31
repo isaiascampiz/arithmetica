@@ -1,6 +1,6 @@
 ﻿# Hosting and code releases
 
-V1 is deployed at https://arithmetica.arithmetica.workers.dev. Staging is https://arithmetica-staging.arithmetica.workers.dev and contains fictional students only. Both currently use Free plans; no paid upgrade was selected.
+The production app is at https://arithmetica.arithmetica.workers.dev. Staging is at https://arithmetica-staging.arithmetica.workers.dev and contains fictional students only. Both currently use Free plans; no paid upgrade was selected.
 
 ## Runtime
 

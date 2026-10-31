@@ -75,7 +75,7 @@ for (const width of [1024, 768, 390])
           await expect(
             page.getByRole('heading', { name: 'Yearly report', exact: true }),
           ).toBeVisible();
-          await expect(page.getByRole('link', { name: 'Export Excel', exact: true })).toHaveCount(
+          await expect(page.getByRole('button', { name: 'Export Excel', exact: true })).toHaveCount(
             0,
           );
         }

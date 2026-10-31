@@ -604,7 +604,7 @@ test('automatic report navigation hides revisions while legacy archive APIs rema
     expect(await (await page.request.get('/api/reports?id=' + id)).json()).toEqual(first);
   }
   await page.getByRole('button', { name: 'Monthly', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Export Excel', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export Excel', exact: true })).toBeVisible();
 });
 test('competing profile updates reject stale versions and command retries are idempotent', async ({
   page,

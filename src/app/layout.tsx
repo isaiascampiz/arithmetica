@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
-import { APP_NAME } from '@/lib/brand';
+import { APP_DESCRIPTION, APP_NAME } from '@/lib/brand';
 import './globals.css';
 import './v2.css';
 import './v3.css';
@@ -25,7 +25,7 @@ const editorialFont = localFont({
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: `${APP_NAME} · Learning center`,
-  description: 'A calmer day at your learning center.',
+  description: APP_DESCRIPTION,
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,

@@ -96,7 +96,7 @@ if (status === 0) {
       if (item.isDirectory()) await inspectHtml(filename);
       else if (item.name.endsWith('.html')) {
         const html = await readFile(filename, 'utf8');
-        for (const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))
+        for (const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
           if (!/\bsrc\s*=/i.test(script[1]) && script[2])
             hashes.add("'sha256-" + createHash('sha256').update(script[2]).digest('base64') + "'");
       }

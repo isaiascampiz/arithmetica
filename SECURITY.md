@@ -1,6 +1,6 @@
 # Security and privacy
 
-Do not report credentials, student information, private screenshots, or exploitable details in public issues. Use the repository's private vulnerability reporting feature when it is enabled; otherwise contact the owner privately before sharing sensitive details.
+Do not report credentials, student information, private screenshots, or exploitable details in public issues. Use the repository's private vulnerability reporting feature to contact the owner securely.
 
 Development uses fictional fixtures. Production requires separate organizational/privacy authorization and validated authentication, permissions, hosting, and recovery configuration. The public source repository is not a student-record backup.
 

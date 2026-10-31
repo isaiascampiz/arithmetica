@@ -23,7 +23,7 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
   const [preview, setPreview] = useState<ReportView | null>(null),
     [loading, setLoading] = useState(false),
     [error, setError] = useState('');
-  const params = `preview=true&kind=${kind}&period=${period}`;
+  const params = new URLSearchParams({ preview: 'true', kind, period }).toString();
   useEffect(() => {
     let disposed = false;
     setLoading(true);
@@ -103,9 +103,14 @@ export function ReportsWorkspace({ db, profile }: { db: Snapshot; profile: (id: 
             query={query}
             exportParams={
               archived
-                ? `id=${archived.id}`
-                : params +
-                  `&revision=${report.sourceRevision}&asOf=${encodeURIComponent(report.generatedAt)}`
+                ? new URLSearchParams({ id: archived.id }).toString()
+                : new URLSearchParams({
+                    preview: 'true',
+                    kind,
+                    period,
+                    revision: String(report.sourceRevision),
+                    asOf: report.generatedAt,
+                  }).toString()
             }
           />
         )
@@ -238,13 +243,16 @@ function ReportBody({
           </p>
         </div>{' '}
         {report.kind === 'monthly' && (
-          <a
-            className="secondary report-export-link"
-            href={'/api/reports?' + exportParams + '&format=xlsx'}
-          >
-            <Download size={16} />
-            Export Excel
-          </a>
+          <form action="/api/reports" method="get">
+            {Array.from(new URLSearchParams(exportParams), ([name, value]) => (
+              <input key={name} type="hidden" name={name} value={value} />
+            ))}
+            <input type="hidden" name="format" value="xlsx" />
+            <button className="secondary report-export-link" type="submit">
+              <Download size={16} />
+              Export Excel
+            </button>
+          </form>
         )}
       </header>
       <div className="report-metric-tabs" aria-label="Report sections">

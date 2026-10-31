@@ -120,7 +120,7 @@ test('verification, immutable monthly reports, retry-safe revisions and real Exc
   await page.reload();
   await page.getByRole('button', { name: 'Monthly', exact: true }).click();
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Export Excel', exact: true }).click();
+  await page.getByRole('button', { name: 'Export Excel', exact: true }).click();
   const download = await downloadEvent;
   expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
   const workbook = new ExcelJS.Workbook();

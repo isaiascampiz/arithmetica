@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Arithmetica",
   "short_name": "Arithmetica",
-  "description": "Arithmetica learning center workspace",
+  "description": "Learning center operations for attendance, worksheet preparation, instructor handoffs, and reporting.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
